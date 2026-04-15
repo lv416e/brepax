@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/pseudo_sdf_problem/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/toi_derivation/">
       
       
-        <link rel="prev" href="../contact_dynamics_analogy/">
+        <link rel="prev" href="../jax_where_gradient_pitfall/">
       
       
-        <link rel="next" href="../why_brep/">
+        <link rel="next" href="../../reference/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Pseudo-SDF Problem - BRepAX</title>
+        <title>TOI Correction Derivation - BRepAX</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#the-pseudo-sdf-problem" class="md-skip">
+        <a href="#toi-correction-derivation" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Pseudo-SDF Problem
+              TOI Correction Derivation
             
           </span>
         </div>
@@ -742,19 +742,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../pseudo_sdf_problem/" class="md-nav__link">
         
   
   
@@ -770,7 +761,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -864,10 +854,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../toi_derivation/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TOI Correction Derivation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -883,6 +900,181 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-boundary-functions-and-sign-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Boundary Functions and Sign Convention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-toi-quantity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. TOI Quantity
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. TOI Quantity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implicit-function-theorem-for-partialtaupartialtheta_0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implicit Function Theorem for \(\partial\tau/\partial\theta_0\)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-degenerate-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Degenerate Cases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-gradient-correction-formula" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Gradient Correction Formula
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-contact-dynamics-correspondence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Contact Dynamics Correspondence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-disk-disk-concrete-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Disk-Disk Concrete Example
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Disk-Disk Concrete Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#boundary-gradients" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Boundary gradients
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toi-for-the-external-tangent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TOI for the external tangent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#correction-term-at-external-tangent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Correction term at external tangent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#correction-term-at-internal-tangent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Correction term at internal tangent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Plan
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1314,6 +1506,169 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-boundary-functions-and-sign-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Boundary Functions and Sign Convention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-toi-quantity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. TOI Quantity
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. TOI Quantity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implicit-function-theorem-for-partialtaupartialtheta_0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implicit Function Theorem for \(\partial\tau/\partial\theta_0\)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-degenerate-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Degenerate Cases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-gradient-correction-formula" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Gradient Correction Formula
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-contact-dynamics-correspondence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Contact Dynamics Correspondence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-disk-disk-concrete-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Disk-Disk Concrete Example
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Disk-Disk Concrete Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#boundary-gradients" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Boundary gradients
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toi-for-the-external-tangent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TOI for the external tangent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#correction-term-at-external-tangent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Correction term at external tangent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#correction-term-at-internal-tangent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Correction term at internal tangent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Plan
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1332,8 +1687,144 @@
   
 
 
-<h1 id="the-pseudo-sdf-problem">The Pseudo-SDF Problem<a class="headerlink" href="#the-pseudo-sdf-problem" title="Permanent link">&para;</a></h1>
-<p>Why CSG operations produce pseudo-SDFs and how BRepAX handles them.</p>
+<h1 id="toi-correction-derivation">TOI Correction Derivation<a class="headerlink" href="#toi-correction-derivation" title="Permanent link">&para;</a></h1>
+<p>Mathematical derivation of the time-of-impact gradient correction for Method (B).</p>
+<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
+<p>Design parameter vector <span class="arithmatex">\(\theta = (c_{1x}, c_{1y}, r_1, c_{2x}, c_{2y}, r_2) \in \mathbb{R}^6\)</span>.</p>
+<p>Center distance <span class="arithmatex">\(d(\theta) = \|c_1 - c_2\|\)</span>.</p>
+<p>Union area <span class="arithmatex">\(f(\theta)\)</span> is continuous but has discontinuous gradient across stratum boundaries.</p>
+<h2 id="1-boundary-functions-and-sign-convention">1. Boundary Functions and Sign Convention<a class="headerlink" href="#1-boundary-functions-and-sign-convention" title="Permanent link">&para;</a></h2>
+<p>Two boundary surfaces partition parameter space into three strata:</p>
+<p><strong>External tangent</strong> (disjoint <span class="arithmatex">\(\leftrightarrow\)</span> intersecting):</p>
+<div class="arithmatex">\[g_{\text{ext}}(\theta) = d(\theta) - (r_1 + r_2)\]</div>
+<ul>
+<li><span class="arithmatex">\(g_{\text{ext}} &gt; 0\)</span>: disjoint</li>
+<li><span class="arithmatex">\(g_{\text{ext}} &lt; 0\)</span>: overlapping (intersecting or contained)</li>
+<li><span class="arithmatex">\(g_{\text{ext}} = 0\)</span>: external tangent</li>
+</ul>
+<p><strong>Internal tangent</strong> (intersecting <span class="arithmatex">\(\leftrightarrow\)</span> contained):</p>
+<div class="arithmatex">\[g_{\text{int}}(\theta) = |r_1 - r_2| - d(\theta)\]</div>
+<ul>
+<li><span class="arithmatex">\(g_{\text{int}} &gt; 0\)</span>: contained</li>
+<li><span class="arithmatex">\(g_{\text{int}} &lt; 0\)</span>: not contained (intersecting or disjoint)</li>
+<li><span class="arithmatex">\(g_{\text{int}} = 0\)</span>: internal tangent</li>
+</ul>
+<p>Convention: <strong>positive <span class="arithmatex">\(g\)</span> means the boundary has been crossed away from the intersecting stratum</strong>. The intersecting stratum is the region where both <span class="arithmatex">\(g_{\text{ext}} &lt; 0\)</span> and <span class="arithmatex">\(g_{\text{int}} &lt; 0\)</span>.</p>
+<h2 id="2-toi-quantity">2. TOI Quantity<a class="headerlink" href="#2-toi-quantity" title="Permanent link">&para;</a></h2>
+<p>Given current parameters <span class="arithmatex">\(\theta_0\)</span> and a perturbation direction <span class="arithmatex">\(v \in \mathbb{R}^6\)</span>, the time-of-impact for boundary <span class="arithmatex">\(g\)</span> is:</p>
+<div class="arithmatex">\[\tau(\theta_0, v) = \min\{t &gt; 0 : g(\theta_0 + t \cdot v) = 0\}\]</div>
+<p><strong>Domain: <span class="arithmatex">\(\tau &gt; 0\)</span> only.</strong> We compute the first forward crossing along the perturbation direction. If no crossing exists (<span class="arithmatex">\(g(\theta_0 + t \cdot v) \neq 0\)</span> for all <span class="arithmatex">\(t &gt; 0\)</span>), then <span class="arithmatex">\(\tau = +\infty\)</span> and no correction is needed.</p>
+<p>For the disk-disk case, <span class="arithmatex">\(g_{\text{ext}}(\theta_0 + tv) = d(\theta_0 + tv) - (r_1 + t \cdot v_{r_1}) - (r_2 + t \cdot v_{r_2})\)</span> is generally nonlinear in <span class="arithmatex">\(t\)</span> (through the norm <span class="arithmatex">\(d\)</span>), so <span class="arithmatex">\(\tau\)</span> is found by root-finding rather than closed-form. In practice, <code>optimistix.bisection</code> or Newton iteration suffices.</p>
+<h3 id="implicit-function-theorem-for-partialtaupartialtheta_0">Implicit Function Theorem for <span class="arithmatex">\(\partial\tau/\partial\theta_0\)</span><a class="headerlink" href="#implicit-function-theorem-for-partialtaupartialtheta_0" title="Permanent link">&para;</a></h3>
+<p>Define <span class="arithmatex">\(h(t, \theta_0) = g(\theta_0 + t \cdot v)\)</span>. At <span class="arithmatex">\(t = \tau\)</span>, <span class="arithmatex">\(h(\tau, \theta_0) = 0\)</span>.</p>
+<p>By the IFT, provided <span class="arithmatex">\(\partial h/\partial t \neq 0\)</span>:</p>
+<div class="arithmatex">\[\frac{\partial \tau}{\partial \theta_0} = -\frac{\partial h / \partial \theta_0}{\partial h / \partial t} \bigg|_{t=\tau}\]</div>
+<p>Computing the partials:</p>
+<div class="arithmatex">\[\frac{\partial h}{\partial t}\bigg|_{t=\tau} = \nabla g(\theta_\tau)^\top v\]</div>
+<div class="arithmatex">\[\frac{\partial h}{\partial \theta_0}\bigg|_{t=\tau} = \nabla g(\theta_\tau)^\top\]</div>
+<p>where <span class="arithmatex">\(\theta_\tau = \theta_0 + \tau \cdot v\)</span>. Therefore:</p>
+<div class="arithmatex">\[\frac{\partial \tau}{\partial \theta_0} = -\frac{\nabla g(\theta_\tau)^\top}{\nabla g(\theta_\tau)^\top v}\]</div>
+<p>This is a row vector in <span class="arithmatex">\(\mathbb{R}^{1 \times 6}\)</span>, linear in <span class="arithmatex">\(\nabla g\)</span>.</p>
+<p><strong>Linearity note:</strong> <span class="arithmatex">\(\partial\tau/\partial\theta_0\)</span> is a ratio of linear functions of <span class="arithmatex">\(\nabla g\)</span>, hence it is <strong>not</strong> affine in <span class="arithmatex">\(\theta_0\)</span> in general. This means <code>jax.custom_jvp</code> is insufficient; <strong><code>jax.custom_vjp</code> is required</strong> because the correction depends on the residual <span class="arithmatex">\(\theta_\tau\)</span> which is itself a function of <span class="arithmatex">\(\theta_0\)</span>.</p>
+<h2 id="3-degenerate-cases">3. Degenerate Cases<a class="headerlink" href="#3-degenerate-cases" title="Permanent link">&para;</a></h2>
+<p>The IFT requires <span class="arithmatex">\(\nabla g(\theta_\tau)^\top v \neq 0\)</span>, i.e., the perturbation must not be tangent to the boundary at the crossing point.</p>
+<p><strong>Concentric disks</strong> (<span class="arithmatex">\(c_1 = c_2\)</span>, so <span class="arithmatex">\(d = 0\)</span>): <span class="arithmatex">\(\nabla_{c} d = (c_1 - c_2)/d\)</span> is undefined. Handle by detecting <span class="arithmatex">\(d &lt; \epsilon_{\text{safe}}\)</span> and falling back to the analytical gradient for the contained stratum (which is well-defined at <span class="arithmatex">\(d = 0\)</span>: <span class="arithmatex">\(\partial f/\partial r_1 = 2\pi r_1\)</span>).</p>
+<p><strong>Equal radii</strong> (<span class="arithmatex">\(r_1 = r_2\)</span>): <span class="arithmatex">\(|r_1 - r_2| = 0\)</span>, so the internal tangent boundary passes through <span class="arithmatex">\(d = 0\)</span>, which is the concentric case above. For <span class="arithmatex">\(d &gt; 0\)</span> with <span class="arithmatex">\(r_1 = r_2\)</span>, <span class="arithmatex">\(g_{\text{int}} = -d &lt; 0\)</span> always, so the internal boundary is never reached and no correction is needed.</p>
+<p><strong>Tangent perturbation</strong> (<span class="arithmatex">\(\nabla g^\top v = 0\)</span>): The perturbation slides along the boundary without crossing. No TOI exists (<span class="arithmatex">\(\tau = +\infty\)</span>), no correction needed.</p>
+<p>Implementation: guard with <code>jnp.where(jnp.abs(denom) &gt; eps_safe, correction, 0.0)</code>.</p>
+<h2 id="4-gradient-correction-formula">4. Gradient Correction Formula<a class="headerlink" href="#4-gradient-correction-formula" title="Permanent link">&para;</a></h2>
+<p>The union area <span class="arithmatex">\(f(\theta)\)</span> is continuous across boundaries but <span class="arithmatex">\(\nabla f\)</span> is discontinuous. For <span class="arithmatex">\(\theta_0\)</span> in stratum <span class="arithmatex">\(S_i\)</span> with area formula <span class="arithmatex">\(f_i\)</span>, and adjacent stratum <span class="arithmatex">\(S_j\)</span> across boundary <span class="arithmatex">\(g = 0\)</span>:</p>
+<p><strong>Naive gradient</strong> (within-stratum autodiff):</p>
+<div class="arithmatex">\[\nabla f_{\text{naive}}(\theta_0) = \nabla f_i(\theta_0)\]</div>
+<p><strong>TOI-corrected gradient:</strong></p>
+<div class="arithmatex">\[\nabla f_{\text{corrected}}(\theta_0) = \nabla f_i(\theta_0) + \Delta \nabla f \cdot \frac{\partial \tau}{\partial \theta_0} \cdot (\nabla g(\theta_\tau)^\top v)\]</div>
+<p>Wait -- let me state this more carefully. The correction arises when we want the gradient of "what would happen if we crossed the boundary." The total derivative of <span class="arithmatex">\(f\)</span> along a path that crosses the boundary at <span class="arithmatex">\(\theta_\tau\)</span>:</p>
+<div class="arithmatex">\[\frac{df(\theta_0 + tv)}{dt}\bigg|_{t=\tau^+} - \frac{df(\theta_0 + tv)}{dt}\bigg|_{t=\tau^-} = [\nabla f_j(\theta_\tau) - \nabla f_i(\theta_\tau)]^\top v\]</div>
+<p>The boundary crossing time <span class="arithmatex">\(\tau\)</span> depends on <span class="arithmatex">\(\theta_0\)</span>, so the chain rule gives the correction:</p>
+<div class="arithmatex">\[\nabla f_{\text{corrected}} = \nabla f_i(\theta_0) + \underbrace{[\nabla f_j(\theta_\tau) - \nabla f_i(\theta_\tau)]^\top v}_{\text{gradient jump} \times \text{direction}} \cdot \underbrace{\frac{\partial \tau}{\partial \theta_0}}_{\text{boundary sensitivity}}\]</div>
+<p>Substituting <span class="arithmatex">\(\partial\tau/\partial\theta_0\)</span>:</p>
+<div class="arithmatex">\[\nabla f_{\text{corrected}} = \nabla f_i(\theta_0) - \frac{[\nabla f_j(\theta_\tau) - \nabla f_i(\theta_\tau)]^\top v}{\nabla g(\theta_\tau)^\top v} \cdot \nabla g(\theta_\tau)^\top\]</div>
+<p>Note that the <span class="arithmatex">\(v\)</span> terms cancel in the ratio when the gradient jump is parallel to <span class="arithmatex">\(\nabla g\)</span>, leaving a purely geometric correction.</p>
+<p><strong>In the VJP formulation</strong> (which is what JAX uses), the correction to the cotangent vector <span class="arithmatex">\(\bar{f}\)</span> is:</p>
+<div class="arithmatex">\[\bar{\theta}_{\text{corrected}} = \bar{\theta}_{\text{naive}} + \bar{f} \cdot \frac{[\nabla f_j(\theta_\tau) - \nabla f_i(\theta_\tau)]^\top v}{\nabla g(\theta_\tau)^\top v} \cdot \nabla g(\theta_\tau)\]</div>
+<p>Since <span class="arithmatex">\(\bar{f}\)</span> is scalar (area is scalar output), this simplifies the implementation.</p>
+<h2 id="5-contact-dynamics-correspondence">5. Contact Dynamics Correspondence<a class="headerlink" href="#5-contact-dynamics-correspondence" title="Permanent link">&para;</a></h2>
+<p>The TOI correction is structurally isomorphic to rigid-body contact handling in differentiable physics:</p>
+<table>
+<thead>
+<tr>
+<th>Physics simulation</th>
+<th>BRepAX</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State <span class="arithmatex">\(q\)</span> (position, velocity)</td>
+<td>Design parameters <span class="arithmatex">\(\theta\)</span></td>
+</tr>
+<tr>
+<td>Time step direction <span class="arithmatex">\(\dot{q} \cdot \Delta t\)</span></td>
+<td>Perturbation direction <span class="arithmatex">\(v\)</span></td>
+</tr>
+<tr>
+<td>Contact surface <span class="arithmatex">\(\phi(q) = 0\)</span></td>
+<td>Stratum boundary <span class="arithmatex">\(g(\theta) = 0\)</span></td>
+</tr>
+<tr>
+<td>Time of impact <span class="arithmatex">\(t_c\)</span></td>
+<td>Boundary crossing <span class="arithmatex">\(\tau\)</span></td>
+</tr>
+<tr>
+<td>Contact normal <span class="arithmatex">\(\nabla\phi / \|\nabla\phi\|\)</span></td>
+<td>Boundary normal <span class="arithmatex">\(\nabla g / \|\nabla g\|\)</span></td>
+</tr>
+<tr>
+<td>Velocity impulse <span class="arithmatex">\(\Delta v\)</span></td>
+<td>Gradient jump <span class="arithmatex">\(\nabla f_j - \nabla f_i\)</span></td>
+</tr>
+<tr>
+<td>Post-contact state sensitivity <span class="arithmatex">\(\partial q^+/\partial q^-\)</span></td>
+<td>Corrected gradient <span class="arithmatex">\(\nabla f_{\text{corrected}}\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>The mathematical structure is identical: both involve differentiating through a root-finding problem (IFT) and applying a correction at the event boundary. The "impulse" in physics (discontinuous velocity change) corresponds to the gradient jump (discontinuous <span class="arithmatex">\(\nabla f\)</span>) in BRepAX. The contact normal determines the direction of the impulse, just as <span class="arithmatex">\(\nabla g\)</span> determines the direction of the gradient correction.</p>
+<p>This is not a metaphor but a <strong>mathematical isomorphism</strong>: the same IFT formula applies to both domains, with the substitution table above.</p>
+<h2 id="6-disk-disk-concrete-example">6. Disk-Disk Concrete Example<a class="headerlink" href="#6-disk-disk-concrete-example" title="Permanent link">&para;</a></h2>
+<h3 id="boundary-gradients">Boundary gradients<a class="headerlink" href="#boundary-gradients" title="Permanent link">&para;</a></h3>
+<p>Unit direction from <span class="arithmatex">\(c_1\)</span> to <span class="arithmatex">\(c_2\)</span>: <span class="arithmatex">\(\hat{e} = (c_2 - c_1) / d\)</span>.</p>
+<p><strong>External tangent</strong> <span class="arithmatex">\(g_{\text{ext}} = d - r_1 - r_2\)</span>:</p>
+<div class="arithmatex">\[\nabla g_{\text{ext}} = \begin{pmatrix} -\hat{e}_x \\ -\hat{e}_y \\ -1 \\ \hat{e}_x \\ \hat{e}_y \\ -1 \end{pmatrix}\]</div>
+<p>(moving <span class="arithmatex">\(c_1\)</span> toward <span class="arithmatex">\(c_2\)</span> decreases <span class="arithmatex">\(d\)</span>, decreasing <span class="arithmatex">\(g_{\text{ext}}\)</span>; increasing <span class="arithmatex">\(r_1\)</span> decreases <span class="arithmatex">\(g_{\text{ext}}\)</span>)</p>
+<p><strong>Internal tangent</strong> <span class="arithmatex">\(g_{\text{int}} = |r_1 - r_2| - d\)</span> (assuming <span class="arithmatex">\(r_1 &gt; r_2\)</span>):</p>
+<div class="arithmatex">\[\nabla g_{\text{int}} = \begin{pmatrix} \hat{e}_x \\ \hat{e}_y \\ 1 \\ -\hat{e}_x \\ -\hat{e}_y \\ -1 \end{pmatrix}\]</div>
+<h3 id="toi-for-the-external-tangent">TOI for the external tangent<a class="headerlink" href="#toi-for-the-external-tangent" title="Permanent link">&para;</a></h3>
+<p>For <span class="arithmatex">\(\theta_0\)</span> in the intersecting stratum (<span class="arithmatex">\(g_{\text{ext}} &lt; 0\)</span>), perturbing along <span class="arithmatex">\(v\)</span>:</p>
+<div class="arithmatex">\[\tau_{\text{ext}} = \frac{-g_{\text{ext}}(\theta_0)}{\nabla g_{\text{ext}}(\theta_0)^\top v} + O(\tau^2)\]</div>
+<p>The linear approximation suffices when <span class="arithmatex">\(\theta_0\)</span> is close to the boundary (<span class="arithmatex">\(|g_{\text{ext}}|\)</span> small). For the exact <span class="arithmatex">\(\tau\)</span>, root-find <span class="arithmatex">\(g_{\text{ext}}(\theta_0 + tv) = 0\)</span>.</p>
+<h3 id="correction-term-at-external-tangent">Correction term at external tangent<a class="headerlink" href="#correction-term-at-external-tangent" title="Permanent link">&para;</a></h3>
+<p>At the boundary (<span class="arithmatex">\(d = r_1 + r_2\)</span>), the gradient jump is:</p>
+<div class="arithmatex">\[\Delta\nabla f = \nabla f_{\text{disjoint}}(\theta_\tau) - \nabla f_{\text{intersecting}}(\theta_\tau)\]</div>
+<p>For <span class="arithmatex">\(f_{\text{disjoint}} = \pi r_1^2 + \pi r_2^2\)</span> (no overlap):</p>
+<div class="arithmatex">\[\nabla f_{\text{disjoint}} = (0, 0, 2\pi r_1, 0, 0, 2\pi r_2)^\top\]</div>
+<p>For <span class="arithmatex">\(f_{\text{intersecting}}\)</span>, the gradient is the analytical formula involving <span class="arithmatex">\(\alpha\)</span>, <span class="arithmatex">\(\beta\)</span> (see <code>disk_disk_union_area</code>), evaluated at the tangent configuration.</p>
+<p>At external tangency (<span class="arithmatex">\(\alpha = 0\)</span>, <span class="arithmatex">\(\beta = 0\)</span>): <span class="arithmatex">\(f_{\text{intersecting}}\)</span> gradient w.r.t. <span class="arithmatex">\(r_1\)</span> is <span class="arithmatex">\(2\pi r_1\)</span>, and gradient w.r.t. center components is <span class="arithmatex">\(0\)</span>. So <span class="arithmatex">\(\Delta\nabla f = 0\)</span> at the tangent point itself.</p>
+<p>This means the TOI correction vanishes at exact tangency for the area -- because the area function's gradient is actually continuous at external tangency (the intersection area formula reduces to the disjoint formula as overlap goes to zero). <strong>The gradient discontinuity at external tangency is second-order, not first-order.</strong></p>
+<p>This is a significant finding: for the disk-disk union area, the TOI correction at external tangent is zero to first order. The correction becomes non-trivial only for configurations where the gradient jump is genuinely discontinuous, which occurs at <strong>internal tangency</strong> (containment transition), where <span class="arithmatex">\(\nabla f_{\text{contained}} \neq \nabla f_{\text{intersecting}}\)</span> in the center components.</p>
+<h3 id="correction-term-at-internal-tangent">Correction term at internal tangent<a class="headerlink" href="#correction-term-at-internal-tangent" title="Permanent link">&para;</a></h3>
+<p>At internal tangency (<span class="arithmatex">\(d = |r_1 - r_2|\)</span>, assuming <span class="arithmatex">\(r_1 &gt; r_2\)</span>):</p>
+<p><span class="arithmatex">\(f_{\text{contained}} = \pi r_1^2\)</span>, so <span class="arithmatex">\(\nabla f_{\text{contained}} = (0, 0, 2\pi r_1, 0, 0, 0)^\top\)</span>.</p>
+<p><span class="arithmatex">\(f_{\text{intersecting}}\)</span> evaluated at <span class="arithmatex">\(d = r_1 - r_2\)</span> gives gradients involving the <span class="arithmatex">\(\alpha, \beta\)</span> terms of the lens formula, with non-zero components in the center directions (<span class="arithmatex">\(\partial f / \partial c_{1x} \neq 0\)</span>).</p>
+<p>Therefore <span class="arithmatex">\(\Delta\nabla f \neq 0\)</span> at internal tangency, and the TOI correction is non-trivial.</p>
+<h2 id="implementation-plan">Implementation Plan<a class="headerlink" href="#implementation-plan" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Forward pass: compute <code>union_area</code> using standard branchless <code>jnp.where</code> (same as Method A without smoothing, i.e., exact SDF evaluation on grid)</li>
+<li><code>jax.custom_vjp</code> wrapper:</li>
+<li><code>fwd</code>: save residuals <code>(primal_out, stratum_label, g_ext, g_int, theta)</code></li>
+<li><code>bwd</code>: compute naive gradient + TOI correction using the formulas above</li>
+<li>Root-finding for <span class="arithmatex">\(\tau\)</span>: use linear approximation (first-order TOI) for simplicity; upgrade to <code>optimistix.bisection</code> if accuracy demands</li>
+<li>Degenerate guards: <code>safe_d</code>, denominator clamping as in the analytical function</li>
+</ol>
 
 
 
