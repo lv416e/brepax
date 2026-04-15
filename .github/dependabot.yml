@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      jax:
+        patterns:
+          - "jax*"
+      testing:
+        patterns:
+          - "pytest*"
+          - "hypothesis"
+          - "chex"
