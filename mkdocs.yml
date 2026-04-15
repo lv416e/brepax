@@ -1,0 +1,82 @@
+site_name: BRepAX
+site_url: https://lv416e.github.io/brepax
+site_description: Differentiable rasterizer for CAD Boolean operations
+repo_url: https://github.com/lv416e/brepax
+repo_name: lv416e/brepax
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - toc.follow
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+  - admonition
+  - pymdownx.details
+  - toc:
+      permalink: true
+
+extra_javascript:
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - Quickstart: tutorials/01_quickstart.md
+      - First Optimization: tutorials/02_first_optimization.md
+      - Stratum Tracking: tutorials/03_stratum_tracking.md
+  - How-To Guides:
+      - Compose Primitives: how-to/compose_primitives.md
+      - Custom Loss Functions: how-to/custom_loss.md
+      - Batch with vmap: how-to/batch_with_vmap.md
+      - Interop with pythonOCC: how-to/interop_pythonocc.md
+  - Explanation:
+      - Design Thesis: explanation/design_thesis.md
+      - Stratification Theory: explanation/stratification_theory.md
+      - Contact Dynamics Analogy: explanation/contact_dynamics_analogy.md
+      - Pseudo-SDF Problem: explanation/pseudo_sdf_problem.md
+      - Why B-Rep: explanation/why_brep.md
+      - License Strategy: explanation/license_strategy.md
+  - Reference: reference/index.md
+  - Architecture:
+      - Overview: architecture/index.md
+      - ADR:
+          - "ADR-0001: JAX-Native Rationale": architecture/adr/0001-jax-native-rationale.md
+          - "ADR-0002: Equinox PyTree Pattern": architecture/adr/0002-equinox-pytree-pattern.md
+          - "ADR-0003: Stratum Label Encoding": architecture/adr/0003-stratum-label-encoding.md
+          - "ADR-0004: Custom VJP at Boundaries": architecture/adr/0004-custom-vjp-at-boundaries.md
+          - "ADR-0005: Half-Edge Padding Strategy": architecture/adr/0005-half-edge-padding-strategy.md
+          - "ADR-0006: License Apache 2 Rationale": architecture/adr/0006-license-apache-2-rationale.md
+          - "ADR-0007: OCP Binding Choice": architecture/adr/0007-ocp-binding-choice.md
+          - "ADR-0008: OCCT Abstraction Layer": architecture/adr/0008-occt-abstraction-layer.md
