@@ -1,0 +1,29 @@
+target-version = "py311"
+line-length = 88
+
+[lint]
+select = [
+    "F",     # pyflakes
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "ANN",   # flake8-annotations
+    "B",     # flake8-bugbear
+    "A",     # flake8-builtins
+    "C4",    # flake8-comprehensions
+    "SIM",   # flake8-simplify
+    "RUF",   # ruff-specific
+]
+ignore = [
+    "ANN401",  # dynamically typed Any
+    "F722",    # jaxtyping uses string annotations that ruff cannot parse
+]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["ANN"]
+"noxfile.py" = ["ANN"]
+
+[lint.isort]
+known-first-party = ["brepax"]

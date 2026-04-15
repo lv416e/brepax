@@ -1,0 +1,41 @@
+# BRepAX Development Environment
+# Managed by mise (https://mise.jdx.dev)
+
+[tools]
+python = "3.12"
+uv = "latest"
+
+[tasks.sync]
+description = "Sync dependencies"
+run = "uv sync"
+
+[tasks.test]
+description = "Run tests"
+run = "uv run pytest"
+
+[tasks.lint]
+description = "Run ruff linter"
+run = "uv run ruff check src/ tests/"
+
+[tasks.fmt]
+description = "Format code"
+run = ["uv run ruff format src/ tests/", "uv run ruff check --fix src/ tests/"]
+
+[tasks.type-check]
+description = "Run mypy type checker"
+run = "uv run mypy src/"
+
+[tasks.check]
+description = "Run all checks (lint + type-check + test)"
+depends = ["lint", "type-check", "test"]
+
+[tasks.docs]
+description = "Serve documentation locally"
+run = "uv run mkdocs serve"
+
+[tasks.bench]
+description = "Run benchmarks"
+run = "uv run pytest tests/benchmarks/ --benchmark-only"
+
+[env]
+UV_LINK_MODE = "copy"

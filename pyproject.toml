@@ -1,0 +1,119 @@
+[project]
+name = "brepax"
+dynamic = ["version"]
+description = "Differentiable rasterizer for CAD Boolean operations — JAX-native B-Rep kernel with stratum-aware gradients."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "lv416e", email = "mary.lv416e@gmail.com" }]
+requires-python = ">=3.11,<3.14"
+keywords = ["jax", "cad", "brep", "differentiable", "sdf", "boolean", "geometry"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+dependencies = [
+    "jax>=0.4.34",
+    "jaxlib>=0.4.34",
+    "numpy>=1.26",
+    "equinox>=0.11",
+    "jaxtyping>=0.2.34",
+    "cadquery-ocp-novtk>=7.9",
+]
+
+[project.optional-dependencies]
+viz = ["matplotlib", "plotly"]
+persistence = ["gudhi>=3.10"]
+opt = ["optimistix", "lineax"]
+mesh = ["trimesh"]
+examples = ["jupyter", "ipywidgets", "nbval"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pytest-benchmark",
+    "hypothesis",
+    "chex",
+    "ruff",
+    "mypy",
+    "beartype",
+    "pre-commit",
+    "nox",
+]
+docs = [
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-jupyter",
+    "mike",
+]
+all = ["brepax[viz,persistence,opt,mesh,examples,dev,docs]"]
+
+[project.urls]
+Homepage = "https://github.com/lv416e/brepax"
+Documentation = "https://lv416e.github.io/brepax"
+Repository = "https://github.com/lv416e/brepax"
+Issues = "https://github.com/lv416e/brepax/issues"
+Changelog = "https://github.com/lv416e/brepax/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/brepax/_version.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "-p jaxtyping",
+    "--jaxtyping-packages=brepax,beartype.beartype",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "benchmark: marks benchmark tests",
+]
+filterwarnings = ["error"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+plugins = []
+
+[[tool.mypy.overrides]]
+module = [
+    "jax.*",
+    "jaxlib.*",
+    "equinox.*",
+    "jaxtyping.*",
+    "chex.*",
+    "gudhi.*",
+    "optimistix.*",
+    "lineax.*",
+]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["brepax"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 85
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@overload",
+]
