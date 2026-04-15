@@ -47,10 +47,27 @@ def _intersection_area(
     - Disjoint: d >= r1 + r2 -> 0
     - Contained: d <= |r1 - r2| -> pi * min(r1, r2)^2
     - Partial overlap: standard lens area formula
+
+    Uses safe intermediate values so that jnp.where gradient does not
+    propagate NaN from unselected branches (arccos at domain boundary,
+    division by zero when d=0).
     """
-    # Clamp to [-1, 1] to keep arccos numerically safe
-    cos_alpha = jnp.clip((d**2 + r1**2 - r2**2) / (2.0 * d * r1), -1.0, 1.0)
-    cos_beta = jnp.clip((d**2 + r2**2 - r1**2) / (2.0 * d * r2), -1.0, 1.0)
+    # Prevent division by zero and arccos domain violations in
+    # branches that are masked out by jnp.where. Without this,
+    # jnp.where evaluates both branches during gradient computation,
+    # and the unused branch can produce NaN/Inf.
+    safe_d = jnp.maximum(d, 1e-10)
+    eps = 1e-7
+    cos_alpha = jnp.clip(
+        (safe_d**2 + r1**2 - r2**2) / (2.0 * safe_d * r1),
+        -1.0 + eps,
+        1.0 - eps,
+    )
+    cos_beta = jnp.clip(
+        (safe_d**2 + r2**2 - r1**2) / (2.0 * safe_d * r2),
+        -1.0 + eps,
+        1.0 - eps,
+    )
     alpha = jnp.arccos(cos_alpha)
     beta = jnp.arccos(cos_beta)
     lens = r1**2 * (alpha - jnp.sin(2.0 * alpha) / 2.0) + r2**2 * (
