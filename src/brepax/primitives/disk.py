@@ -19,7 +19,7 @@ class Disk(Primitive):
 
     def sdf(self, x: Float[Array, "... 2"]) -> Float[Array, "..."]:
         """Signed distance from query points to the disk boundary."""
-        return jnp.linalg.norm(x - self.center, axis=-1) - self.radius
+        return jnp.linalg.norm(x - self.center, axis=-1) - self.radius  # type: ignore[no-any-return]
 
     def parameters(self) -> dict[str, Array]:
         """Return differentiable design parameters."""
