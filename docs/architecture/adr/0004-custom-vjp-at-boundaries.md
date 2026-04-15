@@ -80,6 +80,22 @@ Empirical confirmation from the Method (A) boundary proximity benchmark:
 
 Key observation: at boundary distance 0.01, Method (A) with k=0.1 shows 5.2% error. Method (C) must achieve < 0.52% at the same configuration to satisfy the 1/10 criterion.
 
+**Note:** The table above measured the **external tangent** approach only. Internal tangent measurements show different behavior:
+
+| boundary dist | k=0.1 external | k=0.1 internal | k=1.0 external | k=1.0 internal |
+|--------------|----------------|----------------|----------------|----------------|
+| 0.50 | 0.89% | 0.58% | 2.6% | 12.2% |
+| 0.10 | 0.89% | 0.60% | 12.8% | 18.3% |
+| 0.01 | **5.2%** | **1.5%** | **18.3%** | **22.1%** |
+
+At k=1.0, internal tangent degradation exceeds external tangent. This occurs because large smoothing distorts the containment structure (one disk's smoothing kernel covers the other).
+
+### Gradient jump order at boundaries
+
+TOI derivation (see `docs/explanation/toi_derivation.md`) revealed that the gradient jump at **external tangent is second-order**: the area gradient is continuous at $d = r_1 + r_2$. At **internal tangent, the jump is first-order**: the contained-stratum gradient ($\nabla f = (0, 0, 2\pi r_1, 0, 0, 0)$) differs from the intersecting-stratum gradient in center components.
+
+**Core insight: Method (C)'s differentiation from Method (A) is not primarily about correcting gradient discontinuities. It is about eliminating smoothing bias.** Method (A) introduces systematic bias from the temperature parameters k and beta, which distort both the SDF field and the area integral. Method (C) uses exact stratum-aware formulas, avoiding this bias entirely. This distinction holds at both external and internal tangent boundaries.
+
 ## Consequences
 
 - Method (C) implementation will use `jax.custom_vjp` with `(primal_out, stratum_label)` as residuals

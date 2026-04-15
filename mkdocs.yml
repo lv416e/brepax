@@ -82,3 +82,4 @@ nav:
           - "ADR-0006: License Apache 2 Rationale": architecture/adr/0006-license-apache-2-rationale.md
           - "ADR-0007: OCP Binding Choice": architecture/adr/0007-ocp-binding-choice.md
           - "ADR-0008: OCCT Abstraction Layer": architecture/adr/0008-occt-abstraction-layer.md
+          - "ADR-0009: Method B Deferred": architecture/adr/0009-method-b-deferred.md
