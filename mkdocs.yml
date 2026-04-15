@@ -70,6 +70,8 @@ nav:
       - License Strategy: explanation/license_strategy.md
       - JAX Where Gradient Pitfall: explanation/jax_where_gradient_pitfall.md
       - TOI Correction Derivation: explanation/toi_derivation.md
+      - Hybrid Optimization Strategy: explanation/hybrid_optimization_strategy.md
+      - Gate Evaluation Report: explanation/gate_evaluation_report.md
   - Reference: reference/index.md
   - Architecture:
       - Overview: architecture/index.md
@@ -83,3 +85,5 @@ nav:
           - "ADR-0007: OCP Binding Choice": architecture/adr/0007-ocp-binding-choice.md
           - "ADR-0008: OCCT Abstraction Layer": architecture/adr/0008-occt-abstraction-layer.md
           - "ADR-0009: Method B Deferred": architecture/adr/0009-method-b-deferred.md
+          - "ADR-0010: Gate 3 Split": architecture/adr/0010-gate3-split.md
+          - "ADR-0011: Hybrid Strategy": architecture/adr/0011-hybrid-strategy.md
