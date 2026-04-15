@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0004-custom-vjp-at-boundaries/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/jax_where_gradient_pitfall/">
       
       
-        <link rel="prev" href="../0003-stratum-label-encoding/">
+        <link rel="prev" href="../license_strategy/">
       
       
-        <link rel="next" href="../0005-half-edge-padding-strategy/">
+        <link rel="next" href="../../reference/">
       
       
         
       
       
-      <link rel="icon" href="../../../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>ADR-0004: Custom VJP at Boundaries - BRepAX</title>
+        <title>JAX Where Gradient Pitfall - BRepAX</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,9 +53,9 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0004-custom-vjp-at-boundaries" class="md-skip">
+        <a href="#jax-jnpwhere-gradient-pitfall" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +96,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0004: Custom VJP at Boundaries
+              JAX Where Gradient Pitfall
             
           </span>
         </div>
@@ -232,7 +232,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -343,7 +343,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/01_quickstart/" class="md-nav__link">
+      <a href="../../tutorials/01_quickstart/" class="md-nav__link">
         
   
   
@@ -371,7 +371,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/02_first_optimization/" class="md-nav__link">
+      <a href="../../tutorials/02_first_optimization/" class="md-nav__link">
         
   
   
@@ -399,7 +399,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/03_stratum_tracking/" class="md-nav__link">
+      <a href="../../tutorials/03_stratum_tracking/" class="md-nav__link">
         
   
   
@@ -488,7 +488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../how-to/compose_primitives/" class="md-nav__link">
+      <a href="../../how-to/compose_primitives/" class="md-nav__link">
         
   
   
@@ -516,7 +516,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../how-to/custom_loss/" class="md-nav__link">
+      <a href="../../how-to/custom_loss/" class="md-nav__link">
         
   
   
@@ -544,7 +544,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../how-to/batch_with_vmap/" class="md-nav__link">
+      <a href="../../how-to/batch_with_vmap/" class="md-nav__link">
         
   
   
@@ -572,7 +572,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../how-to/interop_pythonocc/" class="md-nav__link">
+      <a href="../../how-to/interop_pythonocc/" class="md-nav__link">
         
   
   
@@ -604,8 +604,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -616,13 +618,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
@@ -643,7 +643,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -661,7 +661,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/design_thesis/" class="md-nav__link">
+      <a href="../design_thesis/" class="md-nav__link">
         
   
   
@@ -689,7 +689,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/stratification_theory/" class="md-nav__link">
+      <a href="../stratification_theory/" class="md-nav__link">
         
   
   
@@ -717,7 +717,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/contact_dynamics_analogy/" class="md-nav__link">
+      <a href="../contact_dynamics_analogy/" class="md-nav__link">
         
   
   
@@ -745,7 +745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/pseudo_sdf_problem/" class="md-nav__link">
+      <a href="../pseudo_sdf_problem/" class="md-nav__link">
         
   
   
@@ -773,7 +773,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/why_brep/" class="md-nav__link">
+      <a href="../why_brep/" class="md-nav__link">
         
   
   
@@ -801,7 +801,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/license_strategy/" class="md-nav__link">
+      <a href="../license_strategy/" class="md-nav__link">
         
   
   
@@ -809,285 +809,6 @@
     
   
     License Strategy
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    JAX Where Gradient Pitfall
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../reference/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reference
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_6">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Architecture
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_6_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    ADR
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../0001-jax-native-rationale/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0001: JAX-Native Rationale
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../0002-equinox-pytree-pattern/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0002: Equinox PyTree Pattern
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../0003-stratum-label-encoding/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0003: Stratum Label Encoding
   
 
     
@@ -1124,7 +845,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0004: Custom VJP at Boundaries
+    JAX Where Gradient Pitfall
   
 
     
@@ -1142,7 +863,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0004: Custom VJP at Boundaries
+    JAX Where Gradient Pitfall
   
 
     
@@ -1168,10 +889,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#the-problem" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        The Problem
       
     </span>
   </a>
@@ -1179,10 +900,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#example-two-disk-intersection-area" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Example: Two-Disk Intersection Area
       
     </span>
   </a>
@@ -1190,71 +911,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#candidates-evaluated" class="md-nav__link">
+  <a href="#the-fix-safe-primal-values" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Candidates Evaluated
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Candidates Evaluated">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#a-jaxlaxcond-with-pure-autodiff-per-branch" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (a) jax.lax.cond with pure autodiff per branch
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#b-full-jaxcustom_vjp-with-stratum-label-as-residual" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (b) Full jax.custom_vjp with stratum label as residual
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#c-optimistixbisection-for-boundary-distance-smooth-blending" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (c) optimistix.bisection for boundary distance + smooth blending
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#d-hybrid-b-c" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (d) Hybrid (b) + (c)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
+        The Fix: Safe Primal Values
       
     </span>
   </a>
@@ -1262,71 +922,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#boundary-exact-case-convention" class="md-nav__link">
+  <a href="#relation-to-custom-vjp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Boundary Exact Case Convention
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Boundary Exact Case Convention">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#candidates-for-boundary-convention" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Candidates for boundary convention
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#implications-for-boundary-proximity-evaluation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Implications for boundary proximity evaluation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#future-extension" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Future extension
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-criterion-interpretation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate Criterion Interpretation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
+        Relation to Custom VJP
       
     </span>
   </a>
@@ -1342,6 +941,94 @@
 
               
             
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
               
                 
   
@@ -1349,7 +1036,198 @@
   
   
     <li class="md-nav__item">
-      <a href="../0005-half-edge-padding-strategy/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0001-jax-native-rationale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0001: JAX-Native Rationale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0002-equinox-pytree-pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0002: Equinox PyTree Pattern
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0003-stratum-label-encoding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0003: Stratum Label Encoding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0004-custom-vjp-at-boundaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004: Custom VJP at Boundaries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0005-half-edge-padding-strategy/" class="md-nav__link">
         
   
   
@@ -1377,7 +1255,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0006-license-apache-2-rationale/" class="md-nav__link">
+      <a href="../../architecture/adr/0006-license-apache-2-rationale/" class="md-nav__link">
         
   
   
@@ -1405,7 +1283,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0007-ocp-binding-choice/" class="md-nav__link">
+      <a href="../../architecture/adr/0007-ocp-binding-choice/" class="md-nav__link">
         
   
   
@@ -1433,7 +1311,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0008-occt-abstraction-layer/" class="md-nav__link">
+      <a href="../../architecture/adr/0008-occt-abstraction-layer/" class="md-nav__link">
         
   
   
@@ -1496,10 +1374,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#the-problem" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        The Problem
       
     </span>
   </a>
@@ -1507,10 +1385,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#example-two-disk-intersection-area" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Example: Two-Disk Intersection Area
       
     </span>
   </a>
@@ -1518,71 +1396,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#candidates-evaluated" class="md-nav__link">
+  <a href="#the-fix-safe-primal-values" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Candidates Evaluated
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Candidates Evaluated">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#a-jaxlaxcond-with-pure-autodiff-per-branch" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (a) jax.lax.cond with pure autodiff per branch
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#b-full-jaxcustom_vjp-with-stratum-label-as-residual" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (b) Full jax.custom_vjp with stratum label as residual
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#c-optimistixbisection-for-boundary-distance-smooth-blending" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (c) optimistix.bisection for boundary distance + smooth blending
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#d-hybrid-b-c" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (d) Hybrid (b) + (c)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
+        The Fix: Safe Primal Values
       
     </span>
   </a>
@@ -1590,71 +1407,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#boundary-exact-case-convention" class="md-nav__link">
+  <a href="#relation-to-custom-vjp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Boundary Exact Case Convention
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Boundary Exact Case Convention">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#candidates-for-boundary-convention" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Candidates for boundary convention
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#implications-for-boundary-proximity-evaluation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Implications for boundary proximity evaluation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#future-extension" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Future extension
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-criterion-interpretation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate Criterion Interpretation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
+        Relation to Custom VJP
       
     </span>
   </a>
@@ -1681,91 +1437,36 @@
   
 
 
-<h1 id="adr-0004-custom-vjp-at-boundaries">ADR-0004: Custom VJP at Boundaries<a class="headerlink" href="#adr-0004-custom-vjp-at-boundaries" title="Permanent link">&para;</a></h1>
-<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
-<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>At stratum boundaries (e.g., two disks at tangency, d = r1 + r2), the union area formula has a gradient discontinuity. The <code>_intersection_area</code> function uses <code>jnp.where</code> for branchless evaluation, but <code>jnp.where</code> evaluates both branches and the gradient of the "wrong" branch leaks through at the boundary. The core thesis (contact dynamics analogy) requires correct gradients at these topology changes.</p>
-<p>Stage 1 confirmed that <code>eqx.filter_jit</code>, <code>eqx.filter_vmap</code>, and <code>eqx.filter_grad</code> are required for Equinox modules, and that all traced control flow must use array operations rather than Python conditionals.</p>
-<h2 id="candidates-evaluated">Candidates Evaluated<a class="headerlink" href="#candidates-evaluated" title="Permanent link">&para;</a></h2>
-<h3 id="a-jaxlaxcond-with-pure-autodiff-per-branch">(a) <code>jax.lax.cond</code> with pure autodiff per branch<a class="headerlink" href="#a-jaxlaxcond-with-pure-autodiff-per-branch" title="Permanent link">&para;</a></h3>
-<p>Simplest implementation. Each branch has well-defined gradient. However, <code>lax.cond</code> cannot vectorize different branches for different batch elements under vmap -- a known JAX limitation. Also, the boolean predicate itself depends on differentiable parameters, and its own gradient is lost.</p>
-<h3 id="b-full-jaxcustom_vjp-with-stratum-label-as-residual">(b) Full <code>jax.custom_vjp</code> with stratum label as residual<a class="headerlink" href="#b-full-jaxcustom_vjp-with-stratum-label-as-residual" title="Permanent link">&para;</a></h3>
-<p>Complete control over backward pass. Forward evaluates normally (branchless <code>jnp.where</code>). Backward saves stratum label as residual and dispatches to the correct gradient formula per stratum using <code>jnp.where</code>. Fully vmap-compatible because both residuals and gradient dispatch use array operations. Standard pattern in differentiable physics (Brax, DiffTaichi contact handling).</p>
-<h3 id="c-optimistixbisection-for-boundary-distance-smooth-blending">(c) <code>optimistix.bisection</code> for boundary distance + smooth blending<a class="headerlink" href="#c-optimistixbisection-for-boundary-distance-smooth-blending" title="Permanent link">&para;</a></h3>
-<p>Sidesteps discontinuity by smooth-blending across a boundary band. Tunable epsilon for accuracy/smoothness tradeoff. However, this is fundamentally a smoothing approach -- it does not provide exact stratum-aware gradients. The epsilon parameter introduces a bias that does not vanish. For the two-disk case, boundary distance is already computed in closed form, making bisection unnecessary overhead.</p>
-<h3 id="d-hybrid-b-c">(d) Hybrid (b) + (c)<a class="headerlink" href="#d-hybrid-b-c" title="Permanent link">&para;</a></h3>
-<p>Clean gradients in stratum interiors via custom_vjp, smooth transition near boundaries via blending. The transition between modes itself introduces another discontinuity at distance = epsilon. Significantly more complex than either alone. Over-engineered for the concept proof.</p>
-<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Use <strong>(b): full <code>jax.custom_vjp</code></strong> with stratum label saved as residual.</p>
-<p>The forward pass keeps the existing branchless <code>jnp.where</code> evaluation. The backward pass uses <code>fwd</code> to save <code>(primal_out, stratum_label)</code> as residuals, and <code>bwd</code> dispatches to the correct gradient formula per stratum using <code>jnp.where</code>. The stratum label residual uses the scalar int encoding from ADR-0003.</p>
-<p><strong>(a) is rejected</strong> due to vmap incompatibility. <strong>(c) and (d) are rejected</strong> because they contradict Method (C)'s intent of exact stratum-aware gradients.</p>
-<h2 id="boundary-exact-case-convention">Boundary Exact Case Convention<a class="headerlink" href="#boundary-exact-case-convention" title="Permanent link">&para;</a></h2>
-<p>When the configuration lies exactly on a stratum boundary (boundary distance = 0), the gradient is mathematically undefined (discontinuous). A convention is required.</p>
-<h3 id="candidates-for-boundary-convention">Candidates for boundary convention<a class="headerlink" href="#candidates-for-boundary-convention" title="Permanent link">&para;</a></h3>
-<ol>
-<li><strong>Intersecting stratum gradient</strong> (chosen): Use the gradient formula for the intersecting regime. Simplest implementation -- no additional state needed.</li>
-<li><strong>Path-dependent (previous stratum)</strong>: Use the gradient from whichever stratum the optimization trajectory came from. Requires storing <code>prev_label</code> in custom_vjp residuals, adding state complexity.</li>
-<li><strong>Subgradient (convex combination)</strong>: Average gradients from adjacent strata. Correct from convex analysis but significantly more complex, and the boundary is measure-zero in parameter space.</li>
-</ol>
-<p><strong>Chosen: (1) intersecting stratum gradient.</strong></p>
-<p>Rationale: The boundary is a measure-zero set in parameter space, so the convention choice does not affect optimization convergence in exact arithmetic. In finite-precision arithmetic, the convention affects behavior only when a configuration lands within machine epsilon of the boundary -- a probability-zero event in practice. The intersecting formula is the natural "generic" regime (the highest-dimensional stratum in the Whitney stratification), making it the canonical default.</p>
-<h3 id="implications-for-boundary-proximity-evaluation">Implications for boundary proximity evaluation<a class="headerlink" href="#implications-for-boundary-proximity-evaluation" title="Permanent link">&para;</a></h3>
-<p>When sweeping boundary distance epsilon toward 0:</p>
+<h1 id="jax-jnpwhere-gradient-pitfall">JAX jnp.where Gradient Pitfall<a class="headerlink" href="#jax-jnpwhere-gradient-pitfall" title="Permanent link">&para;</a></h1>
+<p>A recurring pattern in differentiable geometry code using JAX.</p>
+<h2 id="the-problem">The Problem<a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h2>
+<p><code>jnp.where(cond, x, y)</code> evaluates <strong>both</strong> <code>x</code> and <code>y</code> during forward and backward passes, then selects the result based on <code>cond</code>. During gradient computation, the gradient of the <strong>unselected</strong> branch is still computed and can produce NaN or Inf if that branch involves:</p>
 <ul>
-<li><strong>Approaching from intersecting side</strong>: Gradient is smooth and continuous at the boundary (the convention matches the interior formula). No discontinuity.</li>
-<li><strong>Approaching from disjoint side</strong>: At epsilon = 0 exactly, the gradient jumps to the intersecting formula. For epsilon &gt; 0 (however small), the disjoint gradient is used. This produces a step discontinuity at the boundary that is visible in boundary proximity benchmarks.</li>
-<li><strong>Expected benchmark signature</strong>: Axis 2 (boundary proximity sweep) should show Method (C) with asymmetric error behavior -- smooth from the intersecting side, with a jump from the disjoint side. This asymmetry is a feature of the convention, not a bug. Method (A) smoothing will show symmetric but biased behavior near the boundary.</li>
+<li>Division by zero (e.g., <code>1 / d</code> where <code>d = 0</code> in the unselected regime)</li>
+<li><code>arccos</code> at domain boundaries (<code>arccos(1.0)</code> has infinite gradient)</li>
+<li><code>log(0)</code> or <code>sqrt(0)</code> in unselected branches</li>
 </ul>
-<h3 id="future-extension">Future extension<a class="headerlink" href="#future-extension" title="Permanent link">&para;</a></h3>
-<p>For N &gt; 2 primitives with more than 3 strata, the "generic stratum" convention generalizes to: use the gradient from the highest-dimensional stratum adjacent to the boundary. This may require a new ADR if the adjacency structure becomes non-trivial.</p>
-<h2 id="gate-criterion-interpretation">Gate Criterion Interpretation<a class="headerlink" href="#gate-criterion-interpretation" title="Permanent link">&para;</a></h2>
-<p>Method comparison must distinguish <strong>interior</strong> from <strong>boundary-proximal</strong> measurements:</p>
-<ul>
-<li><strong>Interior</strong> (boundary distance &gt;&gt; k): Method (A) smoothing achieves high accuracy here (&lt; 0.01% relative error at k=0.01). Method (C) stratum-aware will also be accurate in the interior. <strong>Do not expect differentiation between methods in the interior</strong> -- both should match analytical gradients closely.</li>
-<li><strong>Boundary-proximal</strong> (boundary distance in [0.001, 0.1]): This is where the methods diverge. Method (A) accuracy degrades when k &gt; boundary distance (temperature exceeds the geometric scale of the boundary). Method (C) should maintain analytical accuracy regardless of boundary proximity.</li>
-<li><strong>Gate criterion 1</strong> ("Method (C) error is 1/10 of Method (A) at epsilon in [0.001, 0.1]") applies <strong>only to boundary-proximal measurements</strong>. Comparing methods at interior points is not informative for this criterion.</li>
-</ul>
-<p>Empirical confirmation from the Method (A) boundary proximity benchmark:</p>
-<table>
-<thead>
-<tr>
-<th>boundary dist</th>
-<th>k=0.01 rel_err</th>
-<th>k=0.1 rel_err</th>
-<th>k=1.0 rel_err</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0.50</td>
-<td>0.009%</td>
-<td>0.89%</td>
-<td>2.6%</td>
-</tr>
-<tr>
-<td>0.10</td>
-<td>0.16%</td>
-<td>0.89%</td>
-<td>12.8%</td>
-</tr>
-<tr>
-<td>0.01</td>
-<td>0.06%</td>
-<td><strong>5.2%</strong></td>
-<td><strong>18.3%</strong></td>
-</tr>
-</tbody>
-</table>
-<p>Key observation: at boundary distance 0.01, Method (A) with k=0.1 shows 5.2% error. Method (C) must achieve &lt; 0.52% at the same configuration to satisfy the 1/10 criterion.</p>
-<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Method (C) implementation will use <code>jax.custom_vjp</code> with <code>(primal_out, stratum_label)</code> as residuals</li>
-<li>Gradient validation tests must include near-boundary configurations from both sides</li>
-<li>Benchmark Axis 2 interpretation must account for the asymmetric error signature described above</li>
-<li>The convention is documented here so that gate evaluation can distinguish expected from unexpected behavior</li>
-<li>See <code>docs/explanation/jax_where_gradient_pitfall.md</code> for the safe-primal pattern used in the analytical ground truth function</li>
-</ul>
+<p>The NaN propagates through the selected branch's gradient, corrupting the final result even though the forward pass returns the correct value.</p>
+<h2 id="example-two-disk-intersection-area">Example: Two-Disk Intersection Area<a class="headerlink" href="#example-two-disk-intersection-area" title="Permanent link">&para;</a></h2>
+<p>The analytical intersection area formula uses:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">cos_alpha</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">r1</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">r2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">d</span> <span class="o">*</span> <span class="n">r1</span><span class="p">)</span>  <span class="c1"># division by d</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">alpha</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">cos_alpha</span><span class="p">)</span>                          <span class="c1"># arccos at boundary</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">lens</span> <span class="o">=</span> <span class="n">r1</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">-</span> <span class="n">sin</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">alpha</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="o">...</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">disjoint</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">contained</span><span class="p">,</span> <span class="n">contained_area</span><span class="p">,</span> <span class="n">lens</span><span class="p">))</span>
+</code></pre></div>
+<p>When disks are disjoint (<code>d &gt;&gt; r1 + r2</code>), the forward pass correctly returns <code>0.0</code>. But the backward pass computes <code>d(lens)/d(r1)</code> anyway, which involves <code>d(arccos(clip(x)))/dx</code> at <code>x = 1.0</code> (infinite gradient), producing NaN.</p>
+<h2 id="the-fix-safe-primal-values">The Fix: Safe Primal Values<a class="headerlink" href="#the-fix-safe-primal-values" title="Permanent link">&para;</a></h2>
+<p>Replace potentially dangerous intermediate values with safe substitutes in branches that will be masked out:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">safe_d</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">)</span>              <span class="c1"># prevent division by zero</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">cos_alpha</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="p">(</span><span class="n">safe_d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">r1</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">r2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">safe_d</span> <span class="o">*</span> <span class="n">r1</span><span class="p">),</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="o">-</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">eps</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">eps</span><span class="p">,</span>                  <span class="c1"># keep arccos away from domain boundary</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">)</span>
+</code></pre></div>
+<p>The <code>eps</code> margin ensures that <code>arccos</code> never evaluates at exactly +/-1, where its gradient is infinite. The <code>safe_d</code> floor prevents division by zero. Both modifications only affect branches that are masked out by <code>jnp.where</code>, so forward-pass accuracy is unchanged.</p>
+<h2 id="relation-to-custom-vjp">Relation to Custom VJP<a class="headerlink" href="#relation-to-custom-vjp" title="Permanent link">&para;</a></h2>
+<p>This workaround is a pragmatic fix for the analytical ground truth function. The general solution is <code>jax.custom_vjp</code>, which allows computing the correct gradient per stratum without evaluating unused branches. This is the approach adopted for the stratum-aware Boolean method (see ADR-0004).</p>
+<p>The safe-primal pattern and the custom_vjp approach are complementary: safe primals prevent NaN in simple functions where custom_vjp would be over-engineering, while custom_vjp provides exact gradients at stratum boundaries where safe primals only suppress NaN without correcting the gradient value.</p>
 
 
 
@@ -1821,10 +1522,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
