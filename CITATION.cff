@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+title: BRepAX
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - given-names: lv416e
+    email: mary.lv416e@gmail.com
+repository-code: https://github.com/lv416e/brepax
+license: Apache-2.0
+keywords:
+  - jax
+  - cad
+  - differentiable
+  - brep
+  - boolean-operations
+  - signed-distance-function
