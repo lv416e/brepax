@@ -52,10 +52,8 @@ def _intersection_area(
     propagate NaN from unselected branches (arccos at domain boundary,
     division by zero when d=0).
     """
-    # Prevent division by zero and arccos domain violations in
-    # branches that are masked out by jnp.where. Without this,
-    # jnp.where evaluates both branches during gradient computation,
-    # and the unused branch can produce NaN/Inf.
+    # Prevent NaN gradient from unselected jnp.where branches.
+    # See docs/explanation/jax_where_gradient_pitfall.md and ADR-0004.
     safe_d = jnp.maximum(d, 1e-10)
     eps = 1e-7
     cos_alpha = jnp.clip(

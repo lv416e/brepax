@@ -68,6 +68,7 @@ nav:
       - Pseudo-SDF Problem: explanation/pseudo_sdf_problem.md
       - Why B-Rep: explanation/why_brep.md
       - License Strategy: explanation/license_strategy.md
+      - JAX Where Gradient Pitfall: explanation/jax_where_gradient_pitfall.md
   - Reference: reference/index.md
   - Architecture:
       - Overview: architecture/index.md

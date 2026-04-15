@@ -2,31 +2,57 @@
 
 Measures relative error of d(union_area)/d(r1) computed by each method
 against the analytical gradient from disk_disk_union_area. Results are
-parameterized over strata and temperature values.
+parameterized over strata, temperature values, and boundary proximity.
+
+Boundary distance for each configuration is reported alongside gradient
+error so that Axis 2 (boundary proximity sweep) predictions can be
+cross-referenced with these interior measurements.
 """
 
 import jax
 import jax.numpy as jnp
 import pytest
 
-from brepax.analytical.disk_disk import disk_disk_union_area
+from brepax.analytical.disk_disk import (
+    disk_disk_boundary_distance,
+    disk_disk_union_area,
+)
 from brepax.boolean import union_area
 from brepax.primitives import Disk
 
-# Representative configurations for each stratum
+# --- Interior configurations (Axis 1) ---
+# Each config is annotated with its boundary distance.
 STRATA_CONFIGS = {
     "intersecting": {
-        "c1": [0.0, 0.0], "r1": 1.0,
-        "c2": [1.5, 0.0], "r2": 1.0,
+        # boundary_distance = 0.50 (to external tangent d=r1+r2=2)
+        "c1": [0.0, 0.0],
+        "r1": 1.0,
+        "c2": [1.5, 0.0],
+        "r2": 1.0,
     },
     "disjoint": {
-        "c1": [0.0, 0.0], "r1": 1.0,
-        "c2": [5.0, 0.0], "r2": 1.0,
+        # boundary_distance = 3.00 (to external tangent d=r1+r2=2)
+        "c1": [0.0, 0.0],
+        "r1": 1.0,
+        "c2": [5.0, 0.0],
+        "r2": 1.0,
     },
     "contained": {
-        "c1": [0.0, 0.0], "r1": 2.0,
-        "c2": [0.3, 0.0], "r2": 0.5,
+        # boundary_distance = 1.20 (to internal tangent d=|r1-r2|=1.5)
+        "c1": [0.0, 0.0],
+        "r1": 2.0,
+        "c2": [0.3, 0.0],
+        "r2": 0.5,
     },
+}
+
+# --- Boundary proximity configurations (simplified Axis 2) ---
+# Intersecting stratum with disk centers approaching external tangent.
+# External tangent at d = r1 + r2 = 2.0, so eps = 2.0 - d.
+BOUNDARY_PROXIMITY_CONFIGS = {
+    "eps=0.50": {"c1": [0.0, 0.0], "r1": 1.0, "c2": [1.5, 0.0], "r2": 1.0},
+    "eps=0.10": {"c1": [0.0, 0.0], "r1": 1.0, "c2": [1.9, 0.0], "r2": 1.0},
+    "eps=0.01": {"c1": [0.0, 0.0], "r1": 1.0, "c2": [1.99, 0.0], "r2": 1.0},
 }
 
 TEMPERATURE_VALUES = [0.01, 0.05, 0.1, 0.5, 1.0]
@@ -39,10 +65,14 @@ def _analytical_grad_r1(c1, r1, c2, r2):
 
 def _smoothing_grad_r1(c1, r1, c2, r2, *, k, beta, resolution):
     """Method (A) d(union_area)/d(r1)."""
+
     def area_fn(radius):
         a = Disk(center=c1, radius=radius)
         b = Disk(center=c2, radius=r2)
-        return union_area(a, b, method="smoothing", k=k, beta=beta, resolution=resolution)
+        return union_area(
+            a, b, method="smoothing", k=k, beta=beta, resolution=resolution
+        )
+
     return jax.grad(area_fn)(r1)
 
 
@@ -55,6 +85,19 @@ def _relative_error(approx, exact):
     )
 
 
+def _boundary_dist(cfg):
+    """Compute boundary distance for a config dict."""
+    return disk_disk_boundary_distance(
+        jnp.array(cfg["c1"]),
+        jnp.array(cfg["r1"]),
+        jnp.array(cfg["c2"]),
+        jnp.array(cfg["r2"]),
+    )
+
+
+# ---- Axis 1: interior gradient accuracy ----
+
+
 @pytest.mark.parametrize("stratum", list(STRATA_CONFIGS.keys()))
 @pytest.mark.parametrize("k_beta", TEMPERATURE_VALUES)
 def test_gradient_accuracy_method_a(stratum, k_beta):
@@ -64,22 +107,22 @@ def test_gradient_accuracy_method_a(stratum, k_beta):
     r1 = jnp.array(cfg["r1"])
     c2 = jnp.array(cfg["c2"])
     r2 = jnp.array(cfg["r2"])
+    bdist = float(_boundary_dist(cfg))
 
-    # Higher resolution for small temperature to resolve boundary
     resolution = 256 if k_beta <= 0.05 else 128
 
     exact = _analytical_grad_r1(c1, r1, c2, r2)
-    approx = _smoothing_grad_r1(c1, r1, c2, r2, k=k_beta, beta=k_beta, resolution=resolution)
+    approx = _smoothing_grad_r1(
+        c1, r1, c2, r2, k=k_beta, beta=k_beta, resolution=resolution
+    )
     rel_err = _relative_error(approx, exact)
 
-    # Report values for review (visible with pytest -v -s)
     print(
-        f"\n  stratum={stratum}, k=beta={k_beta:.2f}, "
+        f"\n  stratum={stratum}, bdist={bdist:.2f}, k=beta={k_beta:.2f}, "
         f"exact={float(exact):.6f}, approx={float(approx):.6f}, "
         f"rel_err={float(rel_err):.6f}"
     )
 
-    # Sanity: gradient must be finite
     assert jnp.isfinite(approx), f"Non-finite gradient for {stratum} at k={k_beta}"
 
 
@@ -97,13 +140,48 @@ def test_gradient_converges_with_temperature(stratum):
     errors = []
     for k_beta in [1.0, 0.1, 0.01]:
         resolution = 256 if k_beta <= 0.05 else 128
-        approx = _smoothing_grad_r1(c1, r1, c2, r2, k=k_beta, beta=k_beta, resolution=resolution)
+        approx = _smoothing_grad_r1(
+            c1, r1, c2, r2, k=k_beta, beta=k_beta, resolution=resolution
+        )
         errors.append(float(_relative_error(approx, exact)))
 
-    # Error at k=0.01 should be less than error at k=1.0
-    # (monotone improvement is not guaranteed at every step due to
-    # discretization, but the trend should hold across this range)
     assert errors[-1] < errors[0], (
         f"Expected convergence for {stratum}: "
         f"err@k=1.0={errors[0]:.4f}, err@k=0.01={errors[-1]:.4f}"
     )
+
+
+# ---- Boundary proximity: Method (A) error vs distance to boundary ----
+
+
+@pytest.mark.parametrize("label", list(BOUNDARY_PROXIMITY_CONFIGS.keys()))
+@pytest.mark.parametrize("k_beta", [0.01, 0.1, 1.0])
+def test_boundary_proximity_method_a(label, k_beta):
+    """Method (A) gradient error as a function of boundary distance.
+
+    This is a simplified Axis 2 preview using the intersecting stratum
+    approaching external tangent (d -> r1 + r2). Expected: error
+    increases as boundary distance decreases, especially for k > eps.
+    """
+    cfg = BOUNDARY_PROXIMITY_CONFIGS[label]
+    c1 = jnp.array(cfg["c1"])
+    r1 = jnp.array(cfg["r1"])
+    c2 = jnp.array(cfg["c2"])
+    r2 = jnp.array(cfg["r2"])
+    bdist = float(_boundary_dist(cfg))
+
+    resolution = 256 if k_beta <= 0.05 else 128
+
+    exact = _analytical_grad_r1(c1, r1, c2, r2)
+    approx = _smoothing_grad_r1(
+        c1, r1, c2, r2, k=k_beta, beta=k_beta, resolution=resolution
+    )
+    rel_err = _relative_error(approx, exact)
+
+    print(
+        f"\n  {label}, bdist={bdist:.4f}, k=beta={k_beta:.2f}, "
+        f"exact={float(exact):.6f}, approx={float(approx):.6f}, "
+        f"rel_err={float(rel_err):.6f}"
+    )
+
+    assert jnp.isfinite(approx), f"Non-finite gradient at {label}, k={k_beta}"

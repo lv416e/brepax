@@ -62,9 +62,28 @@ When sweeping boundary distance epsilon toward 0:
 
 For N > 2 primitives with more than 3 strata, the "generic stratum" convention generalizes to: use the gradient from the highest-dimensional stratum adjacent to the boundary. This may require a new ADR if the adjacency structure becomes non-trivial.
 
+## Gate Criterion Interpretation
+
+Method comparison must distinguish **interior** from **boundary-proximal** measurements:
+
+- **Interior** (boundary distance >> k): Method (A) smoothing achieves high accuracy here (< 0.01% relative error at k=0.01). Method (C) stratum-aware will also be accurate in the interior. **Do not expect differentiation between methods in the interior** -- both should match analytical gradients closely.
+- **Boundary-proximal** (boundary distance in [0.001, 0.1]): This is where the methods diverge. Method (A) accuracy degrades when k > boundary distance (temperature exceeds the geometric scale of the boundary). Method (C) should maintain analytical accuracy regardless of boundary proximity.
+- **Gate criterion 1** ("Method (C) error is 1/10 of Method (A) at epsilon in [0.001, 0.1]") applies **only to boundary-proximal measurements**. Comparing methods at interior points is not informative for this criterion.
+
+Empirical confirmation from the Method (A) boundary proximity benchmark:
+
+| boundary dist | k=0.01 rel_err | k=0.1 rel_err | k=1.0 rel_err |
+|--------------|----------------|---------------|---------------|
+| 0.50 | 0.009% | 0.89% | 2.6% |
+| 0.10 | 0.16% | 0.89% | 12.8% |
+| 0.01 | 0.06% | **5.2%** | **18.3%** |
+
+Key observation: at boundary distance 0.01, Method (A) with k=0.1 shows 5.2% error. Method (C) must achieve < 0.52% at the same configuration to satisfy the 1/10 criterion.
+
 ## Consequences
 
 - Method (C) implementation will use `jax.custom_vjp` with `(primal_out, stratum_label)` as residuals
 - Gradient validation tests must include near-boundary configurations from both sides
 - Benchmark Axis 2 interpretation must account for the asymmetric error signature described above
 - The convention is documented here so that gate evaluation can distinguish expected from unexpected behavior
+- See `docs/explanation/jax_where_gradient_pitfall.md` for the safe-primal pattern used in the analytical ground truth function
