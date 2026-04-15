@@ -69,6 +69,7 @@ nav:
       - Why B-Rep: explanation/why_brep.md
       - License Strategy: explanation/license_strategy.md
       - JAX Where Gradient Pitfall: explanation/jax_where_gradient_pitfall.md
+      - TOI Correction Derivation: explanation/toi_derivation.md
   - Reference: reference/index.md
   - Architecture:
       - Overview: architecture/index.md
