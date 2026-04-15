@@ -1134,6 +1134,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#candidates-evaluated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Candidates Evaluated
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Candidates Evaluated">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-fixed-length-integerarray-n_pairs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (a) Fixed-length Integer[Array, "n_pairs"]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-single-integerarray-bit-packed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (b) Single Integer[Array, ""] (bit-packed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-static-tuple-via-eqxfieldstatictrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (c) Static tuple via eqx.field(static=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#d-intenum-jax_dataclasses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (d) IntEnum + jax_dataclasses
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1368,6 +1429,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#candidates-evaluated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Candidates Evaluated
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Candidates Evaluated">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-fixed-length-integerarray-n_pairs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (a) Fixed-length Integer[Array, "n_pairs"]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-single-integerarray-bit-packed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (b) Single Integer[Array, ""] (bit-packed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-static-tuple-via-eqxfieldstatictrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (c) Static tuple via eqx.field(static=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#d-intenum-jax_dataclasses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (d) IntEnum + jax_dataclasses
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1411,18 +1533,36 @@
 
 <h1 id="adr-0003-stratum-label-encoding">ADR-0003: Stratum Label Encoding<a class="headerlink" href="#adr-0003-stratum-label-encoding" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Proposed</p>
+<p>Accepted</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>The stratification module needs to classify and track which topological stratum a configuration belongs to. For two disks, there are 3 strata (disjoint, intersecting, contained). For N primitives with Boolean operations, the number of strata grows combinatorially. Labels must be JAX-traceable for use inside jit-compiled functions.</p>
+<p>The stratification module needs to classify and track which topological stratum a configuration belongs to. For two disks, there are 3 strata (disjoint, intersecting, contained). For N primitives with Boolean operations, the number of strata grows combinatorially. Labels must be JAX-traceable for use inside jit-compiled functions, vmap-compatible for batched configurations, and usable as <code>jax.custom_vjp</code> residuals.</p>
+<p>Stage 1 confirmed that <code>from __future__ import annotations</code> is incompatible with jaxtyping runtime checks, and that all traced values must be plain JAX arrays (not Python objects) to work with <code>eqx.filter_jit</code> and <code>eqx.filter_vmap</code>.</p>
+<h2 id="candidates-evaluated">Candidates Evaluated<a class="headerlink" href="#candidates-evaluated" title="Permanent link">&para;</a></h2>
+<h3 id="a-fixed-length-integerarray-n_pairs">(a) Fixed-length <code>Integer[Array, "n_pairs"]</code><a class="headerlink" href="#a-fixed-length-integerarray-n_pairs" title="Permanent link">&para;</a></h3>
+<p>Each element independently encodes one pairwise relationship sign. Equality check via <code>jnp.array_equal</code>. Works with jit, vmap, and as custom_vjp residual. For N primitives, <code>n_pairs = N*(N-1)//2</code> with static shape. O(n_pairs) equality check.</p>
+<h3 id="b-single-integerarray-bit-packed">(b) Single <code>Integer[Array, ""]</code> (bit-packed)<a class="headerlink" href="#b-single-integerarray-bit-packed" title="Permanent link">&para;</a></h3>
+<p>O(1) scalar equality comparison. Minimal memory. The current <code>disk_disk_stratum_label</code> already returns this shape (values 0/1/2). With 64-bit int, caps at ~40 pairs (~9 primitives) before overflow. Bit-packing logic adds opacity for debugging.</p>
+<h3 id="c-static-tuple-via-eqxfieldstatictrue">(c) Static tuple via <code>eqx.field(static=True)</code><a class="headerlink" href="#c-static-tuple-via-eqxfieldstatictrue" title="Permanent link">&para;</a></h3>
+<p>Each unique label triggers jit recompilation. Under vmap, all batch elements must share the same static value. Fundamentally incompatible with batched stratum detection.</p>
+<h3 id="d-intenum-jax_dataclasses">(d) IntEnum + jax_dataclasses<a class="headerlink" href="#d-intenum-jax_dataclasses" title="Permanent link">&para;</a></h3>
+<p>Python ints are not traced arrays. Same recompilation issue as (c) unless converted to plain arrays, at which point it reduces to (a) or (b). Experimental dependency.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>To be determined based on empirical results. Candidates:</p>
-<ol>
-<li><strong>Integer encoding</strong>: Simple enum-like integers. Fast but opaque.</li>
-<li><strong>Tuple-based encoding</strong>: Hashable tuples describing the combinatorial type. Readable but not directly JAX-traceable.</li>
-<li><strong>Binary vector encoding</strong>: Fixed-length binary vector where each bit represents a pairwise relationship. JAX-traceable and extensible.</li>
-</ol>
+<p>Start with <strong>(b) scalar <code>Integer[Array, ""]</code></strong> for two-disk configurations. Migrate to <strong>(a) <code>Integer[Array, "n_pairs"]</code></strong> when N-primitive support is implemented.</p>
+<p>Rationale:</p>
+<ul>
+<li>The current <code>disk_disk_stratum_label</code> is already (b) without explicit bit-packing (values 0/1/2 encode the stratum implicitly)</li>
+<li>Zero migration cost for the concept proof</li>
+<li>When N-primitive support arrives, (a) scales cleanly with static shapes, works with vmap, and serves as custom_vjp residuals without bit manipulation</li>
+<li>Define <code>StratumLabel = Integer[Array, "n_pairs"]</code> type alias early so call sites are prepared for the shape change</li>
+</ul>
+<p><strong>(c) and (d) are rejected</strong> -- both break under vmap and cause recompilation pathologies.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<p>The choice affects stratum caching, transition detection performance, and scalability to many primitives. Will be resolved based on empirical results with multi-primitive configurations.</p>
+<ul>
+<li>Concept proof code continues using scalar int labels as-is</li>
+<li>Type alias <code>StratumLabel</code> will be introduced in <code>stratification/label.py</code></li>
+<li>Migration trigger: when the first N &gt; 2 primitive composition is implemented</li>
+<li>Migration scope: change the type alias shape and update equality checks</li>
+</ul>
 
 
 
