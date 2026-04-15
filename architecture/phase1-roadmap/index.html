@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0001-jax-native-rationale/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/phase1-roadmap/">
       
       
-        <link rel="prev" href="../../phase1-roadmap/">
+        <link rel="prev" href="../">
       
       
-        <link rel="next" href="../0002-equinox-pytree-pattern/">
+        <link rel="next" href="../adr/0001-jax-native-rationale/">
       
       
         
       
       
-      <link rel="icon" href="../../../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>ADR-0001: JAX-Native Rationale - BRepAX</title>
+        <title>Phase 1 Roadmap - BRepAX</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,9 +53,9 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0001-jax-native-rationale" class="md-skip">
+        <a href="#phase-1-roadmap" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +96,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0001: JAX-Native Rationale
+              Phase 1 Roadmap
             
           </span>
         </div>
@@ -232,7 +232,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -343,7 +343,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/01_quickstart/" class="md-nav__link">
+      <a href="../../tutorials/01_quickstart/" class="md-nav__link">
         
   
   
@@ -371,7 +371,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/02_first_optimization/" class="md-nav__link">
+      <a href="../../tutorials/02_first_optimization/" class="md-nav__link">
         
   
   
@@ -399,7 +399,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/03_stratum_tracking/" class="md-nav__link">
+      <a href="../../tutorials/03_stratum_tracking/" class="md-nav__link">
         
   
   
@@ -488,7 +488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../how-to/compose_primitives/" class="md-nav__link">
+      <a href="../../how-to/compose_primitives/" class="md-nav__link">
         
   
   
@@ -516,7 +516,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../how-to/custom_loss/" class="md-nav__link">
+      <a href="../../how-to/custom_loss/" class="md-nav__link">
         
   
   
@@ -544,7 +544,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../how-to/batch_with_vmap/" class="md-nav__link">
+      <a href="../../how-to/batch_with_vmap/" class="md-nav__link">
         
   
   
@@ -572,7 +572,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../how-to/interop_pythonocc/" class="md-nav__link">
+      <a href="../../how-to/interop_pythonocc/" class="md-nav__link">
         
   
   
@@ -661,7 +661,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/design_thesis/" class="md-nav__link">
+      <a href="../../explanation/design_thesis/" class="md-nav__link">
         
   
   
@@ -689,7 +689,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/stratification_theory/" class="md-nav__link">
+      <a href="../../explanation/stratification_theory/" class="md-nav__link">
         
   
   
@@ -717,7 +717,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/contact_dynamics_analogy/" class="md-nav__link">
+      <a href="../../explanation/contact_dynamics_analogy/" class="md-nav__link">
         
   
   
@@ -745,7 +745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/pseudo_sdf_problem/" class="md-nav__link">
+      <a href="../../explanation/pseudo_sdf_problem/" class="md-nav__link">
         
   
   
@@ -773,7 +773,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/why_brep/" class="md-nav__link">
+      <a href="../../explanation/why_brep/" class="md-nav__link">
         
   
   
@@ -801,7 +801,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/license_strategy/" class="md-nav__link">
+      <a href="../../explanation/license_strategy/" class="md-nav__link">
         
   
   
@@ -829,7 +829,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
+      <a href="../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
         
   
   
@@ -857,7 +857,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/toi_derivation/" class="md-nav__link">
+      <a href="../../explanation/toi_derivation/" class="md-nav__link">
         
   
   
@@ -885,7 +885,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/hybrid_optimization_strategy/" class="md-nav__link">
+      <a href="../../explanation/hybrid_optimization_strategy/" class="md-nav__link">
         
   
   
@@ -913,7 +913,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/gate_evaluation_report/" class="md-nav__link">
+      <a href="../../explanation/gate_evaluation_report/" class="md-nav__link">
         
   
   
@@ -948,7 +948,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../reference/" class="md-nav__link">
+      <a href="../../reference/" class="md-nav__link">
         
   
   
@@ -1029,7 +1029,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -1054,85 +1054,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../../phase1-roadmap/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Phase 1 Roadmap
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_6_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    ADR
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
     
   
   
@@ -1152,7 +1073,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0001: JAX-Native Rationale
+    Phase 1 Roadmap
   
 
     
@@ -1170,7 +1091,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0001: JAX-Native Rationale
+    Phase 1 Roadmap
   
 
     
@@ -1196,10 +1117,38 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#3d-primitive-implementation-order" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        3D Primitive Implementation Order
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3D Primitive Implementation Order">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#midpoint-milestone-cylinder-plane-drilling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Midpoint Milestone: Cylinder + Plane Drilling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#boolean-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Boolean Operations
       
     </span>
   </a>
@@ -1207,10 +1156,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#method-b-toi-correction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Method (B) TOI Correction
       
     </span>
   </a>
@@ -1218,10 +1167,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#hybrid-optimizer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Hybrid Optimizer
       
     </span>
   </a>
@@ -1229,10 +1178,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
+  <a href="#completion-criteria" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Completion Criteria
       
     </span>
   </a>
@@ -1254,8 +1203,87 @@
   
   
   
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="../0002-equinox-pytree-pattern/" class="md-nav__link">
+      <a href="../adr/0001-jax-native-rationale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0001: JAX-Native Rationale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0002-equinox-pytree-pattern/" class="md-nav__link">
         
   
   
@@ -1283,7 +1311,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0003-stratum-label-encoding/" class="md-nav__link">
+      <a href="../adr/0003-stratum-label-encoding/" class="md-nav__link">
         
   
   
@@ -1311,7 +1339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0004-custom-vjp-at-boundaries/" class="md-nav__link">
+      <a href="../adr/0004-custom-vjp-at-boundaries/" class="md-nav__link">
         
   
   
@@ -1339,7 +1367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0005-half-edge-padding-strategy/" class="md-nav__link">
+      <a href="../adr/0005-half-edge-padding-strategy/" class="md-nav__link">
         
   
   
@@ -1367,7 +1395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0006-license-apache-2-rationale/" class="md-nav__link">
+      <a href="../adr/0006-license-apache-2-rationale/" class="md-nav__link">
         
   
   
@@ -1395,7 +1423,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0007-ocp-binding-choice/" class="md-nav__link">
+      <a href="../adr/0007-ocp-binding-choice/" class="md-nav__link">
         
   
   
@@ -1423,7 +1451,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0008-occt-abstraction-layer/" class="md-nav__link">
+      <a href="../adr/0008-occt-abstraction-layer/" class="md-nav__link">
         
   
   
@@ -1451,7 +1479,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0009-method-b-deferred/" class="md-nav__link">
+      <a href="../adr/0009-method-b-deferred/" class="md-nav__link">
         
   
   
@@ -1479,7 +1507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0010-gate3-split/" class="md-nav__link">
+      <a href="../adr/0010-gate3-split/" class="md-nav__link">
         
   
   
@@ -1507,7 +1535,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0011-hybrid-strategy/" class="md-nav__link">
+      <a href="../adr/0011-hybrid-strategy/" class="md-nav__link">
         
   
   
@@ -1570,10 +1598,38 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#3d-primitive-implementation-order" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        3D Primitive Implementation Order
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3D Primitive Implementation Order">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#midpoint-milestone-cylinder-plane-drilling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Midpoint Milestone: Cylinder + Plane Drilling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#boolean-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Boolean Operations
       
     </span>
   </a>
@@ -1581,10 +1637,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#method-b-toi-correction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Method (B) TOI Correction
       
     </span>
   </a>
@@ -1592,10 +1648,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#hybrid-optimizer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Hybrid Optimizer
       
     </span>
   </a>
@@ -1603,10 +1659,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
+  <a href="#completion-criteria" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Completion Criteria
       
     </span>
   </a>
@@ -1633,26 +1689,79 @@
   
 
 
-<h1 id="adr-0001-jax-native-rationale">ADR-0001: JAX-Native Rationale<a class="headerlink" href="#adr-0001-jax-native-rationale" title="Permanent link">&para;</a></h1>
-<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
-<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>BRepAX needs a differentiable computation backend for geometric operations. The primary candidates are JAX, PyTorch, and custom C++ with autodiff. The library targets researchers in computational geometry and CAD optimization who need composable transformations (jit, vmap, grad) over geometric primitives.</p>
-<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Implement BRepAX as a pure JAX library, without C++ extensions or PyTorch interop.</p>
-<p>Key reasons:</p>
+<h1 id="phase-1-roadmap">Phase 1 Roadmap<a class="headerlink" href="#phase-1-roadmap" title="Permanent link">&para;</a></h1>
+<p>Informed by concept proof findings: stratum-aware gradient exactness (Gate 1),
+method complementarity (ADR-0011), and the hybrid optimization requirement.</p>
+<h2 id="3d-primitive-implementation-order">3D Primitive Implementation Order<a class="headerlink" href="#3d-primitive-implementation-order" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Primitive</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Sphere</td>
+<td>Natural 3D extension of disk-disk. Same stratum structure (disjoint/intersecting/contained), same boundary function form (g = d - r1 - r2). Concept proof patterns reuse directly.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Cylinder</td>
+<td>Axis-symmetric, industrially critical. SDF is distance to infinite cylinder minus radius. Stratum structure adds axis-parallel complexity.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Plane</td>
+<td>Trivial SDF (signed distance to half-space). Enables <strong>Cylinder + Plane = drilling</strong> demo, the Phase 1 midpoint milestone.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Cone</td>
+<td>Natural extension of Cylinder (linear radius profile). Reuses Cylinder implementation patterns.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Torus</td>
+<td>Non-convex SDF. Most complex parametric surface in the set.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Box</td>
+<td>Axis-aligned. Edge and corner singularities create complex stratum structure.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="midpoint-milestone-cylinder-plane-drilling">Midpoint Milestone: Cylinder + Plane Drilling<a class="headerlink" href="#midpoint-milestone-cylinder-plane-drilling" title="Permanent link">&para;</a></h3>
+<p>After primitives 1-3 are complete, demonstrate differentiable Boolean intersection
+of a Cylinder through a Plane (drilling operation). This is a representative
+industrial CAD operation and serves as the first 3D demo with external visibility.</p>
+<h2 id="boolean-operations">Boolean Operations<a class="headerlink" href="#boolean-operations" title="Permanent link">&para;</a></h2>
+<p>Union, intersection, and subtract for all primitive pairs. Method (C) stratum-aware
+is the primary method; Method (A) smoothing is retained for cross-stratum exploration.</p>
+<h2 id="method-b-toi-correction">Method (B) TOI Correction<a class="headerlink" href="#method-b-toi-correction" title="Permanent link">&para;</a></h2>
+<p>Deferred to Phase 2 (ADR-0009). Implementation will occur alongside the hybrid
+optimizer where cross-stratum gradient transfer has a concrete use case.
+The mathematical derivation is complete (docs/explanation/toi_derivation.md).</p>
+<h2 id="hybrid-optimizer">Hybrid Optimizer<a class="headerlink" href="#hybrid-optimizer" title="Permanent link">&para;</a></h2>
+<p>Phase 1 delivers the API skeleton in <code>brepax/experimental/optimizers/</code>:</p>
 <ul>
-<li><strong>Composable transformations</strong>: JAX's functional transformation model (jit/vmap/grad) maps naturally to geometric operations on SDF fields</li>
-<li><strong>custom_vjp/custom_jvp</strong>: Essential for implementing stratum-aware gradient corrections at topological boundaries</li>
-<li><strong>Ecosystem alignment</strong>: Equinox, Diffrax, Optimistix provide battle-tested patterns for scientific JAX libraries</li>
-<li><strong>Static shape model</strong>: Forces explicit handling of topology changes via padding/masking, which aligns with stratum tracking design</li>
+<li><code>HybridSchedule</code>: switch criteria (step count, boundary distance, loss plateau)</li>
+<li><code>HybridResult</code>: trajectory, method log, stratum transitions, convergence status</li>
+<li><code>hybrid_optimize()</code>: function signature fixed, implementation raises NotImplementedError</li>
 </ul>
-<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<p>Phase 1 example notebook demonstrates manual Method (A) → Method (C) switching
+on the disk-disk problem. Phase 2 implements the automatic scheduler.</p>
+<h2 id="completion-criteria">Completion Criteria<a class="headerlink" href="#completion-criteria" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Users must work within the JAX ecosystem (no PyTorch interop)</li>
-<li>Dynamic topology changes require padding strategies (see ADR-0005)</li>
-<li>Performance-critical inner loops stay in Python/JAX until profiling shows otherwise</li>
-<li>C++ extensions are deferred unless benchmarks reveal specific bottlenecks</li>
+<li>[ ] 6 primitives with SDF, jit/vmap/grad compatible, property tests</li>
+<li>[ ] Union/intersection/subtract Boolean operations via Method (C)</li>
+<li>[ ] Cylinder + Plane drilling demo notebook</li>
+<li>[ ] Hybrid optimizer API skeleton in experimental/</li>
+<li>[ ] Gradient accuracy benchmark for 3D Boolean matching analytical baseline</li>
+<li>[ ] GPU benchmark for Gate 3b (vmap scaling on CUDA or Metal)</li>
 </ul>
 
 
@@ -1709,10 +1818,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
