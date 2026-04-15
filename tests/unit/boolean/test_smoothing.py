@@ -162,9 +162,7 @@ class TestUnionAreaSmoothing:
         with pytest.raises((ValueError, TypeError, Exception)):
             union_area(a, b, method="bogus")  # type: ignore[arg-type]
 
-    def test_unimplemented_methods_raise(self, two_disks) -> None:
+    def test_unimplemented_toi_raises(self, two_disks) -> None:
         a, b = two_disks
         with pytest.raises(NotImplementedError):
             union_area(a, b, method="toi")
-        with pytest.raises(NotImplementedError):
-            union_area(a, b, method="stratum")

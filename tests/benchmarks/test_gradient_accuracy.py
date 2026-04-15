@@ -76,6 +76,17 @@ def _smoothing_grad_r1(c1, r1, c2, r2, *, k, beta, resolution):
     return jax.grad(area_fn)(r1)
 
 
+def _stratum_grad_r1(c1, r1, c2, r2):
+    """Method (C) d(union_area)/d(r1)."""
+
+    def area_fn(radius):
+        a = Disk(center=c1, radius=radius)
+        b = Disk(center=c2, radius=r2)
+        return union_area(a, b, method="stratum")
+
+    return jax.grad(area_fn)(r1)
+
+
 def _relative_error(approx, exact):
     """Relative error, safe for near-zero exact values."""
     return jnp.where(
@@ -185,3 +196,61 @@ def test_boundary_proximity_method_a(label, k_beta):
     )
 
     assert jnp.isfinite(approx), f"Non-finite gradient at {label}, k={k_beta}"
+
+
+# ---- Method (A) vs (C) head-to-head comparison ----
+
+# Internal tangent configs for the comparison that matters most
+INTERNAL_TANGENT_CONFIGS = {
+    "int_eps=0.50": {"c1": [0.0, 0.0], "r1": 2.0, "c2": [2.0, 0.0], "r2": 0.5},
+    "int_eps=0.10": {"c1": [0.0, 0.0], "r1": 2.0, "c2": [1.6, 0.0], "r2": 0.5},
+    "int_eps=0.01": {"c1": [0.0, 0.0], "r1": 2.0, "c2": [1.51, 0.0], "r2": 0.5},
+}
+
+
+@pytest.mark.parametrize("label", list(BOUNDARY_PROXIMITY_CONFIGS.keys()))
+def test_method_c_vs_a_external_tangent(label):
+    """Method (C) vs Method (A) at external tangent boundary."""
+    cfg = BOUNDARY_PROXIMITY_CONFIGS[label]
+    c1, r1 = jnp.array(cfg["c1"]), jnp.array(cfg["r1"])
+    c2, r2 = jnp.array(cfg["c2"]), jnp.array(cfg["r2"])
+    bdist = float(_boundary_dist(cfg))
+
+    exact = _analytical_grad_r1(c1, r1, c2, r2)
+    approx_c = _stratum_grad_r1(c1, r1, c2, r2)
+    approx_a = _smoothing_grad_r1(c1, r1, c2, r2, k=0.1, beta=0.1, resolution=128)
+
+    err_c = float(_relative_error(approx_c, exact))
+    err_a = float(_relative_error(approx_a, exact))
+    ratio = err_a / max(err_c, 1e-15)
+
+    print(
+        f"\n  EXTERNAL {label}, bdist={bdist:.4f}, "
+        f"err_A={err_a:.6f}, err_C={err_c:.6f}, ratio={ratio:.1f}x"
+    )
+
+    assert jnp.isfinite(approx_c)
+
+
+@pytest.mark.parametrize("label", list(INTERNAL_TANGENT_CONFIGS.keys()))
+def test_method_c_vs_a_internal_tangent(label):
+    """Method (C) vs Method (A) at internal tangent boundary."""
+    cfg = INTERNAL_TANGENT_CONFIGS[label]
+    c1, r1 = jnp.array(cfg["c1"]), jnp.array(cfg["r1"])
+    c2, r2 = jnp.array(cfg["c2"]), jnp.array(cfg["r2"])
+    bdist = float(_boundary_dist(cfg))
+
+    exact = _analytical_grad_r1(c1, r1, c2, r2)
+    approx_c = _stratum_grad_r1(c1, r1, c2, r2)
+    approx_a = _smoothing_grad_r1(c1, r1, c2, r2, k=0.1, beta=0.1, resolution=128)
+
+    err_c = float(_relative_error(approx_c, exact))
+    err_a = float(_relative_error(approx_a, exact))
+    ratio = err_a / max(err_c, 1e-15)
+
+    print(
+        f"\n  INTERNAL {label}, bdist={bdist:.4f}, "
+        f"err_A={err_a:.6f}, err_C={err_c:.6f}, ratio={ratio:.1f}x"
+    )
+
+    assert jnp.isfinite(approx_c)

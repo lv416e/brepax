@@ -10,6 +10,7 @@ from typing import Literal
 from jaxtyping import Array, Float
 
 from brepax.boolean.smoothing import union_area_smoothing
+from brepax.boolean.stratum import union_area_stratum
 from brepax.primitives._base import Primitive
 
 BooleanMethod = Literal["smoothing", "toi", "stratum"]
@@ -49,7 +50,7 @@ def union_area(
     elif method == "toi":
         raise NotImplementedError("TOI method not yet implemented")
     elif method == "stratum":
-        raise NotImplementedError("stratum method not yet implemented")
+        return union_area_stratum(a, b)
     else:
         msg = f"unknown method: {method}"
         raise ValueError(msg)
