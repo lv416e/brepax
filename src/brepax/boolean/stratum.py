@@ -111,7 +111,15 @@ def _stratum_label(
 # Each computes d(union_area)/d(c1, r1, c2, r2) for one stratum.
 
 
-def _grad_disjoint(c1, r1, c2, r2):
+_GradTuple = tuple[Array, Array, Array, Array]
+
+
+def _grad_disjoint(
+    c1: Float[Array, "2"],
+    r1: Float[Array, ""],
+    c2: Float[Array, "2"],
+    r2: Float[Array, ""],
+) -> _GradTuple:
     """Gradient when disks are disjoint: area = pi*r1^2 + pi*r2^2."""
     return (
         jnp.zeros(2),  # d/dc1
@@ -121,7 +129,12 @@ def _grad_disjoint(c1, r1, c2, r2):
     )
 
 
-def _grad_contained(c1, r1, c2, r2):
+def _grad_contained(
+    c1: Float[Array, "2"],
+    r1: Float[Array, ""],
+    c2: Float[Array, "2"],
+    r2: Float[Array, ""],
+) -> _GradTuple:
     """Gradient when one disk contains the other: area = pi*max(r1,r2)^2."""
     r_max = jnp.maximum(r1, r2)
     is_r1_bigger = r1 >= r2
@@ -133,10 +146,13 @@ def _grad_contained(c1, r1, c2, r2):
     )
 
 
-def _grad_intersecting(c1, r1, c2, r2):
+def _grad_intersecting(
+    c1: Float[Array, "2"],
+    r1: Float[Array, ""],
+    c2: Float[Array, "2"],
+    r2: Float[Array, ""],
+) -> _GradTuple:
     """Gradient for the intersecting stratum via autodiff of the lens formula."""
-    # Use JAX autodiff on the analytical formula within this stratum.
-    # The custom_vjp ensures only this branch's gradient is used.
     primals = (c1, r1, c2, r2)
     _, vjp_fn = jax.vjp(_union_area_forward, *primals)
     gc1, gr1, gc2, gr2 = vjp_fn(jnp.ones(()))
@@ -146,7 +162,12 @@ def _grad_intersecting(c1, r1, c2, r2):
 # --- custom_vjp plumbing ---
 
 
-def _union_area_stratum_fwd(c1, r1, c2, r2):
+def _union_area_stratum_fwd(
+    c1: Float[Array, "2"],
+    r1: Float[Array, ""],
+    c2: Float[Array, "2"],
+    r2: Float[Array, ""],
+) -> tuple[Float[Array, ""], tuple[Array, ...]]:
     """Forward pass: compute primal + save residuals for backward."""
     primal = _union_area_forward(c1, r1, c2, r2)
     d = jnp.linalg.norm(c1 - c2)
@@ -155,17 +176,22 @@ def _union_area_stratum_fwd(c1, r1, c2, r2):
     return primal, residuals
 
 
-def _union_area_stratum_bwd(residuals, g_bar):
+def _union_area_stratum_bwd(
+    residuals: tuple[Array, ...],
+    g_bar: Float[Array, ""],
+) -> _GradTuple:
     """Backward pass: dispatch gradient based on stratum label."""
     c1, r1, c2, r2, label = residuals
 
-    # Compute gradient for each stratum
     gc1_d, gr1_d, gc2_d, gr2_d = _grad_disjoint(c1, r1, c2, r2)
     gc1_i, gr1_i, gc2_i, gr2_i = _grad_intersecting(c1, r1, c2, r2)
     gc1_c, gr1_c, gc2_c, gr2_c = _grad_contained(c1, r1, c2, r2)
 
-    # Select based on label (0=disjoint, 1=intersecting, 2=contained)
-    def select(d_val, i_val, c_val):
+    def select(
+        d_val: Array,
+        i_val: Array,
+        c_val: Array,
+    ) -> Array:
         return jnp.where(
             label == 0.0,
             d_val,

@@ -97,10 +97,6 @@ module = [
     "jaxlib.*",
     "equinox.*",
     "jaxtyping.*",
-    "chex.*",
-    "gudhi.*",
-    "optimistix.*",
-    "lineax.*",
 ]
 ignore_missing_imports = true
 
