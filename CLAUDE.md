@@ -93,16 +93,22 @@ For type hints causing circular imports, use `TYPE_CHECKING` guard with string a
 
 ## Scope Boundaries
 
-Current scope:
+Current scope (Phase 1):
 
-- 2D primitives (Disk) and union operations with three gradient methods (smoothing, TOI correction, stratum-aware)
+- 3D primitives in order: Sphere, Cylinder, Plane, Cone, Torus, Box
+- Union, intersection, and subtract Boolean operations via Method (A) smoothing and Method (C) stratum-aware
+- Hybrid optimizer API skeleton in `experimental/optimizers/`
+- Midpoint milestone: Cylinder + Plane drilling demonstration
+
+Completed (concept proof):
+
+- 2D Disk primitive with Method (A) and Method (C) gradient comparison
 - Analytical ground truth for two-disk configurations
-- Gradient accuracy benchmarking infrastructure
+- Gradient accuracy benchmarking (Gate 1 PASS, Gate 2a PASS, Gate 3a PASS)
 
-Not yet in scope (defer to future PRs):
+Not yet in scope (defer to future work):
 
-- 3D primitives (Plane, Sphere, Cylinder, Cone, Torus, Box)
-- Intersection and subtraction Boolean operations
+- Method (B) TOI correction implementation (deferred to hybrid optimizer context, ADR-0009)
 - Topology data structures (half-edge mesh)
 - Persistent homology integration
 - B-Rep bridge layer (OCP-to-JAX conversion)

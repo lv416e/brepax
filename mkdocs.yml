@@ -75,6 +75,7 @@ nav:
   - Reference: reference/index.md
   - Architecture:
       - Overview: architecture/index.md
+      - Phase 1 Roadmap: architecture/phase1-roadmap.md
       - ADR:
           - "ADR-0001: JAX-Native Rationale": architecture/adr/0001-jax-native-rationale.md
           - "ADR-0002: Equinox PyTree Pattern": architecture/adr/0002-equinox-pytree-pattern.md
