@@ -10,31 +10,29 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/tutorials/02_first_optimization/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0011-hybrid-strategy/">
       
       
-        <link rel="prev" href="../01_quickstart/">
+        <link rel="prev" href="../0010-gate3-split/">
       
-      
-        <link rel="next" href="../03_stratum_tracking/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>First Optimization - BRepAX</title>
+        <title>ADR-0011: Hybrid Strategy - BRepAX</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,9 +51,9 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#first-optimization" class="md-skip">
+        <a href="#adr-0011-stratum-aware-locality-and-hybrid-optimization-strategy" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +94,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -116,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              First Optimization
+              ADR-0011: Hybrid Strategy
             
           </span>
         </div>
@@ -232,7 +230,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +260,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -286,8 +284,6 @@
       
   
   
-    
-  
   
   
     
@@ -300,11 +296,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
@@ -325,7 +323,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -343,7 +341,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../01_quickstart/" class="md-nav__link">
+      <a href="../../../tutorials/01_quickstart/" class="md-nav__link">
         
   
   
@@ -368,19 +366,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../tutorials/02_first_optimization/" class="md-nav__link">
         
   
   
@@ -396,7 +385,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -409,7 +397,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../03_stratum_tracking/" class="md-nav__link">
+      <a href="../../../tutorials/03_stratum_tracking/" class="md-nav__link">
         
   
   
@@ -498,7 +486,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../how-to/compose_primitives/" class="md-nav__link">
+      <a href="../../../how-to/compose_primitives/" class="md-nav__link">
         
   
   
@@ -526,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../how-to/custom_loss/" class="md-nav__link">
+      <a href="../../../how-to/custom_loss/" class="md-nav__link">
         
   
   
@@ -554,7 +542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../how-to/batch_with_vmap/" class="md-nav__link">
+      <a href="../../../how-to/batch_with_vmap/" class="md-nav__link">
         
   
   
@@ -582,7 +570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../how-to/interop_pythonocc/" class="md-nav__link">
+      <a href="../../../how-to/interop_pythonocc/" class="md-nav__link">
         
   
   
@@ -671,7 +659,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/design_thesis/" class="md-nav__link">
+      <a href="../../../explanation/design_thesis/" class="md-nav__link">
         
   
   
@@ -699,7 +687,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/stratification_theory/" class="md-nav__link">
+      <a href="../../../explanation/stratification_theory/" class="md-nav__link">
         
   
   
@@ -727,7 +715,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/contact_dynamics_analogy/" class="md-nav__link">
+      <a href="../../../explanation/contact_dynamics_analogy/" class="md-nav__link">
         
   
   
@@ -755,7 +743,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/pseudo_sdf_problem/" class="md-nav__link">
+      <a href="../../../explanation/pseudo_sdf_problem/" class="md-nav__link">
         
   
   
@@ -783,7 +771,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/why_brep/" class="md-nav__link">
+      <a href="../../../explanation/why_brep/" class="md-nav__link">
         
   
   
@@ -811,7 +799,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/license_strategy/" class="md-nav__link">
+      <a href="../../../explanation/license_strategy/" class="md-nav__link">
         
   
   
@@ -839,7 +827,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
+      <a href="../../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
         
   
   
@@ -867,7 +855,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/toi_derivation/" class="md-nav__link">
+      <a href="../../../explanation/toi_derivation/" class="md-nav__link">
         
   
   
@@ -895,7 +883,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/hybrid_optimization_strategy/" class="md-nav__link">
+      <a href="../../../explanation/hybrid_optimization_strategy/" class="md-nav__link">
         
   
   
@@ -923,7 +911,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../explanation/gate_evaluation_report/" class="md-nav__link">
+      <a href="../../../explanation/gate_evaluation_report/" class="md-nav__link">
         
   
   
@@ -958,7 +946,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/" class="md-nav__link">
+      <a href="../../../reference/" class="md-nav__link">
         
   
   
@@ -982,8 +970,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -994,13 +984,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
@@ -1021,7 +1009,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1039,7 +1027,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/" class="md-nav__link">
+      <a href="../../" class="md-nav__link">
         
   
   
@@ -1064,6 +1052,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1073,13 +1063,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" checked>
         
           
           <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
@@ -1100,7 +1088,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1118,7 +1106,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0001-jax-native-rationale/" class="md-nav__link">
+      <a href="../0001-jax-native-rationale/" class="md-nav__link">
         
   
   
@@ -1146,7 +1134,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0002-equinox-pytree-pattern/" class="md-nav__link">
+      <a href="../0002-equinox-pytree-pattern/" class="md-nav__link">
         
   
   
@@ -1174,7 +1162,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0003-stratum-label-encoding/" class="md-nav__link">
+      <a href="../0003-stratum-label-encoding/" class="md-nav__link">
         
   
   
@@ -1202,7 +1190,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0004-custom-vjp-at-boundaries/" class="md-nav__link">
+      <a href="../0004-custom-vjp-at-boundaries/" class="md-nav__link">
         
   
   
@@ -1230,7 +1218,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0005-half-edge-padding-strategy/" class="md-nav__link">
+      <a href="../0005-half-edge-padding-strategy/" class="md-nav__link">
         
   
   
@@ -1258,7 +1246,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0006-license-apache-2-rationale/" class="md-nav__link">
+      <a href="../0006-license-apache-2-rationale/" class="md-nav__link">
         
   
   
@@ -1286,7 +1274,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0007-ocp-binding-choice/" class="md-nav__link">
+      <a href="../0007-ocp-binding-choice/" class="md-nav__link">
         
   
   
@@ -1314,7 +1302,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0008-occt-abstraction-layer/" class="md-nav__link">
+      <a href="../0008-occt-abstraction-layer/" class="md-nav__link">
         
   
   
@@ -1342,7 +1330,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0009-method-b-deferred/" class="md-nav__link">
+      <a href="../0009-method-b-deferred/" class="md-nav__link">
         
   
   
@@ -1370,7 +1358,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/adr/0010-gate3-split/" class="md-nav__link">
+      <a href="../0010-gate3-split/" class="md-nav__link">
         
   
   
@@ -1395,10 +1383,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0011-hybrid-strategy/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0011: Hybrid Strategy
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1414,6 +1429,109 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gate-2-reinterpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate 2 Reinterpretation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative-adjustment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Narrative Adjustment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#method-b-reconsideration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method (B) Reconsideration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1454,6 +1572,97 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gate-2-reinterpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate 2 Reinterpretation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative-adjustment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Narrative Adjustment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#method-b-reconsideration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method (B) Reconsideration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1472,8 +1681,42 @@
   
 
 
-<h1 id="first-optimization">First Optimization<a class="headerlink" href="#first-optimization" title="Permanent link">&para;</a></h1>
-<p>Optimize disk parameters using differentiable Boolean operations.</p>
+<h1 id="adr-0011-stratum-aware-locality-and-hybrid-optimization-strategy">ADR-0011: Stratum-Aware Locality and Hybrid Optimization Strategy<a class="headerlink" href="#adr-0011-stratum-aware-locality-and-hybrid-optimization-strategy" title="Permanent link">&para;</a></h1>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>Axis 3 optimization trajectory testing revealed a fundamental property of the stratum-aware approach (Method C): <strong>within a stratum where the objective is invariant to a design variable, the gradient is exactly zero.</strong> This is mathematically correct but prevents gradient-based optimization from crossing stratum boundaries.</p>
+<p>Concrete example: In the disjoint stratum, <code>union_area = pi*r1^2 + pi*r2^2</code> is independent of center positions <code>c1, c2</code>. Method (C) correctly returns <code>d(area)/d(c2_x) = 0</code>. Gradient descent cannot cross from disjoint to intersecting by moving centers.</p>
+<p>Method (A) smoothing provides a weak but non-zero gradient signal in this case because its smooth-min kernel extends beyond the exact boundary, creating a "shadow" of the intersecting stratum's area function into the disjoint regime.</p>
+<p>This is structurally isomorphic to the visibility problem in differentiable rendering: fully occluded objects have zero gradient w.r.t. camera parameters. SoftRas (2019) solved this with soft rasterization; nvdiffrast (2020) with edge sampling. Both are hybrid approaches combining global signal with boundary precision.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>Method (A) and Method (C) are <strong>complementary, not competing</strong> strategies. BRepAX will provide a hybrid framework that combines:</p>
+<ul>
+<li><strong>Method (A)</strong> for cross-stratum exploration (global gradient signal via smoothing)</li>
+<li><strong>Method (C)</strong> for within-stratum precision (exact analytical gradients)</li>
+</ul>
+<h3 id="gate-2-reinterpretation">Gate 2 Reinterpretation<a class="headerlink" href="#gate-2-reinterpretation" title="Permanent link">&para;</a></h3>
+<p>The original Gate 2 criterion ("Method (C) converges to cross-stratum optimum") was based on an incomplete understanding of stratum-aware gradient structure. Revised:</p>
+<ul>
+<li><strong>Gate 2a</strong> (within-stratum precision): Method (C) reaches analytical optimum with position error 7e-6 vs Method (A)'s 0.021. <strong>PASS.</strong></li>
+<li><strong>Gate 2b</strong> (cross-stratum behavior): Gradient zero in stratum-invariant directions is a mathematical property, not a defect. <strong>REINTERPRETED.</strong></li>
+</ul>
+<h3 id="narrative-adjustment">Narrative Adjustment<a class="headerlink" href="#narrative-adjustment" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Previous: "Method (C) is superior to Method (A)"</li>
+<li>Revised: "Method (A) and (C) are complementary; BRepAX provides a coherent framework for combining both"</li>
+</ul>
+<p>This parallels the differentiable rendering trajectory: SoftRas (global, approximate) was not replaced by nvdiffrast (precise, local) but complemented by it. BRepAX occupies the same structural position for CAD geometry.</p>
+<h2 id="method-b-reconsideration">Method (B) Reconsideration<a class="headerlink" href="#method-b-reconsideration" title="Permanent link">&para;</a></h2>
+<p>The TOI correction (Method B, deferred in ADR-0009) was designed precisely for boundary-crossing gradient computation. The Axis 3 finding strengthens the case for Method (B) implementation in future work: it provides the mathematical machinery to transfer gradient information across stratum boundaries via the implicit function theorem.</p>
+<p>Re-evaluation trigger: when a use case requires single-method cross-stratum optimization without a coarse-to-fine schedule.</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Hybrid optimizer design becomes a first-class concern (not an afterthought)</li>
+<li><code>boolean/__init__.py</code> union_area API remains method-agnostic; hybrid scheduling is handled at the optimizer level</li>
+<li>Method (B) regains relevance as a potential bridge between (A) and (C)</li>
+<li>The differentiable rendering analogy provides a well-studied template for the hybrid design</li>
+</ul>
 
 
 
@@ -1529,10 +1772,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
