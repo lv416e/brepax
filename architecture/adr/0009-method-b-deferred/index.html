@@ -10,31 +10,29 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/reference/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0009-method-b-deferred/">
       
       
-        <link rel="prev" href="../explanation/toi_derivation/">
+        <link rel="prev" href="../0008-occt-abstraction-layer/">
       
-      
-        <link rel="next" href="../architecture/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Reference - BRepAX</title>
+        <title>ADR-0009: Method B Deferred - BRepAX</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,9 +51,9 @@
       
     
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#api-reference" class="md-skip">
+        <a href="#adr-0009-method-b-toi-correction-deferred-from-concept-proof" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +94,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -116,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Reference
+              ADR-0009: Method B Deferred
             
           </span>
         </div>
@@ -232,7 +230,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +260,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -343,7 +341,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/01_quickstart/" class="md-nav__link">
+      <a href="../../../tutorials/01_quickstart/" class="md-nav__link">
         
   
   
@@ -371,7 +369,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/02_first_optimization/" class="md-nav__link">
+      <a href="../../../tutorials/02_first_optimization/" class="md-nav__link">
         
   
   
@@ -399,7 +397,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/03_stratum_tracking/" class="md-nav__link">
+      <a href="../../../tutorials/03_stratum_tracking/" class="md-nav__link">
         
   
   
@@ -488,7 +486,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how-to/compose_primitives/" class="md-nav__link">
+      <a href="../../../how-to/compose_primitives/" class="md-nav__link">
         
   
   
@@ -516,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how-to/custom_loss/" class="md-nav__link">
+      <a href="../../../how-to/custom_loss/" class="md-nav__link">
         
   
   
@@ -544,7 +542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how-to/batch_with_vmap/" class="md-nav__link">
+      <a href="../../../how-to/batch_with_vmap/" class="md-nav__link">
         
   
   
@@ -572,7 +570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how-to/interop_pythonocc/" class="md-nav__link">
+      <a href="../../../how-to/interop_pythonocc/" class="md-nav__link">
         
   
   
@@ -661,7 +659,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/design_thesis/" class="md-nav__link">
+      <a href="../../../explanation/design_thesis/" class="md-nav__link">
         
   
   
@@ -689,7 +687,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/stratification_theory/" class="md-nav__link">
+      <a href="../../../explanation/stratification_theory/" class="md-nav__link">
         
   
   
@@ -717,7 +715,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/contact_dynamics_analogy/" class="md-nav__link">
+      <a href="../../../explanation/contact_dynamics_analogy/" class="md-nav__link">
         
   
   
@@ -745,7 +743,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/pseudo_sdf_problem/" class="md-nav__link">
+      <a href="../../../explanation/pseudo_sdf_problem/" class="md-nav__link">
         
   
   
@@ -773,7 +771,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/why_brep/" class="md-nav__link">
+      <a href="../../../explanation/why_brep/" class="md-nav__link">
         
   
   
@@ -801,7 +799,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/license_strategy/" class="md-nav__link">
+      <a href="../../../explanation/license_strategy/" class="md-nav__link">
         
   
   
@@ -829,7 +827,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
+      <a href="../../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
         
   
   
@@ -857,7 +855,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/toi_derivation/" class="md-nav__link">
+      <a href="../../../explanation/toi_derivation/" class="md-nav__link">
         
   
   
@@ -889,37 +887,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reference
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../reference/" class="md-nav__link">
         
   
   
@@ -935,37 +906,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#brepax" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        brepax
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -974,8 +914,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -986,13 +928,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
@@ -1013,7 +953,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1031,7 +971,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../../" class="md-nav__link">
         
   
   
@@ -1056,6 +996,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1065,13 +1007,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" checked>
         
           
           <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
@@ -1092,7 +1032,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1110,7 +1050,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/adr/0001-jax-native-rationale/" class="md-nav__link">
+      <a href="../0001-jax-native-rationale/" class="md-nav__link">
         
   
   
@@ -1138,7 +1078,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/adr/0002-equinox-pytree-pattern/" class="md-nav__link">
+      <a href="../0002-equinox-pytree-pattern/" class="md-nav__link">
         
   
   
@@ -1166,7 +1106,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/adr/0003-stratum-label-encoding/" class="md-nav__link">
+      <a href="../0003-stratum-label-encoding/" class="md-nav__link">
         
   
   
@@ -1194,7 +1134,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/adr/0004-custom-vjp-at-boundaries/" class="md-nav__link">
+      <a href="../0004-custom-vjp-at-boundaries/" class="md-nav__link">
         
   
   
@@ -1222,7 +1162,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/adr/0005-half-edge-padding-strategy/" class="md-nav__link">
+      <a href="../0005-half-edge-padding-strategy/" class="md-nav__link">
         
   
   
@@ -1250,7 +1190,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/adr/0006-license-apache-2-rationale/" class="md-nav__link">
+      <a href="../0006-license-apache-2-rationale/" class="md-nav__link">
         
   
   
@@ -1278,7 +1218,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/adr/0007-ocp-binding-choice/" class="md-nav__link">
+      <a href="../0007-ocp-binding-choice/" class="md-nav__link">
         
   
   
@@ -1306,7 +1246,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/adr/0008-occt-abstraction-layer/" class="md-nav__link">
+      <a href="../0008-occt-abstraction-layer/" class="md-nav__link">
         
   
   
@@ -1331,10 +1271,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../architecture/adr/0009-method-b-deferred/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0009: Method B Deferred
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1350,6 +1317,92 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-preserved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is preserved
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#re-evaluation-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Re-evaluation conditions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1397,10 +1450,65 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#brepax" class="md-nav__link">
+  <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        brepax
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-preserved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is preserved
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#re-evaluation-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Re-evaluation conditions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
       
     </span>
   </a>
@@ -1427,50 +1535,43 @@
   
 
 
-<h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
-
-
-<div class="doc doc-object doc-module">
-
-
-
-<h2 id="brepax" class="doc doc-heading">
-            <code>brepax</code>
-
-
-<a href="#brepax" class="headerlink" title="Permanent link">&para;</a></h2>
-
-    <div class="doc doc-contents first">
-
-        <p>BRepAX: Differentiable rasterizer for CAD Boolean operations.</p>
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
+<h1 id="adr-0009-method-b-toi-correction-deferred-from-concept-proof">ADR-0009: Method (B) TOI Correction Deferred from Concept Proof<a class="headerlink" href="#adr-0009-method-b-toi-correction-deferred-from-concept-proof" title="Permanent link">&para;</a></h1>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>The original concept proof plan called for three methods: (A) smoothing, (B) TOI correction, (C) stratum-aware tracking, compared head-to-head on the disk-disk union area problem.</p>
+<p>During the mathematical derivation of Method (B) (see <code>docs/explanation/toi_derivation.md</code>), a key finding emerged: <strong>the gradient jump at external tangent is second-order</strong>. At <span class="arithmatex">\(d = r_1 + r_2\)</span>, the area gradient is continuous -- the intersecting formula reduces exactly to the disjoint formula. This means Method (B)'s TOI correction term vanishes to first order at external tangent.</p>
+<p>At internal tangent (<span class="arithmatex">\(d = |r_1 - r_2|\)</span>), the gradient jump is genuine first-order, but Method (C) also handles this case via its stratum-aware formulas.</p>
+<p>Separately, the boundary proximity benchmark revealed that Method (A)'s primary failure mode is <strong>smoothing bias</strong> (systematic error from temperature parameters), not gradient discontinuity. Method (C) eliminates smoothing bias entirely by using exact formulas, making it the direct comparison partner for Method (A).</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>Defer Method (B) implementation from the concept proof. Proceed with Method (A) vs Method (C) comparison only.</p>
+<p>Rationale:</p>
+<ul>
+<li>Method (B) provides no benefit at external tangent (correction is first-order zero)</li>
+<li>At internal tangent, Method (C) is equally effective and has a cleaner implementation (no root-finding for TOI)</li>
+<li>Reducing from 3 methods to 2 shrinks the benchmark matrix from 9 cells to 6 cells</li>
+<li>The concept proof hypothesis ("stratum-aware beats smoothing") is testable with 2 methods</li>
+</ul>
+<h2 id="what-is-preserved">What is preserved<a class="headerlink" href="#what-is-preserved" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>docs/explanation/toi_derivation.md</code>: Complete mathematical derivation, including the second-order finding</li>
+<li><code>src/brepax/boolean/toi.py</code>: Skeleton module, ready for future implementation</li>
+<li>Contact dynamics correspondence table in the derivation doc</li>
+</ul>
+<h2 id="re-evaluation-conditions">Re-evaluation conditions<a class="headerlink" href="#re-evaluation-conditions" title="Permanent link">&para;</a></h2>
+<p>Method (B) should be reconsidered if:</p>
+<ul>
+<li>3D primitive Boolean operations produce higher-order boundary transitions where TOI correction becomes non-trivial at first order</li>
+<li>Optimization trajectories require explicit boundary-crossing awareness (e.g., path-dependent stratum tracking)</li>
+<li>A use case emerges where Method (C) is insufficient but Method (B)'s root-finding approach adds value</li>
+</ul>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Concept proof benchmark compares Method (A) vs Method (C) only</li>
+<li>Gate criteria apply to this 2-method comparison</li>
+<li><code>boolean/toi.py</code> remains as skeleton; <code>NotImplementedError</code> in <code>union_area()</code> dispatch</li>
+<li>The TOI derivation document serves as architectural knowledge for future extensions</li>
+</ul>
 
 
 
@@ -1526,10 +1627,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

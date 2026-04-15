@@ -1348,6 +1348,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Gate Criterion Interpretation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gradient-jump-order-at-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gradient jump order at boundaries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1469,6 +1486,34 @@
     
   
     ADR-0008: OCCT Abstraction Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0009-method-b-deferred/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0009: Method B Deferred
   
 
     
@@ -1676,6 +1721,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Gate Criterion Interpretation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gradient-jump-order-at-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gradient jump order at boundaries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1786,6 +1848,45 @@
 </tbody>
 </table>
 <p>Key observation: at boundary distance 0.01, Method (A) with k=0.1 shows 5.2% error. Method (C) must achieve &lt; 0.52% at the same configuration to satisfy the 1/10 criterion.</p>
+<p><strong>Note:</strong> The table above measured the <strong>external tangent</strong> approach only. Internal tangent measurements show different behavior:</p>
+<table>
+<thead>
+<tr>
+<th>boundary dist</th>
+<th>k=0.1 external</th>
+<th>k=0.1 internal</th>
+<th>k=1.0 external</th>
+<th>k=1.0 internal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.50</td>
+<td>0.89%</td>
+<td>0.58%</td>
+<td>2.6%</td>
+<td>12.2%</td>
+</tr>
+<tr>
+<td>0.10</td>
+<td>0.89%</td>
+<td>0.60%</td>
+<td>12.8%</td>
+<td>18.3%</td>
+</tr>
+<tr>
+<td>0.01</td>
+<td><strong>5.2%</strong></td>
+<td><strong>1.5%</strong></td>
+<td><strong>18.3%</strong></td>
+<td><strong>22.1%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>At k=1.0, internal tangent degradation exceeds external tangent. This occurs because large smoothing distorts the containment structure (one disk's smoothing kernel covers the other).</p>
+<h3 id="gradient-jump-order-at-boundaries">Gradient jump order at boundaries<a class="headerlink" href="#gradient-jump-order-at-boundaries" title="Permanent link">&para;</a></h3>
+<p>TOI derivation (see <code>docs/explanation/toi_derivation.md</code>) revealed that the gradient jump at <strong>external tangent is second-order</strong>: the area gradient is continuous at <span class="arithmatex">\(d = r_1 + r_2\)</span>. At <strong>internal tangent, the jump is first-order</strong>: the contained-stratum gradient (<span class="arithmatex">\(\nabla f = (0, 0, 2\pi r_1, 0, 0, 0)\)</span>) differs from the intersecting-stratum gradient in center components.</p>
+<p><strong>Core insight: Method (C)'s differentiation from Method (A) is not primarily about correcting gradient discontinuities. It is about eliminating smoothing bias.</strong> Method (A) introduces systematic bias from the temperature parameters k and beta, which distort both the SDF field and the area integral. Method (C) uses exact stratum-aware formulas, avoiding this bias entirely. This distinction holds at both external and internal tangent boundaries.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Method (C) implementation will use <code>jax.custom_vjp</code> with <code>(primal_out, stratum_label)</code> as residuals</li>
