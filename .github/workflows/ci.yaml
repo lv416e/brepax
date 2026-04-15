@@ -48,7 +48,7 @@ jobs:
       - run: uv python install ${{ matrix.python-version }}
       - run: uv sync --extra dev --python ${{ matrix.python-version }}
       - run: uv run pytest --cov=brepax --cov-report=xml -x
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v6
         if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
         with:
           file: coverage.xml
