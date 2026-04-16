@@ -123,6 +123,7 @@ If scope expansion is needed, add an ADR documenting the decision. Do not expand
 - **No backward compatibility code** -- this project is in alpha; prefer clean breaks
 - **OCCT dependency is core identity** -- do not propose removing cadquery-ocp-novtk; changes to OCCT strategy require an ADR
 - **No direct OCP imports** outside `brepax/_occt/` -- all OCCT access goes through `brepax._occt.backend` (see ADR-0008)
+- **Never merge release-please PRs without explicit owner instruction** -- release-please auto-creates changelog PRs; these contain a strategic release decision and must only be merged when the owner explicitly requests it. Admin bypass for these PRs is forbidden.
 
 ## Development Philosophy
 

@@ -1,14 +1,16 @@
 name: Publish to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ['v*.*.*']
 
 permissions:
   id-token: write
 
 jobs:
   publish:
+    # Only publish stable releases (no pre-release tags like -rc, -beta).
+    if: "!contains(github.ref_name, '-')"
     runs-on: ubuntu-latest
     environment:
       name: pypi

@@ -70,7 +70,14 @@ The `--extra-index-url` flag ensures runtime dependencies (JAX, equinox, etc.) r
 
 ### Production release
 
-Production releases are managed by [release-please](https://github.com/googleapis/release-please). Merging a PR with Conventional Commits triggers release-please to open a release PR. Merging that PR creates a semver tag and GitHub Release, which triggers the PyPI publish workflow.
+Production releases are managed by [release-please](https://github.com/googleapis/release-please):
+
+1. Conventional Commits on `main` cause release-please to auto-create a release PR.
+2. The release PR stays open until the maintainer decides to release.
+3. Merging the release PR creates a semver tag (e.g., `v0.2.0`).
+4. The tag push triggers the publish workflow, uploading to PyPI via Trusted Publishing.
+
+**Important**: Release-please PRs must only be merged on the maintainer's explicit decision. They represent a strategic release choice, not a routine code change.
 
 ### Trusted Publisher setup
 
