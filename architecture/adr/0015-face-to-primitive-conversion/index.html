@@ -10,13 +10,11 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0003-stratum-label-encoding/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0015-face-to-primitive-conversion/">
       
       
-        <link rel="prev" href="../0002-equinox-pytree-pattern/">
+        <link rel="prev" href="../0014-step-io-initial/">
       
-      
-        <link rel="next" href="../0004-custom-vjp-at-boundaries/">
       
       
         
@@ -27,7 +25,7 @@
     
     
       
-        <title>ADR-0003: Stratum Label Encoding - BRepAX</title>
+        <title>ADR-0015: Face-to-Primitive Conversion - BRepAX</title>
       
     
     
@@ -80,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0003-stratum-label-encoding" class="md-skip">
+        <a href="#adr-0015-face-to-primitive-conversion" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0003: Stratum Label Encoding
+              ADR-0015: Face-to-Primitive Conversion
             
           </span>
         </div>
@@ -1134,37 +1132,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0003: Stratum Label Encoding
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../0003-stratum-label-encoding/" class="md-nav__link">
         
   
   
@@ -1180,131 +1151,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Status
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#candidates-evaluated" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Candidates Evaluated
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Candidates Evaluated">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#a-fixed-length-integerarray-n_pairs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (a) Fixed-length Integer[Array, "n_pairs"]
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#b-single-integerarray-bit-packed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (b) Single Integer[Array, ""] (bit-packed)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#c-static-tuple-via-eqxfieldstatictrue" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (c) Static tuple via eqx.field(static=True)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#d-intenum-jax_dataclasses" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (d) IntEnum + jax_dataclasses
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1622,10 +1468,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../0015-face-to-primitive-conversion/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0015: Face-to-Primitive Conversion
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1641,6 +1514,98 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-choices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design choices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1710,22 +1675,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#candidates-evaluated" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Candidates Evaluated
+        Decision
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Candidates Evaluated">
+    <nav class="md-nav" aria-label="Decision">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#a-fixed-length-integerarray-n_pairs" class="md-nav__link">
+  <a href="#scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        (a) Fixed-length Integer[Array, "n_pairs"]
+        Scope
       
     </span>
   </a>
@@ -1733,32 +1698,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#b-single-integerarray-bit-packed" class="md-nav__link">
+  <a href="#design-choices" class="md-nav__link">
     <span class="md-ellipsis">
       
-        (b) Single Integer[Array, ""] (bit-packed)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#c-static-tuple-via-eqxfieldstatictrue" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (c) Static tuple via eqx.field(static=True)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#d-intenum-jax_dataclasses" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        (d) IntEnum + jax_dataclasses
+        Design choices
       
     </span>
   </a>
@@ -1767,17 +1710,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1812,37 +1744,62 @@
   
 
 
-<h1 id="adr-0003-stratum-label-encoding">ADR-0003: Stratum Label Encoding<a class="headerlink" href="#adr-0003-stratum-label-encoding" title="Permanent link">&para;</a></h1>
+<h1 id="adr-0015-face-to-primitive-conversion">ADR-0015: Face-to-Primitive Conversion<a class="headerlink" href="#adr-0015-face-to-primitive-conversion" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>The stratification module needs to classify and track which topological stratum a configuration belongs to. For two disks, there are 3 strata (disjoint, intersecting, contained). For N primitives with Boolean operations, the number of strata grows combinatorially. Labels must be JAX-traceable for use inside jit-compiled functions, vmap-compatible for batched configurations, and usable as <code>jax.custom_vjp</code> residuals.</p>
-<p>Stage 1 confirmed that <code>from __future__ import annotations</code> is incompatible with jaxtyping runtime checks, and that all traced values must be plain JAX arrays (not Python objects) to work with <code>eqx.filter_jit</code> and <code>eqx.filter_vmap</code>.</p>
-<h2 id="candidates-evaluated">Candidates Evaluated<a class="headerlink" href="#candidates-evaluated" title="Permanent link">&para;</a></h2>
-<h3 id="a-fixed-length-integerarray-n_pairs">(a) Fixed-length <code>Integer[Array, "n_pairs"]</code><a class="headerlink" href="#a-fixed-length-integerarray-n_pairs" title="Permanent link">&para;</a></h3>
-<p>Each element independently encodes one pairwise relationship sign. Equality check via <code>jnp.array_equal</code>. Works with jit, vmap, and as custom_vjp residual. For N primitives, <code>n_pairs = N*(N-1)//2</code> with static shape. O(n_pairs) equality check.</p>
-<h3 id="b-single-integerarray-bit-packed">(b) Single <code>Integer[Array, ""]</code> (bit-packed)<a class="headerlink" href="#b-single-integerarray-bit-packed" title="Permanent link">&para;</a></h3>
-<p>O(1) scalar equality comparison. Minimal memory. The current <code>disk_disk_stratum_label</code> already returns this shape (values 0/1/2). With 64-bit int, caps at ~40 pairs (~9 primitives) before overflow. Bit-packing logic adds opacity for debugging.</p>
-<h3 id="c-static-tuple-via-eqxfieldstatictrue">(c) Static tuple via <code>eqx.field(static=True)</code><a class="headerlink" href="#c-static-tuple-via-eqxfieldstatictrue" title="Permanent link">&para;</a></h3>
-<p>Each unique label triggers jit recompilation. Under vmap, all batch elements must share the same static value. Fundamentally incompatible with batched stratum detection.</p>
-<h3 id="d-intenum-jax_dataclasses">(d) IntEnum + jax_dataclasses<a class="headerlink" href="#d-intenum-jax_dataclasses" title="Permanent link">&para;</a></h3>
-<p>Python ints are not traced arrays. Same recompilation issue as (c) unless converted to plain arrays, at which point it reduces to (a) or (b). Experimental dependency.</p>
+<p>STEP faces are bounded (trimmed) regions of infinite analytic surfaces.
+BRepAX primitives -- Plane, Cylinder, Sphere, Cone, Torus -- represent
+the corresponding infinite surfaces with a signed distance function.</p>
+<p>To build differentiable shape representations from imported STEP files,
+we need a conversion path from OCCT face objects to BRepAX Primitive
+instances.  The key design question is how to handle the trim boundaries
+that make a face finite.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Start with <strong>(b) scalar <code>Integer[Array, ""]</code></strong> for two-disk configurations. Migrate to <strong>(a) <code>Integer[Array, "n_pairs"]</code></strong> when N-primitive support is implemented.</p>
-<p>Rationale:</p>
+<p>Convert each face's underlying surface parameters to a BRepAX Primitive,
+ignoring trim boundaries.</p>
+<h3 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h3>
+<p><strong>Included:</strong></p>
 <ul>
-<li>The current <code>disk_disk_stratum_label</code> is already (b) without explicit bit-packing (values 0/1/2 encode the stratum implicitly)</li>
-<li>Zero migration cost for the concept proof</li>
-<li>When N-primitive support arrives, (a) scales cleanly with static shapes, works with vmap, and serves as custom_vjp residuals without bit manipulation</li>
-<li>Define <code>StratumLabel = Integer[Array, "n_pairs"]</code> type alias early so call sites are prepared for the shape change</li>
+<li><code>face_to_primitive()</code> converts a single <code>TopoDS_Face</code> to a Primitive
+  by inspecting the surface type via <code>BRepAdaptor_Surface</code> and extracting
+  geometric parameters (normals, radii, centers, etc.) as JAX arrays.</li>
+<li><code>faces_to_primitives()</code> iterates over all faces of a <code>TopoDS_Shape</code>
+  and returns a list of Primitive objects.</li>
+<li>Supported surface types: Plane, Cylinder, Sphere, Cone, Torus.</li>
+<li>Unsupported types (B-spline, Bezier, etc.) return <code>None</code> with a
+  runtime warning.</li>
 </ul>
-<p><strong>(c) and (d) are rejected</strong> -- both break under vmap and cause recompilation pathologies.</p>
+<p><strong>Deferred:</strong></p>
+<ul>
+<li>Trim boundary extraction and representation.</li>
+<li>CSG tree reconstruction from face adjacency.</li>
+<li>B-spline / NURBS surface approximation or fitting.</li>
+<li>Gradient computation through the conversion path.</li>
+</ul>
+<h3 id="design-choices">Design choices<a class="headerlink" href="#design-choices" title="Permanent link">&para;</a></h3>
+<p><strong>Infinite surfaces, not finite faces.</strong>  A converted Plane extends
+infinitely rather than being bounded to the rectangular region of the
+original face.  This is the correct abstraction for SDF-based Boolean
+operations, where CSG tree reconstruction (future work) will reintroduce
+the bounding via intersections.</p>
+<p><strong>OCP access through the abstraction layer</strong> per ADR-0008.  All OCCT
+imports remain in <code>brepax._occt.backend</code>.</p>
+<p><strong>JAX arrays for all parameters.</strong>  Points, directions, and scalar radii
+are converted to <code>jnp.array</code> at the boundary, making the resulting
+Primitives immediately compatible with <code>jit</code>, <code>vmap</code>, and <code>grad</code>.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Concept proof code continues using scalar int labels as-is</li>
-<li>Type alias <code>StratumLabel</code> will be introduced in <code>stratification/label.py</code></li>
-<li>Migration trigger: when the first N &gt; 2 primitive composition is implemented</li>
-<li>Migration scope: change the type alias shape and update equality checks</li>
+<li>Converted primitives represent the underlying infinite surface, not
+  the finite face.  SDF evaluation at points far from the original face
+  boundary will still return a meaningful signed distance, but it may
+  not correspond to the designer's intent without CSG reconstruction.</li>
+<li>The five analytic surface types cover the vast majority of machined
+  mechanical parts.  Freeform surfaces (NURBS) require a separate
+  approximation strategy in future work.</li>
+<li>CSG tree reconstruction, which combines infinite primitives with
+  Boolean operations to recover bounded geometry, can build directly on
+  the Primitive list produced by <code>faces_to_primitives()</code>.</li>
 </ul>
 
 
