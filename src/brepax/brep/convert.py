@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
+from typing import Any
+
+import jax.numpy as jnp
 
 from brepax._occt.backend import (
     Bnd_Box,
@@ -22,7 +26,13 @@ from brepax._occt.backend import (
     TopExp_Explorer,
     TopoDS,
 )
-from brepax._occt.types import TopoDS_Shape
+from brepax._occt.types import TopoDS_Face, TopoDS_Shape
+from brepax.primitives import Cone as ConePrim
+from brepax.primitives import Cylinder as CylinderPrim
+from brepax.primitives import Plane as PlanePrim
+from brepax.primitives import Sphere as SpherePrim
+from brepax.primitives import Torus as TorusPrim
+from brepax.primitives._base import Primitive
 
 # Readable names for OCCT surface type enums.
 _SURFACE_TYPE_NAMES: dict[object, str] = {
@@ -99,4 +109,108 @@ def shape_metadata(shape: TopoDS_Shape) -> ShapeMetadata:
     )
 
 
-__all__ = ["ShapeMetadata", "shape_metadata"]
+def _gp_pnt_to_array(pnt: Any) -> jnp.ndarray:
+    """Convert an OCP gp_Pnt to a JAX array."""
+    return jnp.array([pnt.X(), pnt.Y(), pnt.Z()])
+
+
+def _gp_dir_to_array(direction: Any) -> jnp.ndarray:
+    """Convert an OCP gp_Dir to a JAX array."""
+    return jnp.array([direction.X(), direction.Y(), direction.Z()])
+
+
+def face_to_primitive(face: TopoDS_Face) -> Primitive | None:
+    """Convert a single OCP face to a BRepAX Primitive.
+
+    Maps the underlying surface type (plane, cylinder, sphere, cone, torus)
+    to the corresponding BRepAX primitive, extracting geometric parameters
+    via OCCT adaptor classes.
+
+    Returns None with a warning for unsupported surface types (NURBS, etc.).
+
+    Args:
+        face: An OCCT topological face.
+
+    Returns:
+        A :class:`Primitive` instance, or ``None`` if the surface type
+        is not supported.
+    """
+    adaptor = BRepAdaptor_Surface(face)
+    stype = adaptor.GetType()
+
+    if stype == GeomAbs_Plane:
+        gp_plane = adaptor.Plane()
+        point = _gp_pnt_to_array(gp_plane.Location())
+        normal = _gp_dir_to_array(gp_plane.Axis().Direction())
+        offset = jnp.dot(normal, point)
+        return PlanePrim(normal=normal, offset=offset)
+
+    if stype == GeomAbs_Cylinder:
+        gp_cyl = adaptor.Cylinder()
+        point = _gp_pnt_to_array(gp_cyl.Location())
+        axis = _gp_dir_to_array(gp_cyl.Axis().Direction())
+        radius = jnp.array(gp_cyl.Radius())
+        return CylinderPrim(point=point, axis=axis, radius=radius)
+
+    if stype == GeomAbs_Sphere:
+        gp_sph = adaptor.Sphere()
+        center = _gp_pnt_to_array(gp_sph.Location())
+        radius = jnp.array(gp_sph.Radius())
+        return SpherePrim(center=center, radius=radius)
+
+    if stype == GeomAbs_Cone:
+        gp_cone = adaptor.Cone()
+        apex = _gp_pnt_to_array(gp_cone.Apex())
+        axis = _gp_dir_to_array(gp_cone.Axis().Direction())
+        angle = jnp.array(abs(gp_cone.SemiAngle()))
+        return ConePrim(apex=apex, axis=axis, angle=angle)
+
+    if stype == GeomAbs_Torus:
+        gp_torus = adaptor.Torus()
+        center = _gp_pnt_to_array(gp_torus.Location())
+        axis = _gp_dir_to_array(gp_torus.Axis().Direction())
+        major_radius = jnp.array(gp_torus.MajorRadius())
+        minor_radius = jnp.array(gp_torus.MinorRadius())
+        return TorusPrim(
+            center=center,
+            axis=axis,
+            major_radius=major_radius,
+            minor_radius=minor_radius,
+        )
+
+    type_name = _SURFACE_TYPE_NAMES.get(stype, "unknown")
+    warnings.warn(
+        f"Unsupported surface type: {type_name}, skipping face",
+        stacklevel=2,
+    )
+    return None
+
+
+def faces_to_primitives(shape: TopoDS_Shape) -> list[Primitive | None]:
+    """Convert all faces in a shape to BRepAX Primitives.
+
+    Iterates over the topological faces of the shape and converts each
+    to the corresponding BRepAX primitive.  Unsupported face types
+    produce ``None`` entries in the returned list.
+
+    Args:
+        shape: An OCCT topological shape.
+
+    Returns:
+        A list with one entry per face.  Unsupported faces are ``None``.
+    """
+    primitives: list[Primitive | None] = []
+    explorer = TopExp_Explorer(shape, TopAbs_FACE)
+    while explorer.More():
+        face = TopoDS.Face_s(explorer.Current())
+        primitives.append(face_to_primitive(face))
+        explorer.Next()
+    return primitives
+
+
+__all__ = [
+    "ShapeMetadata",
+    "face_to_primitive",
+    "faces_to_primitives",
+    "shape_metadata",
+]
