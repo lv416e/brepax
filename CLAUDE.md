@@ -82,18 +82,55 @@ All changes go through pull requests. Direct pushes to `main` are blocked.
 - **Squash merge only**: All PRs are squash-merged to keep `main` history clean
 - **Squash commit message**: PR title + `(#PR_number)` -- e.g. `feat(io): add STEP reader (#7)`
 - **PR title = commit message**: PR title must be a valid Conventional Commits message (this becomes the squash commit on `main`)
-- **PR body**: Japanese. Summary (bullet points) + Test plan
 - **Co-Authored-By**: When Claude contributed, include `Co-Authored-By: Claude <noreply@anthropic.com>` in the squash commit body
 - **No merge comments**: Do not leave "LGTM" or similar comments when self-merging
+- **PR body template** (must follow this format, written in Japanese):
+
+  ```markdown
+  ## Summary
+  - Concise bullet points describing changes (3-5 items)
+
+  ## Verification
+  - `uv run pytest` all passed
+  - `uv run mypy src/` 0 errors
+  - Additional manual verification steps if any
+
+  ## Related
+  - Related issues or ADRs if applicable (omit section if none)
+  ```
 
 ### PR Checklist
 
+Before creating a PR, verify locally:
+
 1. All tests pass (`uv run pytest`)
-2. Type checking passes (`uv run mypy src/`)
-3. Linting passes (`uv run ruff check src/ tests/`)
-4. New public API has docstrings with Examples section
-5. Commit messages follow Conventional Commits
+2. Lint clean (`uv run ruff check src/ tests/`)
+3. Format applied (`uv run ruff format src/ tests/`)
+4. Mypy passes (`uv run mypy src/`)
+5. New public API has docstrings with Examples section
 6. ADR added if an architectural decision was made
+
+Before asking for merge, verify on GitHub:
+
+7. CI is green (ci-gate passed)
+8. No merge conflicts with main
+9. PR title is a valid Conventional Commit
+10. PR body follows the template
+
+### When to Pause
+
+Do NOT proceed autonomously in the following cases:
+
+1. **Release-please PRs**: Never merge automatically. Wait for maintainer's explicit
+   instruction before merging `chore(main): release x.y.z` PRs.
+2. **Strategic decisions**: When a task involves architectural decisions (e.g.,
+   dropping a dependency, changing public API), pause and ask before implementing.
+3. **Branch protection changes**: Do not modify repository settings (protection
+   rules, secrets, deploy keys) without explicit maintainer approval.
+4. **Destructive operations**: Force-push, rebase of shared branches, history
+   rewriting require explicit maintainer approval.
+5. **Admin bypass**: Never use admin privileges to bypass branch protection
+   rules, even if technically possible.
 
 ## Imports
 
