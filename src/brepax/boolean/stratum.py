@@ -24,8 +24,15 @@ def _primitive_bounds(p: Primitive) -> tuple[Array, Array]:
     params = p.parameters()
     if "center" in params:
         c = params["center"]
-        r = params["radius"]
-        return c - r, c + r
+        r = params.get("radius", jnp.array(1.0))
+        # FiniteCylinder has height; extend bounds along axis
+        h = params.get("height", jnp.array(0.0))
+        extent = jnp.maximum(r, h / 2.0)
+        # Use half_extents for Box
+        he = params.get("half_extents", None)
+        if he is not None:
+            return c - he, c + he
+        return c - extent, c + extent
     elif "point" in params:
         # Infinite cylinder/cone: use point +/- radius in all dims
         pt = params["point"]
