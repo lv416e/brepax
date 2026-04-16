@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/jax_where_gradient_pitfall/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/reference/boolean/">
       
       
-        <link rel="prev" href="../license_strategy/">
+        <link rel="prev" href="../primitives/">
       
       
-        <link rel="next" href="../toi_derivation/">
+        <link rel="next" href="../analytical/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>JAX Where Gradient Pitfall - BRepAX</title>
+        <title>Boolean Operations - BRepAX</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#jax-jnpwhere-gradient-pitfall" class="md-skip">
+        <a href="#boolean-operations" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              JAX Where Gradient Pitfall
+              Boolean Operations
             
           </span>
         </div>
@@ -431,8 +431,6 @@
       
   
   
-    
-  
   
   
     
@@ -445,11 +443,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -470,7 +470,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -488,7 +488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../design_thesis/" class="md-nav__link">
+      <a href="../../explanation/design_thesis/" class="md-nav__link">
         
   
   
@@ -516,7 +516,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../why_brep/" class="md-nav__link">
+      <a href="../../explanation/why_brep/" class="md-nav__link">
         
   
   
@@ -544,7 +544,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../license_strategy/" class="md-nav__link">
+      <a href="../../explanation/license_strategy/" class="md-nav__link">
         
   
   
@@ -552,6 +552,263 @@
     
   
     License Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JAX Where Gradient Pitfall
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/toi_derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TOI Correction Derivation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/hybrid_optimization_strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hybrid Optimization Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/concept_proof_evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concept Proof Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/3d_extension_evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3D Extension Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives
   
 
     
@@ -588,7 +845,7 @@
   <span class="md-ellipsis">
     
   
-    JAX Where Gradient Pitfall
+    Boolean Operations
   
 
     
@@ -606,7 +863,7 @@
   <span class="md-ellipsis">
     
   
-    JAX Where Gradient Pitfall
+    Boolean Operations
   
 
     
@@ -632,46 +889,63 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem" class="md-nav__link">
+  <a href="#brepax.boolean" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Problem
+        boolean
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="boolean">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.boolean.union_area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        union_area
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#example-two-disk-intersection-area" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.boolean.union_volume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example: Two-Disk Intersection Area
+        union_volume
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#the-fix-safe-primal-values" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.boolean.subtract_volume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Fix: Safe Primal Values
+        subtract_volume
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#relation-to-custom-vjp" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.boolean.intersect_volume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Relation to Custom VJP
+        intersect_volume
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -691,264 +965,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../toi_derivation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    TOI Correction Derivation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../hybrid_optimization_strategy/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Hybrid Optimization Strategy
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concept_proof_evaluation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Concept Proof Evaluation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../3d_extension_evaluation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    3D Extension Evaluation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reference
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Reference
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/primitives/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Primitives
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/boolean/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Boolean Operations
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/analytical/" class="md-nav__link">
+      <a href="../analytical/" class="md-nav__link">
         
   
   
@@ -976,7 +993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/applications/" class="md-nav__link">
+      <a href="../applications/" class="md-nav__link">
         
   
   
@@ -1571,46 +1588,63 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem" class="md-nav__link">
+  <a href="#brepax.boolean" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Problem
+        boolean
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="boolean">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.boolean.union_area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        union_area
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#example-two-disk-intersection-area" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.boolean.union_volume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example: Two-Disk Intersection Area
+        union_volume
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#the-fix-safe-primal-values" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.boolean.subtract_volume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Fix: Safe Primal Values
+        subtract_volume
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#relation-to-custom-vjp" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.boolean.intersect_volume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Relation to Custom VJP
+        intersect_volume
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1634,36 +1668,257 @@
   
 
 
-<h1 id="jax-jnpwhere-gradient-pitfall">JAX jnp.where Gradient Pitfall<a class="headerlink" href="#jax-jnpwhere-gradient-pitfall" title="Permanent link">&para;</a></h1>
-<p>A recurring pattern in differentiable geometry code using JAX.</p>
-<h2 id="the-problem">The Problem<a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h2>
-<p><code>jnp.where(cond, x, y)</code> evaluates <strong>both</strong> <code>x</code> and <code>y</code> during forward and backward passes, then selects the result based on <code>cond</code>. During gradient computation, the gradient of the <strong>unselected</strong> branch is still computed and can produce NaN or Inf if that branch involves:</p>
-<ul>
-<li>Division by zero (e.g., <code>1 / d</code> where <code>d = 0</code> in the unselected regime)</li>
-<li><code>arccos</code> at domain boundaries (<code>arccos(1.0)</code> has infinite gradient)</li>
-<li><code>log(0)</code> or <code>sqrt(0)</code> in unselected branches</li>
-</ul>
-<p>The NaN propagates through the selected branch's gradient, corrupting the final result even though the forward pass returns the correct value.</p>
-<h2 id="example-two-disk-intersection-area">Example: Two-Disk Intersection Area<a class="headerlink" href="#example-two-disk-intersection-area" title="Permanent link">&para;</a></h2>
-<p>The analytical intersection area formula uses:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">cos_alpha</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">r1</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">r2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">d</span> <span class="o">*</span> <span class="n">r1</span><span class="p">)</span>  <span class="c1"># division by d</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">alpha</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">cos_alpha</span><span class="p">)</span>                          <span class="c1"># arccos at boundary</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">lens</span> <span class="o">=</span> <span class="n">r1</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">-</span> <span class="n">sin</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">alpha</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="o">...</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">disjoint</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">contained</span><span class="p">,</span> <span class="n">contained_area</span><span class="p">,</span> <span class="n">lens</span><span class="p">))</span>
-</code></pre></div>
-<p>When disks are disjoint (<code>d &gt;&gt; r1 + r2</code>), the forward pass correctly returns <code>0.0</code>. But the backward pass computes <code>d(lens)/d(r1)</code> anyway, which involves <code>d(arccos(clip(x)))/dx</code> at <code>x = 1.0</code> (infinite gradient), producing NaN.</p>
-<h2 id="the-fix-safe-primal-values">The Fix: Safe Primal Values<a class="headerlink" href="#the-fix-safe-primal-values" title="Permanent link">&para;</a></h2>
-<p>Replace potentially dangerous intermediate values with safe substitutes in branches that will be masked out:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">safe_d</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">)</span>              <span class="c1"># prevent division by zero</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">cos_alpha</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="p">(</span><span class="n">safe_d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">r1</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">r2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">safe_d</span> <span class="o">*</span> <span class="n">r1</span><span class="p">),</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="o">-</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">eps</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">eps</span><span class="p">,</span>                  <span class="c1"># keep arccos away from domain boundary</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">)</span>
-</code></pre></div>
-<p>The <code>eps</code> margin ensures that <code>arccos</code> never evaluates at exactly +/-1, where its gradient is infinite. The <code>safe_d</code> floor prevents division by zero. Both modifications only affect branches that are masked out by <code>jnp.where</code>, so forward-pass accuracy is unchanged.</p>
-<h2 id="relation-to-custom-vjp">Relation to Custom VJP<a class="headerlink" href="#relation-to-custom-vjp" title="Permanent link">&para;</a></h2>
-<p>This workaround is a pragmatic fix for the analytical ground truth function. The general solution is <code>jax.custom_vjp</code>, which allows computing the correct gradient per stratum without evaluating unused branches. This is the approach adopted for the stratum-aware Boolean method (see ADR-0004).</p>
-<p>The safe-primal pattern and the custom_vjp approach are complementary: safe primals prevent NaN in simple functions where custom_vjp would be over-engineering, while custom_vjp provides exact gradients at stratum boundaries where safe primals only suppress NaN without correcting the gradient value.</p>
+<h1 id="boolean-operations">Boolean Operations<a class="headerlink" href="#boolean-operations" title="Permanent link">&para;</a></h1>
+<p>Differentiable Boolean operations with stratum-dispatched gradients.</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="brepax.boolean" class="doc doc-heading">
+            <code>brepax.boolean</code>
+
+
+<a href="#brepax.boolean" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Boolean operations on geometric primitives.</p>
+<p>Provides a unified API for computing Boolean operations using different
+differentiation strategies. Method dispatch is handled internally.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.boolean.union_area" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">union_area</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;stratum&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#brepax.boolean.union_area" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the union area of two 2D primitives.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/boolean/__init__.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="k">def</span><span class="w"> </span><span class="nf">union_area</span><span class="p">(</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24"></a>    <span class="n">a</span><span class="p">:</span> <span class="n">Primitive</span><span class="p">,</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25"></a>    <span class="n">b</span><span class="p">:</span> <span class="n">Primitive</span><span class="p">,</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a>    <span class="n">method</span><span class="p">:</span> <span class="n">BooleanMethod</span> <span class="o">=</span> <span class="s2">&quot;stratum&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the union area of two 2D primitives.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;smoothing&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32"></a>        <span class="k">return</span> <span class="n">union_area_smoothing</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;toi&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;TOI method not yet implemented&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;stratum&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a>        <span class="k">return</span> <span class="n">union_area_stratum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38"></a>        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;unknown method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.boolean.union_volume" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">union_volume</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;stratum&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#brepax.boolean.union_volume" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the union volume of two 3D primitives.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/boolean/__init__.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#__codelineno-0-58">58</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="k">def</span><span class="w"> </span><span class="nf">union_volume</span><span class="p">(</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="n">a</span><span class="p">:</span> <span class="n">Primitive</span><span class="p">,</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a>    <span class="n">b</span><span class="p">:</span> <span class="n">Primitive</span><span class="p">,</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="n">method</span><span class="p">:</span> <span class="n">BooleanMethod</span> <span class="o">=</span> <span class="s2">&quot;stratum&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the union volume of two 3D primitives.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;stratum&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51"></a>        <span class="k">return</span> <span class="n">union_volume_stratum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;toi&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;TOI method not yet implemented&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;smoothing&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;3D smoothing not yet implemented&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a>        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;unknown method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.boolean.subtract_volume" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">subtract_volume</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;stratum&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#brepax.boolean.subtract_volume" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute volume of a minus b (subtract b from a).</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/boolean/__init__.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#__codelineno-0-62">62</a></span>
+<span class="normal"><a href="#__codelineno-0-63">63</a></span>
+<span class="normal"><a href="#__codelineno-0-64">64</a></span>
+<span class="normal"><a href="#__codelineno-0-65">65</a></span>
+<span class="normal"><a href="#__codelineno-0-66">66</a></span>
+<span class="normal"><a href="#__codelineno-0-67">67</a></span>
+<span class="normal"><a href="#__codelineno-0-68">68</a></span>
+<span class="normal"><a href="#__codelineno-0-69">69</a></span>
+<span class="normal"><a href="#__codelineno-0-70">70</a></span>
+<span class="normal"><a href="#__codelineno-0-71">71</a></span>
+<span class="normal"><a href="#__codelineno-0-72">72</a></span>
+<span class="normal"><a href="#__codelineno-0-73">73</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="k">def</span><span class="w"> </span><span class="nf">subtract_volume</span><span class="p">(</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62"></a>    <span class="n">a</span><span class="p">:</span> <span class="n">Primitive</span><span class="p">,</span>
+<a id="__codelineno-0-63" name="__codelineno-0-63"></a>    <span class="n">b</span><span class="p">:</span> <span class="n">Primitive</span><span class="p">,</span>
+<a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-65" name="__codelineno-0-65"></a>    <span class="n">method</span><span class="p">:</span> <span class="n">BooleanMethod</span> <span class="o">=</span> <span class="s2">&quot;stratum&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-66" name="__codelineno-0-66"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute volume of a minus b (subtract b from a).&quot;&quot;&quot;</span>
+<a id="__codelineno-0-69" name="__codelineno-0-69"></a>    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;stratum&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-70" name="__codelineno-0-70"></a>        <span class="k">return</span> <span class="n">subtract_volume_stratum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-71" name="__codelineno-0-71"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-72" name="__codelineno-0-72"></a>        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;subtract not yet implemented for method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-73" name="__codelineno-0-73"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.boolean.intersect_volume" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">intersect_volume</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;stratum&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#brepax.boolean.intersect_volume" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute intersection volume of a and b.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/boolean/__init__.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#__codelineno-0-81">81</a></span>
+<span class="normal"><a href="#__codelineno-0-82">82</a></span>
+<span class="normal"><a href="#__codelineno-0-83">83</a></span>
+<span class="normal"><a href="#__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#__codelineno-0-87">87</a></span>
+<span class="normal"><a href="#__codelineno-0-88">88</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="k">def</span><span class="w"> </span><span class="nf">intersect_volume</span><span class="p">(</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="n">a</span><span class="p">:</span> <span class="n">Primitive</span><span class="p">,</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="n">b</span><span class="p">:</span> <span class="n">Primitive</span><span class="p">,</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="n">method</span><span class="p">:</span> <span class="n">BooleanMethod</span> <span class="o">=</span> <span class="s2">&quot;stratum&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute intersection volume of a and b.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a>    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;stratum&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="k">return</span> <span class="n">intersect_volume_stratum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;intersect not yet implemented for method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 
