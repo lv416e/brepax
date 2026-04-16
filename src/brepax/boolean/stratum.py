@@ -67,16 +67,40 @@ def _make_grid_nd(
     return grid, cell_measure
 
 
-def _detect_stratum(a: Primitive, b: Primitive) -> Float[Array, ""]:
-    """Detect stratum: 0=disjoint, 1=intersecting, 2=contained."""
-    p_a = a.parameters()
-    p_b = b.parameters()
-    d = jnp.linalg.norm(p_a["center"] - p_b["center"])
-    r1, r2 = p_a["radius"], p_b["radius"]
+def _detect_stratum_generic(
+    a: Primitive,
+    b: Primitive,
+    grid: Array,
+) -> Float[Array, ""]:
+    """Detect stratum using SDF evaluation on grid. Primitive-independent.
+
+    Returns: 0=disjoint, 1=intersecting, 2=a_contained_in_b, 3=b_contained_in_a.
+    See ADR-0012 for design rationale.
+    """
+    sdf_a = a.sdf(grid)
+    sdf_b = b.sdf(grid)
+
+    inside_a = sdf_a < 0  # points inside A
+    inside_b = sdf_b < 0  # points inside B
+    overlap = inside_a & inside_b  # points inside both
+
+    n_a = jnp.sum(inside_a)
+    n_b = jnp.sum(inside_b)
+    n_overlap = jnp.sum(overlap)
+
+    # No overlap at all
+    disjoint = n_overlap == 0
+
+    # A entirely inside B (all of A's interior is also B's interior)
+    a_in_b = (n_a > 0) & (n_overlap >= n_a)
+    # B entirely inside A
+    b_in_a = (n_b > 0) & (n_overlap >= n_b)
+    contained = a_in_b | b_in_a
+
     return jnp.where(
-        d >= r1 + r2,
+        disjoint,
         0.0,
-        jnp.where(d <= jnp.abs(r1 - r2), 2.0, 1.0),
+        jnp.where(contained, jnp.where(a_in_b, 2.0, 3.0), 1.0),
     )
 
 
@@ -123,25 +147,29 @@ def _grad_contained(
     lo: Array,
     hi: Array,
     resolution: int,
+    label: Float[Array, ""],
 ) -> tuple[Primitive, Primitive]:
-    """Contained: union_vol = vol_outer. Only outer primitive has gradient."""
-    p_a = a.parameters()
-    p_b = b.parameters()
-    a_is_outer = p_a["radius"] >= p_b["radius"]
+    """Contained: union_vol = vol_outer. Only outer primitive has gradient.
 
-    grad_outer = _single_primitive_volume_grad(a, lo, hi, resolution)
-    grad_inner = _single_primitive_volume_grad(b, lo, hi, resolution)
+    label=2 means A is inside B (B is outer).
+    label=3 means B is inside A (A is outer).
+    """
+    # label 3.0 = b_in_a => a is outer
+    a_is_outer = label == 3.0
 
-    # Select: if a is outer, grad_a = grad_outer, grad_b = 0; else swap
+    grad_a_full = _single_primitive_volume_grad(a, lo, hi, resolution)
+    grad_b_full = _single_primitive_volume_grad(b, lo, hi, resolution)
+
+    # Contained: outer primitive keeps its gradient, inner gets zero.
+    # tree.map operates on each primitive type independently to avoid
+    # PyTree structure mismatch between heterogeneous primitives.
     grad_a = jax.tree.map(
-        lambda go, gi: jnp.where(a_is_outer, go, jnp.zeros_like(go)),
-        grad_outer,
-        grad_inner,
+        lambda g: jnp.where(a_is_outer, g, jnp.zeros_like(g)),
+        grad_a_full,
     )
     grad_b = jax.tree.map(
-        lambda go, gi: jnp.where(a_is_outer, jnp.zeros_like(gi), gi),
-        grad_outer,
-        grad_inner,
+        lambda g: jnp.where(a_is_outer, jnp.zeros_like(g), g),
+        grad_b_full,
     )
     return grad_a, grad_b
 
@@ -329,7 +357,9 @@ def _union_measure_with_custom_vjp(
         b: Primitive,
     ) -> tuple[Float[Array, ""], tuple[Primitive, Primitive, Float[Array, ""]]]:
         primal = _measure(a, b)
-        label = _detect_stratum(a, b)
+        # Generic stratum detection using grid sampling (ADR-0012)
+        grid, _ = _make_grid_nd(lo, hi, resolution)
+        label = _detect_stratum_generic(a, b, grid)
         return primal, (a, b, label)
 
     def _measure_bwd(
@@ -341,9 +371,12 @@ def _union_measure_with_custom_vjp(
         # Compute gradient for each stratum
         ga_d, gb_d = _grad_disjoint(a_, b_, lo, hi, resolution)
         ga_i, gb_i = _grad_intersecting(a_, b_, lo, hi, resolution)
-        ga_c, gb_c = _grad_contained(a_, b_, lo, hi, resolution)
+        # label 2.0=a_in_b, 3.0=b_in_a; pass label for direction
+        ga_c, gb_c = _grad_contained(a_, b_, lo, hi, resolution, label)
 
-        # Select based on stratum label
+        # Select based on stratum label (0=disjoint, 1=intersecting, 2/3=contained)
+        contained = (label == 2.0) | (label == 3.0)
+
         def select_grad(
             gd: Primitive,
             gi: Primitive,
@@ -353,7 +386,7 @@ def _union_measure_with_custom_vjp(
                 lambda d, i, c: jnp.where(
                     label == 0.0,
                     d,
-                    jnp.where(label == 2.0, c, i),
+                    jnp.where(contained, c, i),
                 ),
                 gd,
                 gi,
