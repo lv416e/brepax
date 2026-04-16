@@ -58,11 +58,13 @@ class TestCylinder:
 
     def test_sdf_is_vmap_compatible(self) -> None:
         cyl = self._z_axis_cylinder()
-        points = jnp.array([
-            [0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0],
-            [2.0, 0.0, 0.0],
-        ])
+        points = jnp.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [2.0, 0.0, 0.0],
+            ]
+        )
         result = eqx.filter_vmap(cyl.sdf)(points)
         assert result.shape == (3,)
 

@@ -133,14 +133,20 @@ If scope expansion is needed, add an ADR documenting the decision. Do not expand
 - **No over-abstraction**: Three similar lines are better than a premature abstraction.
 - **No hardcoding**: Magic numbers and defaults must be defined in constants or configuration.
 
-## Code Quality Checks (mandatory before commit)
+## Code Quality Checks (mandatory before EVERY commit and push)
+
+**NEVER commit or push without running ALL of these checks first.**
+A CI failure after push means the check was skipped locally. No exceptions.
 
 ```bash
 uv run ruff format src/ tests/
 uv run ruff check src/ tests/ --fix
 uv run mypy src/
-uv run pytest
+uv run pytest -m "not slow"
 ```
+
+All four must pass with zero errors before `git commit`. If any fails, fix it before committing.
+Do not rely on CI to catch errors -- CI is a safety net, not the primary gate.
 
 ## Reference Materials
 

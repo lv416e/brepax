@@ -76,22 +76,28 @@ class TestSphereSphereStratumLabel:
 
     def test_disjoint(self) -> None:
         label = sphere_sphere_stratum_label(
-            jnp.array([0.0, 0.0, 0.0]), jnp.array(1.0),
-            jnp.array([5.0, 0.0, 0.0]), jnp.array(1.0),
+            jnp.array([0.0, 0.0, 0.0]),
+            jnp.array(1.0),
+            jnp.array([5.0, 0.0, 0.0]),
+            jnp.array(1.0),
         )
         assert int(label) == 0
 
     def test_intersecting(self) -> None:
         label = sphere_sphere_stratum_label(
-            jnp.array([0.0, 0.0, 0.0]), jnp.array(1.0),
-            jnp.array([1.5, 0.0, 0.0]), jnp.array(1.0),
+            jnp.array([0.0, 0.0, 0.0]),
+            jnp.array(1.0),
+            jnp.array([1.5, 0.0, 0.0]),
+            jnp.array(1.0),
         )
         assert int(label) == 1
 
     def test_contained(self) -> None:
         label = sphere_sphere_stratum_label(
-            jnp.array([0.0, 0.0, 0.0]), jnp.array(2.0),
-            jnp.array([0.0, 0.0, 0.0]), jnp.array(0.5),
+            jnp.array([0.0, 0.0, 0.0]),
+            jnp.array(2.0),
+            jnp.array([0.0, 0.0, 0.0]),
+            jnp.array(0.5),
         )
         assert int(label) == 2
 
@@ -101,14 +107,18 @@ class TestSphereSphereeBoundaryDistance:
 
     def test_at_external_tangent(self) -> None:
         dist = sphere_sphere_boundary_distance(
-            jnp.array([0.0, 0.0, 0.0]), jnp.array(1.0),
-            jnp.array([2.0, 0.0, 0.0]), jnp.array(1.0),
+            jnp.array([0.0, 0.0, 0.0]),
+            jnp.array(1.0),
+            jnp.array([2.0, 0.0, 0.0]),
+            jnp.array(1.0),
         )
         assert jnp.isclose(dist, 0.0, atol=1e-10)
 
     def test_at_internal_tangent(self) -> None:
         dist = sphere_sphere_boundary_distance(
-            jnp.array([0.0, 0.0, 0.0]), jnp.array(2.0),
-            jnp.array([1.0, 0.0, 0.0]), jnp.array(1.0),
+            jnp.array([0.0, 0.0, 0.0]),
+            jnp.array(2.0),
+            jnp.array([1.0, 0.0, 0.0]),
+            jnp.array(1.0),
         )
         assert jnp.isclose(dist, 0.0, atol=1e-10)

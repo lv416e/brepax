@@ -54,11 +54,13 @@ class TestPlane:
 
     def test_sdf_is_vmap_compatible(self) -> None:
         plane = self._xy_plane()
-        points = jnp.array([
-            [0.0, 0.0, -1.0],
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ])
+        points = jnp.array(
+            [
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ]
+        )
         result = eqx.filter_vmap(plane.sdf)(points)
         assert result.shape == (3,)
         assert jnp.allclose(result, jnp.array([-1.0, 0.0, 1.0]))

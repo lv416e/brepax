@@ -22,7 +22,7 @@ class Plane(Primitive):
 
     def sdf(self, x: Float[Array, "... 3"]) -> Float[Array, "..."]:
         """Signed distance from query points to the plane."""
-        return jnp.sum(x * self.normal, axis=-1) - self.offset  # type: ignore[no-any-return]
+        return jnp.sum(x * self.normal, axis=-1) - self.offset
 
     def parameters(self) -> dict[str, Array]:
         """Return differentiable design parameters."""
