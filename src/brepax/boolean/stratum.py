@@ -208,64 +208,135 @@ def _grad_intersecting(
 # --- Generic Boolean measure (for intersection/subtract) ---
 
 
-def _boolean_measure_straight_through(
+def _sdf_combine(
+    a_: Primitive,
+    b_: Primitive,
+    grid: Array,
+    op: str,
+) -> Array:
+    """Combine SDFs based on Boolean operation type."""
+    if op == "intersect":
+        return jnp.maximum(a_.sdf(grid), b_.sdf(grid))
+    elif op == "subtract":
+        return jnp.maximum(a_.sdf(grid), -b_.sdf(grid))
+    else:
+        return jnp.minimum(a_.sdf(grid), b_.sdf(grid))
+
+
+def _grad_intersecting_generic(
     a: Primitive,
     b: Primitive,
-    sdf_combiner: str,
+    lo: Array,
+    hi: Array,
+    resolution: int,
+    op: str,
+) -> tuple[Primitive, Primitive]:
+    """Intersecting stratum: straight-through estimator on exact SDF Boolean."""
+
+    def _vol(a_: Primitive, b_: Primitive) -> Float[Array, ""]:
+        grid, cell_m = _make_grid_nd(lo, hi, resolution)
+        sdf_vals = _sdf_combine(a_, b_, grid, op)
+        cell_width = (hi[0] - lo[0]) / (resolution - 1)
+        indicator = jax.nn.sigmoid(-sdf_vals / cell_width)
+        return jnp.sum(indicator) * cell_m
+
+    grad_a, grad_b = jax.grad(_vol, argnums=(0, 1))(a, b)
+    return grad_a, grad_b
+
+
+def _boolean_measure_with_dispatch(
+    a: Primitive,
+    b: Primitive,
+    op: str,
     resolution: int,
     lo: Array,
     hi: Array,
 ) -> Float[Array, ""]:
-    """Grid-based Boolean measure with straight-through estimator.
+    """Grid-based Boolean measure with full stratum dispatch.
 
-    Used for intersection and subtract where stratum dispatch is not
-    yet specialized. Forward uses heaviside, backward uses sigmoid
-    with grid-adaptive beta.
+    Forward: exact SDF Boolean + heaviside on grid.
+    Backward: stratum-dispatched gradient computation.
+
+    Supports union, subtract, and intersect operations with
+    per-stratum analytical gradients where applicable.
     """
-
-    def _sdf_combine(
-        a_: Primitive,
-        b_: Primitive,
-        grid: Array,
-    ) -> Array:
-        if sdf_combiner == "intersect":
-            return jnp.maximum(a_.sdf(grid), b_.sdf(grid))
-        elif sdf_combiner == "subtract":
-            return jnp.maximum(a_.sdf(grid), -b_.sdf(grid))
-        else:
-            return jnp.minimum(a_.sdf(grid), b_.sdf(grid))
 
     @jax.custom_vjp
     def _measure(a: Primitive, b: Primitive) -> Float[Array, ""]:
         grid, cell_m = _make_grid_nd(lo, hi, resolution)
-        sdf_vals = _sdf_combine(a, b, grid)
+        sdf_vals = _sdf_combine(a, b, grid, op)
         indicator = jnp.heaviside(-sdf_vals, 0.5)
         return jnp.sum(indicator) * cell_m
 
     def _fwd(
         a: Primitive,
         b: Primitive,
-    ) -> tuple[Float[Array, ""], tuple[Primitive, Primitive]]:
+    ) -> tuple[Float[Array, ""], tuple[Primitive, Primitive, Float[Array, ""]]]:
         primal = _measure(a, b)
-        return primal, (a, b)
+        grid, _ = _make_grid_nd(lo, hi, resolution)
+        label = _detect_stratum_generic(a, b, grid)
+        return primal, (a, b, label)
 
     def _bwd(
-        residuals: tuple[Primitive, Primitive],
+        residuals: tuple[Primitive, Primitive, Float[Array, ""]],
         g_bar: Float[Array, ""],
     ) -> tuple[Primitive, Primitive]:
-        a_, b_ = residuals
+        a_, b_, label = residuals
 
-        def _diff(
-            a__: Primitive,
-            b__: Primitive,
-        ) -> Float[Array, ""]:
-            grid, cell_m = _make_grid_nd(lo, hi, resolution)
-            sdf_vals = _sdf_combine(a__, b__, grid)
-            cell_width = (hi[0] - lo[0]) / (resolution - 1)
-            indicator = jax.nn.sigmoid(-sdf_vals / cell_width)
-            return jnp.sum(indicator) * cell_m
+        ga_vol = _single_primitive_volume_grad(a_, lo, hi, resolution)
+        gb_vol = _single_primitive_volume_grad(b_, lo, hi, resolution)
+        zero_a = jax.tree.map(jnp.zeros_like, ga_vol)
+        zero_b = jax.tree.map(jnp.zeros_like, gb_vol)
 
-        grad_a, grad_b = jax.grad(_diff, argnums=(0, 1))(a_, b_)
+        # Per-stratum gradients depend on operation type
+        if op == "subtract":
+            # disjoint: subtract=vol_a, grad=(ga, 0)
+            ga_d, gb_d = ga_vol, zero_b
+            # A⊂B: subtract=0, grad=(0, 0)
+            ga_ab, gb_ab = zero_a, zero_b
+            # B⊂A: subtract=vol_a-vol_b, grad=(ga, -gb)
+            neg_gb = jax.tree.map(lambda x: -x, gb_vol)
+            ga_ba, gb_ba = ga_vol, neg_gb
+        elif op == "intersect":
+            # disjoint: intersect=0, grad=(0, 0)
+            ga_d, gb_d = zero_a, zero_b
+            # A⊂B: intersect=vol_a, grad=(ga, 0)
+            ga_ab, gb_ab = ga_vol, zero_b
+            # B⊂A: intersect=vol_b, grad=(0, gb)
+            ga_ba, gb_ba = zero_a, gb_vol
+        else:  # union
+            # disjoint: union=vol_a+vol_b
+            ga_d, gb_d = ga_vol, gb_vol
+            # A⊂B: union=vol_b
+            ga_ab, gb_ab = zero_a, gb_vol
+            # B⊂A: union=vol_a
+            ga_ba, gb_ba = ga_vol, zero_b
+
+        # Intersecting: always straight-through on combined SDF
+        ga_i, gb_i = _grad_intersecting_generic(
+            a_,
+            b_,
+            lo,
+            hi,
+            resolution,
+            op,
+        )
+
+        # Contained uses direction from label (2=A⊂B, 3=B⊂A)
+        contained = (label == 2.0) | (label == 3.0)
+        a_in_b = label == 2.0
+
+        def select_a(gd: Array, gi: Array, g_ab: Array, g_ba: Array) -> Array:
+            gc = jnp.where(a_in_b, g_ab, g_ba)
+            return jnp.where(label == 0.0, gd, jnp.where(contained, gc, gi))
+
+        def select_b(gd: Array, gi: Array, g_ab: Array, g_ba: Array) -> Array:
+            gc = jnp.where(a_in_b, g_ab, g_ba)
+            return jnp.where(label == 0.0, gd, jnp.where(contained, gc, gi))
+
+        grad_a = jax.tree.map(select_a, ga_d, ga_i, ga_ab, ga_ba)
+        grad_b = jax.tree.map(select_b, gb_d, gb_i, gb_ab, gb_ba)
+
         return (
             jax.tree.map(lambda x: g_bar * x, grad_a),
             jax.tree.map(lambda x: g_bar * x, grad_b),
@@ -284,11 +355,11 @@ def subtract_volume_stratum(
     *,
     resolution: int = 64,
 ) -> Float[Array, ""]:
-    """Compute volume of a - b (subtract b from a) with exact SDF gradients."""
+    """Compute volume of a - b with stratum-dispatched gradients."""
     lo, hi = _auto_domain(a, b)
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
-    return _boolean_measure_straight_through(a, b, "subtract", resolution, lo, hi)
+    return _boolean_measure_with_dispatch(a, b, "subtract", resolution, lo, hi)
 
 
 def intersect_volume_stratum(
@@ -297,11 +368,11 @@ def intersect_volume_stratum(
     *,
     resolution: int = 64,
 ) -> Float[Array, ""]:
-    """Compute intersection volume of a and b with exact SDF gradients."""
+    """Compute intersection volume with stratum-dispatched gradients."""
     lo, hi = _auto_domain(a, b)
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
-    return _boolean_measure_straight_through(a, b, "intersect", resolution, lo, hi)
+    return _boolean_measure_with_dispatch(a, b, "intersect", resolution, lo, hi)
 
 
 def union_area_stratum(
@@ -314,7 +385,7 @@ def union_area_stratum(
     lo, hi = _auto_domain(a, b)
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
-    return _union_measure_with_custom_vjp(a, b, resolution, lo, hi)
+    return _boolean_measure_with_dispatch(a, b, "union", resolution, lo, hi)
 
 
 def union_volume_stratum(
@@ -323,83 +394,8 @@ def union_volume_stratum(
     *,
     resolution: int = 64,
 ) -> Float[Array, ""]:
-    """Compute 3D union volume with stratum-aware exact gradients."""
+    """Compute 3D union volume with stratum-dispatched gradients."""
     lo, hi = _auto_domain(a, b)
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
-    return _union_measure_with_custom_vjp(a, b, resolution, lo, hi)
-
-
-def _union_measure_with_custom_vjp(
-    a: Primitive,
-    b: Primitive,
-    resolution: int,
-    lo: Array,
-    hi: Array,
-) -> Float[Array, ""]:
-    """Dimension-agnostic union measure with stratum-aware custom_vjp.
-
-    Forward: exact SDF Boolean + heaviside indicator on grid.
-    Backward: stratum label dispatch -- disjoint/contained use per-primitive
-    gradients, intersecting uses straight-through estimator with
-    grid-adaptive beta.
-    """
-
-    @jax.custom_vjp
-    def _measure(a: Primitive, b: Primitive) -> Float[Array, ""]:
-        grid, cell_m = _make_grid_nd(lo, hi, resolution)
-        sdf_vals = jnp.minimum(a.sdf(grid), b.sdf(grid))
-        indicator = jnp.heaviside(-sdf_vals, 0.5)
-        return jnp.sum(indicator) * cell_m
-
-    def _measure_fwd(
-        a: Primitive,
-        b: Primitive,
-    ) -> tuple[Float[Array, ""], tuple[Primitive, Primitive, Float[Array, ""]]]:
-        primal = _measure(a, b)
-        # Generic stratum detection using grid sampling (ADR-0012)
-        grid, _ = _make_grid_nd(lo, hi, resolution)
-        label = _detect_stratum_generic(a, b, grid)
-        return primal, (a, b, label)
-
-    def _measure_bwd(
-        residuals: tuple[Primitive, Primitive, Float[Array, ""]],
-        g_bar: Float[Array, ""],
-    ) -> tuple[Primitive, Primitive]:
-        a_, b_, label = residuals
-
-        # Compute gradient for each stratum
-        ga_d, gb_d = _grad_disjoint(a_, b_, lo, hi, resolution)
-        ga_i, gb_i = _grad_intersecting(a_, b_, lo, hi, resolution)
-        # label 2.0=a_in_b, 3.0=b_in_a; pass label for direction
-        ga_c, gb_c = _grad_contained(a_, b_, lo, hi, resolution, label)
-
-        # Select based on stratum label (0=disjoint, 1=intersecting, 2/3=contained)
-        contained = (label == 2.0) | (label == 3.0)
-
-        def select_grad(
-            gd: Primitive,
-            gi: Primitive,
-            gc: Primitive,
-        ) -> Primitive:
-            return jax.tree.map(
-                lambda d, i, c: jnp.where(
-                    label == 0.0,
-                    d,
-                    jnp.where(contained, c, i),
-                ),
-                gd,
-                gi,
-                gc,
-            )
-
-        grad_a = select_grad(ga_d, ga_i, ga_c)
-        grad_b = select_grad(gb_d, gb_i, gb_c)
-
-        return (
-            jax.tree.map(lambda x: g_bar * x, grad_a),
-            jax.tree.map(lambda x: g_bar * x, grad_b),
-        )
-
-    _measure.defvjp(_measure_fwd, _measure_bwd)
-    return _measure(a, b)
+    return _boolean_measure_with_dispatch(a, b, "union", resolution, lo, hi)
