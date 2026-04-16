@@ -24,3 +24,7 @@ class Disk(Primitive):
     def parameters(self) -> dict[str, Array]:
         """Return differentiable design parameters."""
         return {"center": self.center, "radius": self.radius}
+
+    def volume(self) -> Float[Array, ""]:
+        """Disk area: pi * r^2."""
+        return jnp.pi * self.radius**2

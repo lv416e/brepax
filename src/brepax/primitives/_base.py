@@ -22,3 +22,16 @@ class Primitive(eqx.Module):
     def parameters(self) -> dict[str, Array]:
         """Return differentiable design parameters."""
         raise NotImplementedError
+
+    def volume(self) -> Float[Array, ""]:
+        """Analytical volume of this primitive.
+
+        Returns the finite volume for bounded primitives (Sphere, Box, etc.).
+        Unbounded primitives (Cylinder, Plane, Cone) return inf.
+        Override in subclasses with known analytical formulas.
+        Differentiable via jax.grad for gradient computation.
+        """
+        # Default: unbounded primitive has infinite volume
+        import jax.numpy as jnp
+
+        return jnp.array(jnp.inf)

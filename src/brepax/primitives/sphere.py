@@ -24,3 +24,7 @@ class Sphere(Primitive):
     def parameters(self) -> dict[str, Array]:
         """Return differentiable design parameters."""
         return {"center": self.center, "radius": self.radius}
+
+    def volume(self) -> Float[Array, ""]:
+        """Sphere volume: 4/3 * pi * r^3."""
+        return (4.0 / 3.0) * jnp.pi * self.radius**3

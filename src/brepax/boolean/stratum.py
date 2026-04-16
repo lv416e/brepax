@@ -113,19 +113,35 @@ def _single_primitive_volume_grad(
     hi: Array,
     resolution: int,
 ) -> Primitive:
-    """Gradient of a single primitive's volume within the grid domain.
+    """Gradient of a single primitive's volume.
 
-    Uses straight-through estimator with grid-adaptive beta = cell_width.
+    Uses analytical volume() if available (finite volume primitives),
+    falling back to grid-based straight-through estimator for unbounded
+    primitives. Analytical gradients are exact; grid-based have
+    resolution-dependent error.
     """
+    vol = prim.volume()
+    is_finite = jnp.isfinite(vol)
 
-    def _vol(p: Primitive) -> Float[Array, ""]:
+    # Analytical path: jax.grad of the exact volume formula
+    analytical_grad = jax.grad(lambda p: p.volume())(prim)
+
+    # Grid path: straight-through estimator (fallback for unbounded)
+    def _grid_vol(p: Primitive) -> Float[Array, ""]:
         grid, cell_m = _make_grid_nd(lo, hi, resolution)
         sdf_vals = p.sdf(grid)
         cell_width = (hi[0] - lo[0]) / (resolution - 1)
         indicator = jax.nn.sigmoid(-sdf_vals / cell_width)
         return jnp.sum(indicator) * cell_m
 
-    return jax.grad(_vol)(prim)
+    grid_grad = jax.grad(_grid_vol)(prim)
+
+    # Select: analytical for bounded, grid for unbounded
+    return jax.tree.map(
+        lambda a, g: jnp.where(is_finite, a, g),
+        analytical_grad,
+        grid_grad,
+    )
 
 
 def _grad_disjoint(
