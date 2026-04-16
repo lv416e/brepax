@@ -96,6 +96,9 @@ module = [
     "jaxlib.*",
     "equinox.*",
     "jaxtyping.*",
+    "OCP.*",
+    "matplotlib.*",
+    "mpl_toolkits.*",
 ]
 ignore_missing_imports = true
 

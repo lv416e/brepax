@@ -88,3 +88,4 @@ nav:
           - "ADR-0011: Hybrid Strategy": architecture/adr/0011-hybrid-strategy.md
           - "ADR-0012: Generic Stratum Detection": architecture/adr/0012-generic-stratum-detection.md
           - "ADR-0013: Mold Direction Demonstrator": architecture/adr/0013-mold-direction-demonstrator.md
+          - "ADR-0014: STEP I/O Initial": architecture/adr/0014-step-io-initial.md
