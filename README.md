@@ -52,7 +52,7 @@ BRepAX is under active development. Current capabilities:
 - **Visualization**: 3D tessellated shape rendering
 - **Applications**: Mold direction optimization demonstrator
 
-Planned modules (scaffolded, not yet implemented):
+Planned modules (not yet implemented):
 
 - `persistence/` — Persistent homology integration
 - `topology/` — Half-edge mesh representation
