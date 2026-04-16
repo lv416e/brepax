@@ -50,3 +50,28 @@ We use [Conventional Commits](https://www.conventionalcommits.org/). Examples:
 ## Architectural Decisions
 
 If your change involves a significant design choice, add an ADR in `docs/architecture/adr/` following the existing template.
+
+## Release Process
+
+### TestPyPI dry run
+
+Before publishing to PyPI, verify the package on TestPyPI:
+
+- **Manual trigger**: Run the "Publish to TestPyPI" workflow via `workflow_dispatch` on GitHub Actions.
+- **Pre-release tag**: Push a tag matching `v*.*.*-rc*` or `v*.*.*-beta*` (e.g., `v0.2.0-rc1`) to trigger the workflow automatically.
+
+Install and verify the TestPyPI package:
+
+```bash
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple brepax==<version>
+```
+
+The `--extra-index-url` flag ensures runtime dependencies (JAX, equinox, etc.) resolve from the real PyPI.
+
+### Production release
+
+Production releases are managed by [release-please](https://github.com/googleapis/release-please). Merging a PR with Conventional Commits triggers release-please to open a release PR. Merging that PR creates a semver tag and GitHub Release, which triggers the PyPI publish workflow.
+
+### Trusted Publisher setup
+
+Both TestPyPI and PyPI use [Trusted Publishers](https://docs.pypi.org/trusted-publishers/) (OIDC) for authentication. No API tokens are stored in secrets. Each environment (`testpypi` and `pypi`) must be configured as a Trusted Publisher on the respective PyPI project settings page, specifying this repository and the corresponding workflow file.
