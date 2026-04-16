@@ -10,7 +10,7 @@ from typing import Literal
 from jaxtyping import Array, Float
 
 from brepax.boolean.smoothing import union_area_smoothing
-from brepax.boolean.stratum import union_area_stratum
+from brepax.boolean.stratum import union_area_stratum, union_volume_stratum
 from brepax.primitives._base import Primitive
 
 BooleanMethod = Literal["smoothing", "toi", "stratum"]
@@ -51,6 +51,35 @@ def union_area(
         raise NotImplementedError("TOI method not yet implemented")
     elif method == "stratum":
         return union_area_stratum(a, b)
+    else:
+        msg = f"unknown method: {method}"
+        raise ValueError(msg)
+
+
+def union_volume(
+    a: Primitive,
+    b: Primitive,
+    *,
+    method: BooleanMethod = "stratum",
+    **kwargs: float | int | None,
+) -> Float[Array, ""]:
+    """Compute the union volume of two 3D primitives.
+
+    Args:
+        a: First primitive.
+        b: Second primitive.
+        method: Differentiation strategy.
+        **kwargs: Method-specific parameters.
+
+    Returns:
+        Union volume as a differentiable scalar.
+    """
+    if method == "stratum":
+        return union_volume_stratum(a, b, **kwargs)  # type: ignore[arg-type]
+    elif method == "toi":
+        raise NotImplementedError("TOI method not yet implemented")
+    elif method == "smoothing":
+        raise NotImplementedError("3D smoothing not yet implemented")
     else:
         msg = f"unknown method: {method}"
         raise ValueError(msg)
