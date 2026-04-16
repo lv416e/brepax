@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.1](https://github.com/lv416e/brepax/compare/v0.1.0...v0.1.1) (2026-04-16)
+
+
+### Features
+
+* **io:** add STEP file reading, metadata extraction, and shape visualization ([448a4bc](https://github.com/lv416e/brepax/commit/448a4bc25cff85476c54720af9f3ef1171c5b8d0))
+
+
+### Bug Fixes
+
+* **ci:** add viz extra to test matrix and skip plot tests when matplotlib missing ([e2d23b5](https://github.com/lv416e/brepax/commit/e2d23b580ce8251e4eed8bbfb9aa4107a2531979))
+
+
+### Documentation
+
+* add reference pages, tutorials, and clean up skeleton placeholders ([bd2ddef](https://github.com/lv416e/brepax/commit/bd2ddefb8e9240c47ac62ad9784599ed9bfdfe11))
+
 ## 0.1.0 (2026-04-16)
 
 
