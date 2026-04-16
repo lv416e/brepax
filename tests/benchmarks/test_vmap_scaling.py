@@ -87,7 +87,9 @@ class TestVmapScalingMethodC:
         assert result.shape == (4,)
         assert jnp.all(jnp.isfinite(result))
 
+    @pytest.mark.slow
     def test_scaling_efficiency(self) -> None:
+        """Gate 3b: GPU scaling benchmark. Skipped in CI (CPU only). See ADR-0010."""
         jitted = jax.jit(_stratum_grad_batch)
 
         throughputs = {}
