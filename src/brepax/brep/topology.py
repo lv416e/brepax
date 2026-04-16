@@ -77,7 +77,8 @@ def build_adjacency_graph(shape: TopoDS_Shape) -> FaceAdjacencyGraph:
             for j in range(i + 1, len(face_ids)):
                 a, b = face_ids[i], face_ids[j]
                 adjacency[a].append((b, ei))
-                adjacency[b].append((a, ei))
+                if a != b:
+                    adjacency[b].append((a, ei))
 
     return FaceAdjacencyGraph(
         n_faces=n_faces,
@@ -110,7 +111,7 @@ def shared_edges(graph: FaceAdjacencyGraph, face_a: int, face_b: int) -> list[in
     Returns:
         Sorted list of edge ids connecting the two faces.
     """
-    return sorted(e for n, e in graph.adjacency.get(face_a, []) if n == face_b)
+    return sorted({e for n, e in graph.adjacency.get(face_a, []) if n == face_b})
 
 
 def face_degree(graph: FaceAdjacencyGraph, face_id: int) -> int:
