@@ -4,6 +4,7 @@
 [tools]
 python = "3.12"
 uv = "latest"
+lefthook = "latest"
 
 [tasks.sync]
 description = "Sync dependencies"

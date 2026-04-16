@@ -17,11 +17,10 @@ Thank you for your interest in contributing to BRepAX.
    uv sync --extra dev
    ```
 
-3. Install pre-commit hooks:
+3. Install git hooks:
 
    ```bash
-   pre-commit install
-   pre-commit install --hook-type commit-msg
+   lefthook install
    ```
 
 ## Development Workflow

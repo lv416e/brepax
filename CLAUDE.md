@@ -57,8 +57,8 @@ uv run nox -s test
 uv run nox -s lint
 uv run nox -s typecheck
 
-# Pre-commit hooks
-pre-commit run --all-files
+# Install git hooks (lefthook, managed via mise)
+lefthook install
 
 # Build documentation
 uv run mkdocs serve

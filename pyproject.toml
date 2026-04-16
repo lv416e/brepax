@@ -41,7 +41,6 @@ dev = [
     "ruff",
     "mypy",
     "beartype",
-    "pre-commit",
     "nox",
 ]
 docs = [
