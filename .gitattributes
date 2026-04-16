@@ -10,8 +10,8 @@ uv.lock -diff merge=ours linguist-generated
 # Documentation
 *.md text diff=markdown
 
-# Notebooks — stored as JSON
-*.ipynb diff=json linguist-generated
+# Notebooks — stored as JSON, output stripped on commit
+*.ipynb filter=nbstripout diff=json linguist-generated
 
 # Benchmark results
 benchmarks/gradient_accuracy/results/*.json linguist-generated

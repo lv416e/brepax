@@ -1,4 +1,4 @@
-"""Gate criterion 2: optimization trajectory analysis.
+"""Optimization trajectory analysis.
 
 Tests optimization convergence for both within-stratum and
 cross-stratum scenarios, revealing the complementary strengths

@@ -1,6 +1,6 @@
 """Time-of-impact corrected Boolean operations.
 
-Implementation deferred to Phase 2 (hybrid optimizer context).
+Implementation deferred to hybrid optimizer context.
 Mathematical derivation complete: see docs/explanation/toi_derivation.md.
 Design rationale: see ADR-0009 (deferral) and ADR-0011 (hybrid strategy).
 

@@ -1,4 +1,4 @@
-"""Gate criterion 3: vmap scaling benchmark.
+"""Vmap scaling benchmark.
 
 Measures throughput of jit-compiled gradient computation as batch size
 increases from 1 to 1024. Both Method (A) and Method (C) are tested.
@@ -78,7 +78,7 @@ def _smoothing_grad_batch(c1, r1, c2, r2):
 
 
 class TestVmapScalingMethodC:
-    """Gate 3: Method (C) vmap throughput scaling."""
+    """Method (C) vmap throughput scaling."""
 
     def test_vmap_produces_correct_shape(self) -> None:
         c1, r1, c2, r2 = _make_batch(4)
@@ -89,7 +89,7 @@ class TestVmapScalingMethodC:
 
     @pytest.mark.slow
     def test_scaling_efficiency(self) -> None:
-        """Gate 3b: GPU scaling benchmark. Skipped in CI (CPU only). See ADR-0010."""
+        """GPU scaling benchmark. Skipped in CI (CPU only). See ADR-0010."""
         jitted = jax.jit(_stratum_grad_batch)
 
         throughputs = {}
@@ -110,7 +110,7 @@ class TestVmapScalingMethodC:
 
 
 class TestVmapScalingMethodA:
-    """Gate 3: Method (A) vmap throughput scaling."""
+    """Method (A) vmap throughput scaling."""
 
     def test_vmap_produces_correct_shape(self) -> None:
         c1, r1, c2, r2 = _make_batch(4)

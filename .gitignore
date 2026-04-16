@@ -35,6 +35,11 @@ htmlcov/
 # Documentation
 site/
 
+# Secrets and credentials
+.env
+.env.*
+credentials.*
+
 # OS
 .DS_Store
 Thumbs.db

@@ -120,3 +120,8 @@ exclude_lines = [
     "raise NotImplementedError",
     "@overload",
 ]
+
+[dependency-groups]
+dev = [
+    "nbstripout>=0.9.1",
+]

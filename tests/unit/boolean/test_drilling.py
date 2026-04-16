@@ -1,7 +1,7 @@
 """Cylinder + Plane drilling demonstration.
 
-Phase 1 midpoint milestone: differentiable Boolean subtraction of a
-cylinder through a half-space, representing a drilling operation.
+Differentiable Boolean subtraction of a cylinder through a half-space,
+representing a drilling operation.
 Design variable is the cylinder radius; objective is the resulting volume.
 """
 

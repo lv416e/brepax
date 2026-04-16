@@ -4,7 +4,7 @@ Provides a coarse-to-fine optimization framework where Method (A) smoothing
 handles cross-stratum exploration and Method (C) stratum-aware handles
 within-stratum precision. See ADR-0011 for the design rationale.
 
-API contracts defined here are stable for Phase 2 implementation.
+API contracts defined here are stable; implementation is pending.
 """
 
 from __future__ import annotations
@@ -73,11 +73,11 @@ def hybrid_optimize(
 ) -> HybridResult:
     """Optimize an objective using a hybrid exploration-refinement strategy.
 
-    Phase 1: Uses explore_method (smoothing) for global gradient signal
-    to cross stratum boundaries and reach the target stratum.
+    Exploration stage: Uses explore_method (smoothing) for global gradient
+    signal to cross stratum boundaries and reach the target stratum.
 
-    Phase 2: Switches to refine_method (stratum-aware) for analytically
-    exact convergence within the target stratum.
+    Refinement stage: Switches to refine_method (stratum-aware) for
+    analytically exact convergence within the target stratum.
 
     Args:
         objective: Scalar objective function to minimize.
@@ -93,10 +93,10 @@ def hybrid_optimize(
         HybridResult with optimization trajectory and diagnostics.
 
     Raises:
-        NotImplementedError: Always (implementation deferred to Phase 2).
+        NotImplementedError: Always (not yet implemented).
     """
     raise NotImplementedError(
-        "Hybrid optimizer implementation deferred to Phase 2. "
+        "Hybrid optimizer is not yet implemented. "
         "See ADR-0011 and docs/explanation/hybrid_optimization_strategy.md "
         "for design rationale. Use manual method switching in the meantime."
     )

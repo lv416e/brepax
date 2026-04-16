@@ -6,7 +6,7 @@ Backward: custom_vjp dispatches gradient computation by stratum label:
   - contained: outer primitive's volume gradient only
   - intersecting: straight-through estimator with grid-adaptive beta
 
-This preserves the Phase 0 design principle (stratum label dispatch)
+This preserves the core design principle (stratum label dispatch)
 while generalizing to any primitive pair via grid-based computation.
 """
 
