@@ -72,6 +72,7 @@ nav:
       - TOI Correction Derivation: explanation/toi_derivation.md
       - Hybrid Optimization Strategy: explanation/hybrid_optimization_strategy.md
       - Gate Evaluation Report: explanation/gate_evaluation_report.md
+      - Phase 1 Gate Report: explanation/phase1_gate_report.md
   - Reference: reference/index.md
   - Architecture:
       - Overview: architecture/index.md
