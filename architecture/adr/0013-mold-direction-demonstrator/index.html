@@ -10,31 +10,29 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/gate_evaluation_report/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0013-mold-direction-demonstrator/">
       
       
-        <link rel="prev" href="../hybrid_optimization_strategy/">
+        <link rel="prev" href="../0012-generic-stratum-detection/">
       
-      
-        <link rel="next" href="../phase1_gate_report/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Gate Evaluation Report - BRepAX</title>
+        <title>ADR-0013: Mold Direction Demonstrator - BRepAX</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,9 +51,9 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#concept-proof-gate-evaluation-report" class="md-skip">
+        <a href="#adr-0013-mold-direction-optimizer-as-application-demonstrator" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +94,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -116,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Gate Evaluation Report
+              ADR-0013: Mold Direction Demonstrator
             
           </span>
         </div>
@@ -232,7 +230,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +260,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -343,7 +341,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/01_quickstart/" class="md-nav__link">
+      <a href="../../../tutorials/01_quickstart/" class="md-nav__link">
         
   
   
@@ -371,7 +369,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/02_first_optimization/" class="md-nav__link">
+      <a href="../../../tutorials/02_first_optimization/" class="md-nav__link">
         
   
   
@@ -399,7 +397,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/03_stratum_tracking/" class="md-nav__link">
+      <a href="../../../tutorials/03_stratum_tracking/" class="md-nav__link">
         
   
   
@@ -488,7 +486,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../how-to/compose_primitives/" class="md-nav__link">
+      <a href="../../../how-to/compose_primitives/" class="md-nav__link">
         
   
   
@@ -516,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../how-to/custom_loss/" class="md-nav__link">
+      <a href="../../../how-to/custom_loss/" class="md-nav__link">
         
   
   
@@ -544,7 +542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../how-to/batch_with_vmap/" class="md-nav__link">
+      <a href="../../../how-to/batch_with_vmap/" class="md-nav__link">
         
   
   
@@ -572,7 +570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../how-to/interop_pythonocc/" class="md-nav__link">
+      <a href="../../../how-to/interop_pythonocc/" class="md-nav__link">
         
   
   
@@ -604,8 +602,6 @@
       
   
   
-    
-  
   
   
     
@@ -618,11 +614,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
@@ -643,7 +641,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -661,7 +659,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../design_thesis/" class="md-nav__link">
+      <a href="../../../explanation/design_thesis/" class="md-nav__link">
         
   
   
@@ -689,7 +687,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../stratification_theory/" class="md-nav__link">
+      <a href="../../../explanation/stratification_theory/" class="md-nav__link">
         
   
   
@@ -717,7 +715,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contact_dynamics_analogy/" class="md-nav__link">
+      <a href="../../../explanation/contact_dynamics_analogy/" class="md-nav__link">
         
   
   
@@ -745,7 +743,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pseudo_sdf_problem/" class="md-nav__link">
+      <a href="../../../explanation/pseudo_sdf_problem/" class="md-nav__link">
         
   
   
@@ -773,7 +771,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../why_brep/" class="md-nav__link">
+      <a href="../../../explanation/why_brep/" class="md-nav__link">
         
   
   
@@ -801,7 +799,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../license_strategy/" class="md-nav__link">
+      <a href="../../../explanation/license_strategy/" class="md-nav__link">
         
   
   
@@ -829,7 +827,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../jax_where_gradient_pitfall/" class="md-nav__link">
+      <a href="../../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
         
   
   
@@ -857,7 +855,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../toi_derivation/" class="md-nav__link">
+      <a href="../../../explanation/toi_derivation/" class="md-nav__link">
         
   
   
@@ -885,7 +883,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../hybrid_optimization_strategy/" class="md-nav__link">
+      <a href="../../../explanation/hybrid_optimization_strategy/" class="md-nav__link">
         
   
   
@@ -893,6 +891,593 @@
     
   
     Hybrid Optimization Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../explanation/concept_proof_evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concept Proof Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../explanation/3d_extension_evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3D Extension Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../3d-extension-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3D Extension Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0001-jax-native-rationale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0001: JAX-Native Rationale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0002-equinox-pytree-pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0002: Equinox PyTree Pattern
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0003-stratum-label-encoding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0003: Stratum Label Encoding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0004-custom-vjp-at-boundaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004: Custom VJP at Boundaries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0005-half-edge-padding-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0005: Half-Edge Padding Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0006-license-apache-2-rationale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0006: License Apache 2 Rationale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0007-ocp-binding-choice/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007: OCP Binding Choice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0008-occt-abstraction-layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0008: OCCT Abstraction Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0009-method-b-deferred/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0009: Method B Deferred
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0010-design-validation-split/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0010: Design Validation Split
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0011-hybrid-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0011: Hybrid Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0012-generic-stratum-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0012: Generic Stratum Detection
   
 
     
@@ -929,7 +1514,7 @@
   <span class="md-ellipsis">
     
   
-    Gate Evaluation Report
+    ADR-0013: Mold Direction Demonstrator
   
 
     
@@ -947,7 +1532,7 @@
   <span class="md-ellipsis">
     
   
-    Gate Evaluation Report
+    ADR-0013: Mold Direction Demonstrator
   
 
     
@@ -973,10 +1558,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#summary" class="md-nav__link">
+  <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Summary
+        Status
       
     </span>
   </a>
@@ -984,22 +1569,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-1-boundary-proximity-accuracy" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 1: Boundary Proximity Accuracy
+        Context
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Gate 1: Boundary Proximity Accuracy">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#external-tangent-d-approaching-r1-r2" class="md-nav__link">
+  <a href="#scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        External tangent (d approaching r1 + r2)
+        Scope
       
     </span>
   </a>
@@ -1007,32 +1603,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#internal-tangent-d-approaching-r1-r2" class="md-nav__link">
+  <a href="#design-choices" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Internal tangent (d approaching |r1 - r2|)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#technical-explanation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Technical explanation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#supplementary-finding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supplementary finding
+        Design choices
       
     </span>
   </a>
@@ -1045,115 +1619,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-2a-within-stratum-optimization-precision" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 2a: Within-Stratum Optimization Precision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-2b-cross-stratum-optimization-behavior" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 2b: Cross-Stratum Optimization Behavior
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-3a-vmap-design-compatibility" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 3a: vmap Design Compatibility
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-3b-gpu-throughput-scaling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 3b: GPU Throughput Scaling
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-discoveries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Discoveries
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Discoveries">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-method-complementarity-most-significant" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Method complementarity (most significant)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-external-tangent-gradient-continuity" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. External tangent gradient continuity
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-jnpwhere-gradient-nan-pattern" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. jnp.where gradient NaN pattern
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-jaxtyping-equinox-integration-constraints" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. jaxtyping + equinox integration constraints
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#recommendation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recommendation
+        Consequences
       
     </span>
   </a>
@@ -1164,537 +1633,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../phase1_gate_report/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Phase 1 Gate Report
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reference
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
-        
-          
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Architecture
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/phase1-roadmap/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Phase 1 Roadmap
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    ADR
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0001-jax-native-rationale/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0001: JAX-Native Rationale
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0002-equinox-pytree-pattern/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0002: Equinox PyTree Pattern
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0003-stratum-label-encoding/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0003: Stratum Label Encoding
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0004-custom-vjp-at-boundaries/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0004: Custom VJP at Boundaries
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0005-half-edge-padding-strategy/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0005: Half-Edge Padding Strategy
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0006-license-apache-2-rationale/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0006: License Apache 2 Rationale
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0007-ocp-binding-choice/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0007: OCP Binding Choice
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0008-occt-abstraction-layer/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0008: OCCT Abstraction Layer
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0009-method-b-deferred/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0009: Method B Deferred
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0010-gate3-split/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0010: Gate 3 Split
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/adr/0011-hybrid-strategy/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0011: Hybrid Strategy
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1742,10 +1680,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#summary" class="md-nav__link">
+  <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Summary
+        Status
       
     </span>
   </a>
@@ -1753,22 +1691,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-1-boundary-proximity-accuracy" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 1: Boundary Proximity Accuracy
+        Context
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Gate 1: Boundary Proximity Accuracy">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#external-tangent-d-approaching-r1-r2" class="md-nav__link">
+  <a href="#scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        External tangent (d approaching r1 + r2)
+        Scope
       
     </span>
   </a>
@@ -1776,32 +1725,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#internal-tangent-d-approaching-r1-r2" class="md-nav__link">
+  <a href="#design-choices" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Internal tangent (d approaching |r1 - r2|)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#technical-explanation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Technical explanation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#supplementary-finding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supplementary finding
+        Design choices
       
     </span>
   </a>
@@ -1814,115 +1741,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-2a-within-stratum-optimization-precision" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 2a: Within-Stratum Optimization Precision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-2b-cross-stratum-optimization-behavior" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 2b: Cross-Stratum Optimization Behavior
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-3a-vmap-design-compatibility" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 3a: vmap Design Compatibility
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-3b-gpu-throughput-scaling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 3b: GPU Throughput Scaling
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-discoveries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Discoveries
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Discoveries">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-method-complementarity-most-significant" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Method complementarity (most significant)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-external-tangent-gradient-continuity" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. External tangent gradient continuity
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-jnpwhere-gradient-nan-pattern" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. jnp.where gradient NaN pattern
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-jaxtyping-equinox-integration-constraints" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. jaxtyping + equinox integration constraints
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#recommendation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recommendation
+        Consequences
       
     </span>
   </a>
@@ -1949,210 +1771,72 @@
   
 
 
-<h1 id="concept-proof-gate-evaluation-report">Concept Proof Gate Evaluation Report<a class="headerlink" href="#concept-proof-gate-evaluation-report" title="Permanent link">&para;</a></h1>
-<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
-<p><strong>Overall verdict: PASS</strong></p>
-<p>The concept proof validates the core technical thesis: stratum-aware differentiation provides analytically exact gradients for CAD Boolean operations within each topological stratum. The testing also revealed a complementary finding: cross-stratum optimization requires hybrid approaches combining smoothing (global signal) with stratum-aware gradients (local precision).</p>
-<table>
-<thead>
-<tr>
-<th>Gate</th>
-<th>Criterion</th>
-<th>Result</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Boundary proximity accuracy</td>
-<td><strong>PASS</strong></td>
-</tr>
-<tr>
-<td>2a</td>
-<td>Within-stratum optimization precision</td>
-<td><strong>PASS</strong></td>
-</tr>
-<tr>
-<td>2b</td>
-<td>Cross-stratum optimization behavior</td>
-<td><strong>REINTERPRETED</strong></td>
-</tr>
-<tr>
-<td>3a</td>
-<td>vmap design compatibility</td>
-<td><strong>PASS</strong></td>
-</tr>
-<tr>
-<td>3b</td>
-<td>GPU throughput scaling</td>
-<td><strong>DEFERRED</strong></td>
-</tr>
-</tbody>
-</table>
-<h2 id="gate-1-boundary-proximity-accuracy">Gate 1: Boundary Proximity Accuracy<a class="headerlink" href="#gate-1-boundary-proximity-accuracy" title="Permanent link">&para;</a></h2>
-<p><strong>Criterion</strong>: Method (C) relative error is 1/10 of Method (A) at boundary distance epsilon in [0.001, 0.1].</p>
-<p><strong>Result: PASS (exceeded by many orders of magnitude)</strong></p>
-<p>Method (C) returns analytical gradients up to floating-point precision (relative error &lt; 1e-12). Method (A) shows systematic smoothing bias that increases with boundary proximity.</p>
-<h3 id="external-tangent-d-approaching-r1-r2">External tangent (d approaching r1 + r2)<a class="headerlink" href="#external-tangent-d-approaching-r1-r2" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>boundary dist</th>
-<th>Method (A) k=0.1</th>
-<th>Method (C)</th>
-<th>ratio</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0.50</td>
-<td>0.89%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^10</td>
-</tr>
-<tr>
-<td>0.10</td>
-<td>0.89%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^10</td>
-</tr>
-<tr>
-<td>0.01</td>
-<td>5.2%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^12</td>
-</tr>
-</tbody>
-</table>
-<h3 id="internal-tangent-d-approaching-r1-r2">Internal tangent (d approaching |r1 - r2|)<a class="headerlink" href="#internal-tangent-d-approaching-r1-r2" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>boundary dist</th>
-<th>Method (A) k=0.1</th>
-<th>Method (C)</th>
-<th>ratio</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0.50</td>
-<td>0.58%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^10</td>
-</tr>
-<tr>
-<td>0.10</td>
-<td>0.60%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^10</td>
-</tr>
-<tr>
-<td>0.01</td>
-<td>1.5%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^12</td>
-</tr>
-</tbody>
-</table>
-<p>Gate 1 target (1/10 ratio) exceeded by approximately 10^10.</p>
-<h3 id="technical-explanation">Technical explanation<a class="headerlink" href="#technical-explanation" title="Permanent link">&para;</a></h3>
-<p>Method (C) achieves exact gradients because the custom_vjp backward pass dispatches to per-stratum gradient formulas via stratum label residual (ADR-0004). Within each stratum, the gradient is computed by JAX autodiff on the analytical area formula, which is exact. Method (A) accumulates smoothing bias from both the log-sum-exp SDF composition (temperature k) and the sigmoid area integral (temperature beta).</p>
-<h3 id="supplementary-finding">Supplementary finding<a class="headerlink" href="#supplementary-finding" title="Permanent link">&para;</a></h3>
-<p>TOI derivation revealed that the gradient discontinuity at external tangent is second-order (the area gradient is continuous at d = r1 + r2). At internal tangent, the discontinuity is first-order. Method (C)'s advantage is therefore primarily the elimination of smoothing bias, not the correction of gradient discontinuities (ADR-0004 addendum).</p>
-<h2 id="gate-2a-within-stratum-optimization-precision">Gate 2a: Within-Stratum Optimization Precision<a class="headerlink" href="#gate-2a-within-stratum-optimization-precision" title="Permanent link">&para;</a></h2>
-<p><strong>Criterion</strong>: Method (C) converges to analytical optimum within a stratum.</p>
-<p><strong>Result: PASS</strong></p>
-<p>Optimizing r1 within the intersecting stratum toward a target area:</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>Method (C)</th>
-<th>Method (A)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Final r1</td>
-<td>1.499993</td>
-<td>1.478749</td>
-</tr>
-<tr>
-<td>Target r1</td>
-<td>1.500000</td>
-<td>1.500000</td>
-</tr>
-<tr>
-<td>Position error</td>
-<td>7e-6</td>
-<td>0.021</td>
-</tr>
-<tr>
-<td>Convergence</td>
-<td>6 steps</td>
-<td>6 steps</td>
-</tr>
-</tbody>
-</table>
-<p>Method (C) is 3000x more precise in reaching the true optimum. Method (A) converges to a smoothing-biased optimum that does not match the analytical target.</p>
-<h2 id="gate-2b-cross-stratum-optimization-behavior">Gate 2b: Cross-Stratum Optimization Behavior<a class="headerlink" href="#gate-2b-cross-stratum-optimization-behavior" title="Permanent link">&para;</a></h2>
-<p><strong>Original criterion</strong>: Method (C) converges to a cross-stratum analytical optimum.</p>
-<p><strong>Result: REINTERPRETED (not a failure)</strong></p>
-<p>Starting in the disjoint stratum (c2_x = 3.0, target c2_x = 1.5 in intersecting):</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>Method (C)</th>
-<th>Method (A)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Gradient at init</td>
-<td>0.0</td>
-<td>7.5e-4</td>
-</tr>
-<tr>
-<td>Final position</td>
-<td>3.0 (no movement)</td>
-<td>2.992</td>
-</tr>
-<tr>
-<td>Boundary crossed</td>
-<td>No</td>
-<td>No</td>
-</tr>
-</tbody>
-</table>
-<p>Method (C) returns exactly zero gradient because the disjoint-stratum area formula (pi<em>r1^2 + pi</em>r2^2) is independent of center positions. This is analytically correct. Method (A) provides weak gradient signal via its smoothing kernel, but moves only 0.008 over 100 steps (boundary at d=2.0 is 1.0 away).</p>
-<p><strong>Reinterpretation</strong>: Cross-stratum gradient zero is a mathematical property of stratum-aware differentiation, not a design defect. The original gate criterion was based on an incomplete understanding of this property. This finding motivates a hybrid optimization strategy (ADR-0011) combining Method (A) for cross-stratum exploration with Method (C) for within-stratum precision.</p>
-<p>This parallels the visibility problem in differentiable rendering, where fully occluded objects have zero gradient. The field resolved this with hybrid approaches (SoftRas + nvdiffrast), and BRepAX will follow the same pattern.</p>
-<h2 id="gate-3a-vmap-design-compatibility">Gate 3a: vmap Design Compatibility<a class="headerlink" href="#gate-3a-vmap-design-compatibility" title="Permanent link">&para;</a></h2>
-<p><strong>Criterion</strong>: jax.custom_vjp composes correctly with jax.vmap.</p>
-<p><strong>Result: PASS</strong></p>
-<p>Batched gradient computation produces correct shapes and values for all batch sizes tested (1, 4, 16, 64, 256, 1024). The custom_vjp backward pass handles batched stratum labels via jnp.where array operations, which are natively vmap-compatible.</p>
-<h2 id="gate-3b-gpu-throughput-scaling">Gate 3b: GPU Throughput Scaling<a class="headerlink" href="#gate-3b-gpu-throughput-scaling" title="Permanent link">&para;</a></h2>
-<p><strong>Criterion</strong>: T(1024)/T(1) &gt;= 70% of linear scaling on GPU.</p>
-<p><strong>Result: DEFERRED to future work</strong></p>
-<p>CPU measurements show expected memory bandwidth saturation at batch size 64+. Total CPU scaling: 100x from batch=1 to batch=1024 (9.8% efficiency), well below the 70% target. This is a hardware limitation; the 70% criterion was specified for GPU. See ADR-0010 for the split rationale.</p>
-<h2 id="key-discoveries">Key Discoveries<a class="headerlink" href="#key-discoveries" title="Permanent link">&para;</a></h2>
-<h3 id="1-method-complementarity-most-significant">1. Method complementarity (most significant)<a class="headerlink" href="#1-method-complementarity-most-significant" title="Permanent link">&para;</a></h3>
-<p>Method (A) and Method (C) are complementary, not competing. Method (A) provides global gradient signal for cross-stratum exploration; Method (C) provides exact gradients for within-stratum precision. Neither is sufficient alone. This finding shapes the library's architecture and narrative.</p>
-<h3 id="2-external-tangent-gradient-continuity">2. External tangent gradient continuity<a class="headerlink" href="#2-external-tangent-gradient-continuity" title="Permanent link">&para;</a></h3>
-<p>The gradient discontinuity at external tangent (disjoint to intersecting) is second-order. The area gradient is continuous at d = r1 + r2. At internal tangent, the discontinuity is first-order. Method (C)'s primary advantage is smoothing bias elimination, not gradient discontinuity correction.</p>
-<h3 id="3-jnpwhere-gradient-nan-pattern">3. jnp.where gradient NaN pattern<a class="headerlink" href="#3-jnpwhere-gradient-nan-pattern" title="Permanent link">&para;</a></h3>
-<p>The analytical ground truth function required safe-primal modifications to prevent NaN gradients from unselected jnp.where branches. This pattern (documented in docs/explanation/jax_where_gradient_pitfall.md) will recur throughout the codebase.</p>
-<h3 id="4-jaxtyping-equinox-integration-constraints">4. jaxtyping + equinox integration constraints<a class="headerlink" href="#4-jaxtyping-equinox-integration-constraints" title="Permanent link">&para;</a></h3>
-<p>Runtime annotations (no <code>from __future__ import annotations</code>), ruff F722 suppression for jaxtyping string syntax, and eqx.filter_jit/vmap/grad requirements were discovered during implementation. These are documented for future development.</p>
-<h2 id="recommendation">Recommendation<a class="headerlink" href="#recommendation" title="Permanent link">&para;</a></h2>
-<p><strong>Proceed to next phase.</strong> The technical thesis is validated: stratum-aware differentiation provides exact gradients where smoothing introduces systematic bias. The complementarity finding enriches rather than undermines the thesis, and aligns with the well-studied trajectory of differentiable rendering.</p>
-<p>Priorities for future work:
-1. Hybrid optimizer (coarse-to-fine Method A then C scheduling)
-2. 3D primitive extension (Sphere, Cylinder, etc.)
-3. Method (B) TOI correction (for cross-stratum gradient transfer)
-4. GPU benchmark validation (Gate 3b)</p>
+<h1 id="adr-0013-mold-direction-optimizer-as-application-demonstrator">ADR-0013: Mold Direction Optimizer as Application Demonstrator<a class="headerlink" href="#adr-0013-mold-direction-optimizer-as-application-demonstrator" title="Permanent link">&para;</a></h1>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>With the core Boolean kernel complete (8 primitives, 3 Boolean operations,
+stratum-dispatched gradients), BRepAX lacks a concrete application
+demonstrator showing what the library enables in practice.  Without at
+least one end-to-end application, the library remains a collection of
+differentiable primitives with no visible value proposition.</p>
+<p>Mold pull direction optimization is a natural first application because:</p>
+<ul>
+<li>It directly uses differentiable SDF evaluation and gradient computation.</li>
+<li>It has a clear physical interpretation in injection-molding design.</li>
+<li>It requires optimization on a manifold (S^2), showcasing JAX composability.</li>
+<li>The problem scope is bounded enough for a lightweight implementation.</li>
+</ul>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>Add a lightweight mold direction optimizer as an experimental application
+under <code>src/brepax/experimental/applications/mold_direction.py</code>.</p>
+<h3 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h3>
+<p><strong>Included:</strong></p>
+<ul>
+<li><code>undercut_volume()</code>: Surface-weighted softplus undercut metric estimated
+  on a grid.  Uses finite-difference normals (avoids NaN from autodiff at
+  degenerate SDF points like cylinder axes).</li>
+<li><code>optimize_mold_direction()</code>: Projected gradient descent on S^2 (Euclidean
+  step + re-normalization).</li>
+<li><code>MoldDirectionResult</code> dataclass for optimization diagnostics.</li>
+<li>Example notebook <code>07_mold_direction_demo.py</code> with L-bracket shape.</li>
+<li>Unit tests verifying gradient finiteness, directional sensitivity,
+  convergence, and unit-vector constraint.</li>
+</ul>
+<p><strong>Explicitly excluded (deferred):</strong></p>
+<ul>
+<li>Formal r-set based undercut definition — requires topology layer.</li>
+<li>Riemannian optimization on S^2 (exponential map retraction).</li>
+<li>Integration with external cost models.</li>
+<li>STEP file input — BRepAX STEP I/O is not yet implemented.</li>
+</ul>
+<h3 id="design-choices">Design choices<a class="headerlink" href="#design-choices" title="Permanent link">&para;</a></h3>
+<p><strong>Surface-weighted softplus metric</strong> rather than volume-based sigmoid:
+the sigmoid undercut indicator satisfies <code>σ(-a) + σ(a) = 1</code>, causing
+centrosymmetric surface contributions to cancel regardless of direction.
+Softplus breaks this cancellation (<code>softplus(a) + softplus(-a) = |a| + C</code>),
+giving meaningful directional signal even for shapes where non-convex
+features are small relative to the total surface.</p>
+<p><strong>Finite-difference normals</strong> instead of <code>jax.grad(sdf)</code>: SDF
+implementations using <code>jnp.linalg.norm</code> produce NaN gradients at
+degenerate points (cylinder axis, box center).  Central differences avoid
+this entirely and are sufficient for undercut direction estimation.  The
+normals are constant with respect to the pull direction, so autodiff
+through <code>undercut_volume</code> w.r.t. direction is unaffected.</p>
+<p><strong>Simple projection on S^2</strong> instead of Riemannian retraction: for a
+demonstrator, <code>d = d / |d|</code> after each Euclidean gradient step is adequate.
+Riemannian optimization (exponential map) can be added later as a
+natural integration point with other manifold optimization libraries.</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li>BRepAX has a concrete "what can you do with this?" answer for launch.</li>
+<li>The experimental API surface grows, but all new code is under
+  <code>experimental/applications/</code> with clear "subject to change" labeling.</li>
+<li>Future Phase 2 work (full mold direction optimizer, inverse design)
+  can extend this skeleton rather than starting from scratch.</li>
+<li>The softplus metric design and finite-difference normal pattern are
+  reusable for other SDF-based analysis tools.</li>
+</ul>
 
 
 
@@ -2208,10 +1892,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

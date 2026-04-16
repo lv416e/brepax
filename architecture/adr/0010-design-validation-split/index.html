@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0011-hybrid-strategy/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0010-design-validation-split/">
       
       
-        <link rel="prev" href="../0010-design-validation-split/">
+        <link rel="prev" href="../0009-method-b-deferred/">
       
       
-        <link rel="next" href="../0012-generic-stratum-detection/">
+        <link rel="next" href="../0011-hybrid-strategy/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>ADR-0011: Hybrid Strategy - BRepAX</title>
+        <title>ADR-0010: Design Validation Split - BRepAX</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0011-stratum-aware-locality-and-hybrid-optimization-strategy" class="md-skip">
+        <a href="#adr-0010-gate-3-split-into-design-verification-and-performance-verification" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0011: Hybrid Strategy
+              ADR-0010: Design Validation Split
             
           </span>
         </div>
@@ -1413,34 +1413,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../0010-design-validation-split/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0010: Design Validation Split
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -1460,7 +1432,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0011: Hybrid Strategy
+    ADR-0010: Design Validation Split
   
 
     
@@ -1478,7 +1450,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0011: Hybrid Strategy
+    ADR-0010: Design Validation Split
   
 
     
@@ -1534,45 +1506,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Decision">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gate-2-reinterpretation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 2 Reinterpretation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#narrative-adjustment" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Narrative Adjustment
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#method-b-reconsideration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Method (B) Reconsideration
-      
-    </span>
-  </a>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1590,6 +1523,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0011-hybrid-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0011: Hybrid Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1723,45 +1684,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Decision">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gate-2-reinterpretation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 2 Reinterpretation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#narrative-adjustment" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Narrative Adjustment
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#method-b-reconsideration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Method (B) Reconsideration
-      
-    </span>
-  </a>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1795,41 +1717,71 @@
   
 
 
-<h1 id="adr-0011-stratum-aware-locality-and-hybrid-optimization-strategy">ADR-0011: Stratum-Aware Locality and Hybrid Optimization Strategy<a class="headerlink" href="#adr-0011-stratum-aware-locality-and-hybrid-optimization-strategy" title="Permanent link">&para;</a></h1>
+<h1 id="adr-0010-gate-3-split-into-design-verification-and-performance-verification">ADR-0010: Gate 3 Split into Design Verification and Performance Verification<a class="headerlink" href="#adr-0010-gate-3-split-into-design-verification-and-performance-verification" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>Axis 3 optimization trajectory testing revealed a fundamental property of the stratum-aware approach (Method C): <strong>within a stratum where the objective is invariant to a design variable, the gradient is exactly zero.</strong> This is mathematically correct but prevents gradient-based optimization from crossing stratum boundaries.</p>
-<p>Concrete example: In the disjoint stratum, <code>union_area = pi*r1^2 + pi*r2^2</code> is independent of center positions <code>c1, c2</code>. Method (C) correctly returns <code>d(area)/d(c2_x) = 0</code>. Gradient descent cannot cross from disjoint to intersecting by moving centers.</p>
-<p>Method (A) smoothing provides a weak but non-zero gradient signal in this case because its smooth-min kernel extends beyond the exact boundary, creating a "shadow" of the intersecting stratum's area function into the disjoint regime.</p>
-<p>This is structurally isomorphic to the visibility problem in differentiable rendering: fully occluded objects have zero gradient w.r.t. camera parameters. SoftRas (2019) solved this with soft rasterization; nvdiffrast (2020) with edge sampling. Both are hybrid approaches combining global signal with boundary precision.</p>
+<p>Gate criterion 3 specified "vmap x jit with batch size 1 to 1000 scaling nearly linearly on GPU." This implicitly combined two independent concerns:</p>
+<ol>
+<li><strong>Design verification</strong>: Does <code>jax.custom_vjp</code> (Method C) compose correctly with <code>vmap</code>?</li>
+<li><strong>Performance verification</strong>: Does throughput scale linearly with batch size on GPU?</li>
+</ol>
+<p>Phase 0 was conducted on CPU (Apple Silicon). The custom_vjp + vmap integration works correctly (shape tests pass, gradients are accurate across batches), but throughput scaling shows typical CPU memory bandwidth saturation starting at batch size 64.</p>
+<p>CPU scaling results:</p>
+<table>
+<thead>
+<tr>
+<th>batch</th>
+<th>throughput</th>
+<th>incremental scaling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>119k/s</td>
+<td>baseline</td>
+</tr>
+<tr>
+<td>4</td>
+<td>508k/s</td>
+<td>4.3x</td>
+</tr>
+<tr>
+<td>16</td>
+<td>1.9M/s</td>
+<td>3.8x</td>
+</tr>
+<tr>
+<td>64</td>
+<td>4.4M/s</td>
+<td>2.3x</td>
+</tr>
+<tr>
+<td>256</td>
+<td>6.9M/s</td>
+<td>1.5x</td>
+</tr>
+<tr>
+<td>1024</td>
+<td>12.0M/s</td>
+<td>1.7x</td>
+</tr>
+</tbody>
+</table>
+<p>Total T(1024)/T(1) = 100x (9.8% efficiency), well below the 70% target. This is a hardware limitation, not a design limitation.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Method (A) and Method (C) are <strong>complementary, not competing</strong> strategies. BRepAX will provide a hybrid framework that combines:</p>
+<p>Split Gate 3 into two sub-criteria:</p>
 <ul>
-<li><strong>Method (A)</strong> for cross-stratum exploration (global gradient signal via smoothing)</li>
-<li><strong>Method (C)</strong> for within-stratum precision (exact analytical gradients)</li>
+<li><strong>Gate 3a (design verification)</strong>: custom_vjp + vmap integration works correctly. <strong>PASS.</strong></li>
+<li><strong>Gate 3b (performance verification)</strong>: GPU throughput scaling meets 70% efficiency. <strong>DEFERRED to Phase 1.</strong></li>
 </ul>
-<h3 id="gate-2-reinterpretation">Gate 2 Reinterpretation<a class="headerlink" href="#gate-2-reinterpretation" title="Permanent link">&para;</a></h3>
-<p>The original Gate 2 criterion ("Method (C) converges to cross-stratum optimum") was based on an incomplete understanding of stratum-aware gradient structure. Revised:</p>
-<ul>
-<li><strong>Gate 2a</strong> (within-stratum precision): Method (C) reaches analytical optimum with position error 7e-6 vs Method (A)'s 0.021. <strong>PASS.</strong></li>
-<li><strong>Gate 2b</strong> (cross-stratum behavior): Gradient zero in stratum-invariant directions is a mathematical property, not a defect. <strong>REINTERPRETED.</strong></li>
-</ul>
-<h3 id="narrative-adjustment">Narrative Adjustment<a class="headerlink" href="#narrative-adjustment" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Previous: "Method (C) is superior to Method (A)"</li>
-<li>Revised: "Method (A) and (C) are complementary; BRepAX provides a coherent framework for combining both"</li>
-</ul>
-<p>This parallels the differentiable rendering trajectory: SoftRas (global, approximate) was not replaced by nvdiffrast (precise, local) but complemented by it. BRepAX occupies the same structural position for CAD geometry.</p>
-<h2 id="method-b-reconsideration">Method (B) Reconsideration<a class="headerlink" href="#method-b-reconsideration" title="Permanent link">&para;</a></h2>
-<p>The TOI correction (Method B, deferred in ADR-0009) was designed precisely for boundary-crossing gradient computation. The Axis 3 finding strengthens the case for Method (B) implementation in future work: it provides the mathematical machinery to transfer gradient information across stratum boundaries via the implicit function theorem.</p>
-<p>Re-evaluation trigger: when a use case requires single-method cross-stratum optimization without a coarse-to-fine schedule.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Hybrid optimizer design becomes a first-class concern (not an afterthought)</li>
-<li><code>boolean/__init__.py</code> union_area API remains method-agnostic; hybrid scheduling is handled at the optimizer level</li>
-<li>Method (B) regains relevance as a potential bridge between (A) and (C)</li>
-<li>The differentiable rendering analogy provides a well-studied template for the hybrid design</li>
+<li>Phase 0 gate evaluation proceeds with Gate 3a PASS</li>
+<li>Phase 1 will include GPU benchmark as part of the 3D primitive test suite</li>
+<li>CPU flattening data serves as a baseline for GPU comparison</li>
+<li>The 70% efficiency threshold remains unchanged for the GPU evaluation</li>
 </ul>
 
 

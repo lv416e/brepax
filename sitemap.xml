@@ -9,7 +9,7 @@
          <lastmod>2026-04-16</lastmod>
     </url>
     <url>
-         <loc>https://lv416e.github.io/brepax/architecture/phase1-roadmap/</loc>
+         <loc>https://lv416e.github.io/brepax/architecture/3d-extension-roadmap/</loc>
          <lastmod>2026-04-16</lastmod>
     </url>
     <url>
@@ -49,7 +49,7 @@
          <lastmod>2026-04-16</lastmod>
     </url>
     <url>
-         <loc>https://lv416e.github.io/brepax/architecture/adr/0010-gate3-split/</loc>
+         <loc>https://lv416e.github.io/brepax/architecture/adr/0010-design-validation-split/</loc>
          <lastmod>2026-04-16</lastmod>
     </url>
     <url>
@@ -61,7 +61,19 @@
          <lastmod>2026-04-16</lastmod>
     </url>
     <url>
+         <loc>https://lv416e.github.io/brepax/architecture/adr/0013-mold-direction-demonstrator/</loc>
+         <lastmod>2026-04-16</lastmod>
+    </url>
+    <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/template/</loc>
+         <lastmod>2026-04-16</lastmod>
+    </url>
+    <url>
+         <loc>https://lv416e.github.io/brepax/explanation/3d_extension_evaluation/</loc>
+         <lastmod>2026-04-16</lastmod>
+    </url>
+    <url>
+         <loc>https://lv416e.github.io/brepax/explanation/concept_proof_evaluation/</loc>
          <lastmod>2026-04-16</lastmod>
     </url>
     <url>
@@ -70,10 +82,6 @@
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/design_thesis/</loc>
-         <lastmod>2026-04-16</lastmod>
-    </url>
-    <url>
-         <loc>https://lv416e.github.io/brepax/explanation/gate_evaluation_report/</loc>
          <lastmod>2026-04-16</lastmod>
     </url>
     <url>
@@ -86,10 +94,6 @@
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/license_strategy/</loc>
-         <lastmod>2026-04-16</lastmod>
-    </url>
-    <url>
-         <loc>https://lv416e.github.io/brepax/explanation/phase1_gate_report/</loc>
          <lastmod>2026-04-16</lastmod>
     </url>
     <url>
