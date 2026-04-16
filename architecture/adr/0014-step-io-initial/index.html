@@ -10,13 +10,11 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0013-mold-direction-demonstrator/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0014-step-io-initial/">
       
       
-        <link rel="prev" href="../0012-generic-stratum-detection/">
+        <link rel="prev" href="../0013-mold-direction-demonstrator/">
       
-      
-        <link rel="next" href="../0014-step-io-initial/">
       
       
         
@@ -27,7 +25,7 @@
     
     
       
-        <title>ADR-0013: Mold Direction Demonstrator - BRepAX</title>
+        <title>ADR-0014: STEP I/O Initial - BRepAX</title>
       
     
     
@@ -80,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0013-mold-direction-optimizer-as-application-demonstrator" class="md-skip">
+        <a href="#adr-0014-step-io-read-and-visualization" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0013: Mold Direction Demonstrator
+              ADR-0014: STEP I/O Initial
             
           </span>
         </div>
@@ -1414,6 +1412,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../0013-mold-direction-demonstrator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0013: Mold Direction Demonstrator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1433,7 +1459,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0013: Mold Direction Demonstrator
+    ADR-0014: STEP I/O Initial
   
 
     
@@ -1451,7 +1477,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0013: Mold Direction Demonstrator
+    ADR-0014: STEP I/O Initial
   
 
     
@@ -1552,34 +1578,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../0014-step-io-initial/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR-0014: STEP I/O Initial
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1718,71 +1716,69 @@
   
 
 
-<h1 id="adr-0013-mold-direction-optimizer-as-application-demonstrator">ADR-0013: Mold Direction Optimizer as Application Demonstrator<a class="headerlink" href="#adr-0013-mold-direction-optimizer-as-application-demonstrator" title="Permanent link">&para;</a></h1>
+<h1 id="adr-0014-step-io-read-and-visualization">ADR-0014: STEP I/O: Read and Visualization<a class="headerlink" href="#adr-0014-step-io-read-and-visualization" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>With the core Boolean kernel complete (8 primitives, 3 Boolean operations,
-stratum-dispatched gradients), BRepAX lacks a concrete application
-demonstrator showing what the library enables in practice.  Without at
-least one end-to-end application, the library remains a collection of
-differentiable primitives with no visible value proposition.</p>
-<p>Mold pull direction optimization is a natural first application because:</p>
+<p>BRepAX operates on JAX-native SDF representations, but real-world CAD
+parts are exchanged as STEP files (ISO 10303-21).  Without the ability
+to ingest STEP geometry, every analysis must be built from primitives
+in code -- precluding use on existing CAD models.</p>
+<p>STEP read support enables:</p>
 <ul>
-<li>It directly uses differentiable SDF evaluation and gradient computation.</li>
-<li>It has a clear physical interpretation in injection-molding design.</li>
-<li>It requires optimization on a manifold (S^2), showcasing JAX composability.</li>
-<li>The problem scope is bounded enough for a lightweight implementation.</li>
+<li>Loading industry-standard part files for face classification.</li>
+<li>Extracting topological metadata (face/edge/vertex counts, surface
+  types, bounding boxes) as a first step toward B-Rep-to-SDF conversion.</li>
+<li>Tessellated 3D visualization for quick visual verification.</li>
 </ul>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Add a lightweight mold direction optimizer as an experimental application
-under <code>src/brepax/experimental/applications/mold_direction.py</code>.</p>
+<p>Implement read-only STEP support with metadata extraction and
+visualization.  Writing, modification, and gradient computation on
+imported geometry are deferred to future work.</p>
 <h3 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h3>
 <p><strong>Included:</strong></p>
 <ul>
-<li><code>undercut_volume()</code>: Surface-weighted softplus undercut metric estimated
-  on a grid.  Uses finite-difference normals (avoids NaN from autodiff at
-  degenerate SDF points like cylinder axes).</li>
-<li><code>optimize_mold_direction()</code>: Projected gradient descent on S^2 (Euclidean
-  step + re-normalization).</li>
-<li><code>MoldDirectionResult</code> dataclass for optimization diagnostics.</li>
-<li>Example notebook <code>07_mold_direction_demo.py</code> with L-bracket shape.</li>
-<li>Unit tests verifying gradient finiteness, directional sensitivity,
-  convergence, and unit-vector constraint.</li>
+<li><code>read_step()</code> in <code>brepax.io.step</code> -- reads a STEP file via the OCCT
+  abstraction layer (ADR-0008) and returns a <code>TopoDS_Shape</code>.</li>
+<li><code>shape_metadata()</code> in <code>brepax.brep.convert</code> -- extracts face, edge,
+  and vertex counts, classifies face surface types, and computes the
+  axis-aligned bounding box.</li>
+<li><code>plot_shape()</code> in <code>brepax.viz.plot3d</code> -- tessellates the shape with
+  <code>BRepMesh_IncrementalMesh</code> and renders a 3D matplotlib plot with
+  faces colored by surface type.</li>
+<li>Sample STEP fixtures (<code>sample_box.step</code>, <code>sample_cylinder.step</code>)
+  generated programmatically from OCP primitives for deterministic
+  testing.</li>
+<li>Unit tests for all three functions and an example notebook
+  (<code>08_step_io_demo.py</code>).</li>
 </ul>
-<p><strong>Explicitly excluded (deferred):</strong></p>
+<p><strong>Deferred:</strong></p>
 <ul>
-<li>Formal r-set based undercut definition — requires topology layer.</li>
-<li>Riemannian optimization on S^2 (exponential map retraction).</li>
-<li>Integration with external cost models.</li>
-<li>STEP file input — BRepAX STEP I/O is not yet implemented.</li>
+<li>STEP write support.</li>
+<li>Conversion of OCCT geometry to JAX-differentiable SDF representations.</li>
+<li>Gradient computation through imported shapes.</li>
+<li>Support for assemblies or multi-body STEP files.</li>
 </ul>
 <h3 id="design-choices">Design choices<a class="headerlink" href="#design-choices" title="Permanent link">&para;</a></h3>
-<p><strong>Surface-weighted softplus metric</strong> rather than volume-based sigmoid:
-the sigmoid undercut indicator satisfies <code>σ(-a) + σ(a) = 1</code>, causing
-centrosymmetric surface contributions to cancel regardless of direction.
-Softplus breaks this cancellation (<code>softplus(a) + softplus(-a) = |a| + C</code>),
-giving meaningful directional signal even for shapes where non-convex
-features are small relative to the total surface.</p>
-<p><strong>Finite-difference normals</strong> instead of <code>jax.grad(sdf)</code>: SDF
-implementations using <code>jnp.linalg.norm</code> produce NaN gradients at
-degenerate points (cylinder axis, box center).  Central differences avoid
-this entirely and are sufficient for undercut direction estimation.  The
-normals are constant with respect to the pull direction, so autodiff
-through <code>undercut_volume</code> w.r.t. direction is unaffected.</p>
-<p><strong>Simple projection on S^2</strong> instead of Riemannian retraction: for a
-demonstrator, <code>d = d / |d|</code> after each Euclidean gradient step is adequate.
-Riemannian optimization (exponential map) can be added later as a
-natural integration point with other manifold optimization libraries.</p>
+<p><strong>All OCP imports in <code>_occt/backend.py</code></strong> per ADR-0008.  The new modules
+(<code>io.step</code>, <code>brep.convert</code>, <code>viz.plot3d</code>) import exclusively from the
+backend, keeping the OCCT binding swappable.</p>
+<p><strong>Metadata as a plain dataclass</strong> rather than an Equinox module.
+<code>ShapeMetadata</code> contains only Python scalars and dicts, not JAX arrays,
+so the PyTree registration overhead is unnecessary.</p>
+<p><strong>Matplotlib for visualization</strong> rather than a WebGL viewer.  Matplotlib
+is already a project dependency (via the <code>viz</code> extra) and produces
+publication-quality static figures adequate for verification.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li>BRepAX has a concrete "what can you do with this?" answer for launch.</li>
-<li>The experimental API surface grows, but all new code is under
-  <code>experimental/applications/</code> with clear "subject to change" labeling.</li>
-<li>Future Phase 2 work (full mold direction optimizer, inverse design)
-  can extend this skeleton rather than starting from scratch.</li>
-<li>The softplus metric design and finite-difference normal pattern are
-  reusable for other SDF-based analysis tools.</li>
+<li>BRepAX can load and inspect real STEP parts, providing a concrete
+  answer to "can I use this on my CAD files?"</li>
+<li>The OCCT abstraction layer (ADR-0008) gains its first substantive
+  usage, validating the centralized-import design.</li>
+<li>Future work on B-Rep-to-SDF conversion can build on the <code>read_step()</code>
+  and <code>shape_metadata()</code> foundations.</li>
+<li>The <code>viz</code> optional dependency is exercised beyond SDF isosurface
+  plotting.</li>
 </ul>
 
 
