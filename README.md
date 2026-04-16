@@ -42,6 +42,21 @@ grad_fn = jax.grad(lambda q: disk1.sdf(q))
 gradient = grad_fn(query)
 ```
 
+## Roadmap
+
+BRepAX is under active development. Current capabilities:
+
+- **Primitives**: 8 geometric types with differentiable SDF interface
+- **Boolean operations**: Union, subtract, intersect with stratum-dispatched gradients
+- **STEP I/O**: Read STEP files, extract metadata, convert faces to primitives
+- **Visualization**: 3D tessellated shape rendering
+- **Applications**: Mold direction optimization demonstrator
+
+Planned modules (not yet implemented):
+
+- `persistence/` — Persistent homology integration
+- `topology/` — Half-edge mesh representation
+
 ## Documentation
 
 Full documentation: [lv416e.github.io/brepax](https://lv416e.github.io/brepax)

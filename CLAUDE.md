@@ -64,6 +64,18 @@ lefthook install
 uv run mkdocs serve
 ```
 
+### Branch and PR Workflow
+
+All changes go through pull requests. Direct pushes to `main` are blocked.
+
+1. Create a feature branch: `git checkout -b feat/my-feature`
+2. Implement and commit (with quality checks)
+3. Push: `git push origin feat/my-feature`
+4. Create PR: `gh pr create --title "feat: ..." --body "..."`
+5. Wait for CI (ci-gate must pass)
+6. Wait for maintainer review and merge
+7. After merge: `git checkout main && git pull`
+
 ### PR Checklist
 
 1. All tests pass (`uv run pytest`)
@@ -118,7 +130,6 @@ If scope expansion is needed, add an ADR documenting the decision. Do not expand
 
 - **No C++ extensions** until benchmarks show a specific bottleneck (pure JAX for now)
 - **No code copying** from existing OSS (JAX-FEM, Manifold, etc.) -- reference only
-- **No private API exposure** -- `_internal/` must never be imported from public modules
 - **No dynamic shapes** without explicit justification -- use padding strategies instead
 - **No backward compatibility code** -- this project is in alpha; prefer clean breaks
 - **OCCT dependency is core identity** -- do not propose removing cadquery-ocp-novtk; changes to OCCT strategy require an ADR
