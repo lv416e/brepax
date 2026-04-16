@@ -99,6 +99,14 @@ module = [
 ]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "brepax.boolean.stratum"
+# custom_vjp callbacks + jax.tree.map return Any; jnp.where overloads
+# don't match PyTree args. Suppress false positives for this module.
+warn_return_any = false
+disallow_any_expr = false
+disable_error_code = ["call-overload"]
+
 [tool.coverage.run]
 source = ["brepax"]
 branch = true
