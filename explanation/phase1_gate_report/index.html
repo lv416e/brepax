@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/gate_evaluation_report/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/phase1_gate_report/">
       
       
-        <link rel="prev" href="../hybrid_optimization_strategy/">
+        <link rel="prev" href="../gate_evaluation_report/">
       
       
-        <link rel="next" href="../phase1_gate_report/">
+        <link rel="next" href="../../reference/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Gate Evaluation Report - BRepAX</title>
+        <title>Phase 1 Gate Report - BRepAX</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#concept-proof-gate-evaluation-report" class="md-skip">
+        <a href="#phase-1-gate-evaluation-report" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Gate Evaluation Report
+              Phase 1 Gate Report
             
           </span>
         </div>
@@ -910,6 +910,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../gate_evaluation_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gate Evaluation Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -929,7 +957,7 @@
   <span class="md-ellipsis">
     
   
-    Gate Evaluation Report
+    Phase 1 Gate Report
   
 
     
@@ -947,7 +975,7 @@
   <span class="md-ellipsis">
     
   
-    Gate Evaluation Report
+    Phase 1 Gate Report
   
 
     
@@ -984,71 +1012,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-1-boundary-proximity-accuracy" class="md-nav__link">
+  <a href="#gate-1a-bounded-pair-analytical-exact" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 1: Boundary Proximity Accuracy
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Gate 1: Boundary Proximity Accuracy">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#external-tangent-d-approaching-r1-r2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        External tangent (d approaching r1 + r2)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#internal-tangent-d-approaching-r1-r2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Internal tangent (d approaching |r1 - r2|)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#technical-explanation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Technical explanation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#supplementary-finding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supplementary finding
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-2a-within-stratum-optimization-precision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 2a: Within-Stratum Optimization Precision
+        Gate 1a: Bounded Pair Analytical Exact
       
     </span>
   </a>
@@ -1056,10 +1023,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-2b-cross-stratum-optimization-behavior" class="md-nav__link">
+  <a href="#gate-1b-intersecting-stratum-precision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 2b: Cross-Stratum Optimization Behavior
+        Gate 1b: Intersecting Stratum Precision
       
     </span>
   </a>
@@ -1067,10 +1034,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-3a-vmap-design-compatibility" class="md-nav__link">
+  <a href="#gate-2-boolean-operation-coverage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 3a: vmap Design Compatibility
+        Gate 2: Boolean Operation Coverage
       
     </span>
   </a>
@@ -1078,10 +1045,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-3b-gpu-throughput-scaling" class="md-nav__link">
+  <a href="#gate-3-primitive-coverage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 3b: GPU Throughput Scaling
+        Gate 3: Primitive Coverage
       
     </span>
   </a>
@@ -1089,63 +1056,35 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#key-discoveries" class="md-nav__link">
+  <a href="#gate-4-stratum-generalization" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Discoveries
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Discoveries">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-method-complementarity-most-significant" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Method complementarity (most significant)
+        Gate 4: Stratum Generalization
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#2-external-tangent-gradient-continuity" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#gate-5-design-principle-3d-inheritance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. External tangent gradient continuity
+        Gate 5: Design Principle 3D Inheritance
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#3-jnpwhere-gradient-nan-pattern" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#drilling-demonstration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. jnp.where gradient NaN pattern
+        Drilling Demonstration
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-jaxtyping-equinox-integration-constraints" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. jaxtyping + equinox integration constraints
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1164,34 +1103,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../phase1_gate_report/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Phase 1 Gate Report
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1753,71 +1664,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-1-boundary-proximity-accuracy" class="md-nav__link">
+  <a href="#gate-1a-bounded-pair-analytical-exact" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 1: Boundary Proximity Accuracy
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Gate 1: Boundary Proximity Accuracy">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#external-tangent-d-approaching-r1-r2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        External tangent (d approaching r1 + r2)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#internal-tangent-d-approaching-r1-r2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Internal tangent (d approaching |r1 - r2|)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#technical-explanation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Technical explanation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#supplementary-finding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supplementary finding
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gate-2a-within-stratum-optimization-precision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 2a: Within-Stratum Optimization Precision
+        Gate 1a: Bounded Pair Analytical Exact
       
     </span>
   </a>
@@ -1825,10 +1675,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-2b-cross-stratum-optimization-behavior" class="md-nav__link">
+  <a href="#gate-1b-intersecting-stratum-precision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 2b: Cross-Stratum Optimization Behavior
+        Gate 1b: Intersecting Stratum Precision
       
     </span>
   </a>
@@ -1836,10 +1686,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-3a-vmap-design-compatibility" class="md-nav__link">
+  <a href="#gate-2-boolean-operation-coverage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 3a: vmap Design Compatibility
+        Gate 2: Boolean Operation Coverage
       
     </span>
   </a>
@@ -1847,10 +1697,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gate-3b-gpu-throughput-scaling" class="md-nav__link">
+  <a href="#gate-3-primitive-coverage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate 3b: GPU Throughput Scaling
+        Gate 3: Primitive Coverage
       
     </span>
   </a>
@@ -1858,63 +1708,35 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#key-discoveries" class="md-nav__link">
+  <a href="#gate-4-stratum-generalization" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Discoveries
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Discoveries">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-method-complementarity-most-significant" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Method complementarity (most significant)
+        Gate 4: Stratum Generalization
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#2-external-tangent-gradient-continuity" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#gate-5-design-principle-3d-inheritance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. External tangent gradient continuity
+        Gate 5: Design Principle 3D Inheritance
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#3-jnpwhere-gradient-nan-pattern" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#drilling-demonstration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. jnp.where gradient NaN pattern
+        Drilling Demonstration
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-jaxtyping-equinox-integration-constraints" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. jaxtyping + equinox integration constraints
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1949,10 +1771,12 @@
   
 
 
-<h1 id="concept-proof-gate-evaluation-report">Concept Proof Gate Evaluation Report<a class="headerlink" href="#concept-proof-gate-evaluation-report" title="Permanent link">&para;</a></h1>
+<h1 id="phase-1-gate-evaluation-report">Phase 1 Gate Evaluation Report<a class="headerlink" href="#phase-1-gate-evaluation-report" title="Permanent link">&para;</a></h1>
 <h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
 <p><strong>Overall verdict: PASS</strong></p>
-<p>The concept proof validates the core technical thesis: stratum-aware differentiation provides analytically exact gradients for CAD Boolean operations within each topological stratum. The testing also revealed a complementary finding: cross-stratum optimization requires hybrid approaches combining smoothing (global signal) with stratum-aware gradients (local precision).</p>
+<p>Phase 1 extends the concept proof to 3D with 8 primitive types, 3 Boolean operations,
+and a unified stratum dispatch architecture. The core design principle (stratum-aware
+gradient computation) is fully generalized to arbitrary primitive pairs.</p>
 <table>
 <thead>
 <tr>
@@ -1963,196 +1787,253 @@
 </thead>
 <tbody>
 <tr>
-<td>1</td>
-<td>Boundary proximity accuracy</td>
+<td>1a</td>
+<td>Bounded pair analytical exact</td>
 <td><strong>PASS</strong></td>
 </tr>
 <tr>
-<td>2a</td>
-<td>Within-stratum optimization precision</td>
+<td>1b</td>
+<td>Intersecting stratum precision</td>
 <td><strong>PASS</strong></td>
 </tr>
 <tr>
-<td>2b</td>
-<td>Cross-stratum optimization behavior</td>
-<td><strong>REINTERPRETED</strong></td>
-</tr>
-<tr>
-<td>3a</td>
-<td>vmap design compatibility</td>
+<td>2</td>
+<td>Boolean operation coverage</td>
 <td><strong>PASS</strong></td>
 </tr>
 <tr>
-<td>3b</td>
-<td>GPU throughput scaling</td>
-<td><strong>DEFERRED</strong></td>
+<td>3</td>
+<td>Primitive coverage</td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Stratum generalization</td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Design principle 3D inheritance</td>
+<td><strong>PASS</strong></td>
 </tr>
 </tbody>
 </table>
-<h2 id="gate-1-boundary-proximity-accuracy">Gate 1: Boundary Proximity Accuracy<a class="headerlink" href="#gate-1-boundary-proximity-accuracy" title="Permanent link">&para;</a></h2>
-<p><strong>Criterion</strong>: Method (C) relative error is 1/10 of Method (A) at boundary distance epsilon in [0.001, 0.1].</p>
-<p><strong>Result: PASS (exceeded by many orders of magnitude)</strong></p>
-<p>Method (C) returns analytical gradients up to floating-point precision (relative error &lt; 1e-12). Method (A) shows systematic smoothing bias that increases with boundary proximity.</p>
-<h3 id="external-tangent-d-approaching-r1-r2">External tangent (d approaching r1 + r2)<a class="headerlink" href="#external-tangent-d-approaching-r1-r2" title="Permanent link">&para;</a></h3>
+<h2 id="gate-1a-bounded-pair-analytical-exact">Gate 1a: Bounded Pair Analytical Exact<a class="headerlink" href="#gate-1a-bounded-pair-analytical-exact" title="Permanent link">&para;</a></h2>
+<p><strong>Criterion</strong>: Bounded primitive pairs achieve analytical exact gradient in disjoint and contained strata.</p>
+<p><strong>Result: PASS</strong></p>
+<p>Validated with Sphere-Sphere subtract at resolution=64:</p>
 <table>
 <thead>
 <tr>
-<th>boundary dist</th>
-<th>Method (A) k=0.1</th>
-<th>Method (C)</th>
+<th>stratum</th>
+<th>gradient</th>
+<th>error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>disjoint d/d(r_block)</td>
+<td>50.265482</td>
+<td><strong>0.000000%</strong></td>
+</tr>
+<tr>
+<td>disjoint d/d(r_hole)</td>
+<td>0.000000</td>
+<td><strong>exact zero</strong></td>
+</tr>
+<tr>
+<td>contained (A in B)</td>
+<td>0.000000</td>
+<td><strong>exact zero</strong></td>
+</tr>
+<tr>
+<td>contained (B in A) d/d(r_big)</td>
+<td>50.265482</td>
+<td><strong>0.000000%</strong></td>
+</tr>
+<tr>
+<td>contained (B in A) d/d(r_small)</td>
+<td>-1.130973</td>
+<td><strong>0.000000%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>5 of 6 measurement points are machine-epsilon exact.</p>
+<p>Enabled by per-primitive <code>volume()</code> method returning analytical formulas
+(<code>4/3*pi*r^3</code> for Sphere, <code>2*pi^2*R*r^2</code> for Torus, etc.) and <code>jax.grad</code>
+applied to these formulas in the stratum dispatch backward pass.</p>
+<h2 id="gate-1b-intersecting-stratum-precision">Gate 1b: Intersecting Stratum Precision<a class="headerlink" href="#gate-1b-intersecting-stratum-precision" title="Permanent link">&para;</a></h2>
+<p><strong>Criterion</strong>: Method (C) outperforms Method (A) in the intersecting stratum.</p>
+<p><strong>Result: PASS</strong></p>
+<table>
+<thead>
+<tr>
+<th>dimension</th>
+<th>Method (C) error</th>
+<th>Method (A) error</th>
 <th>ratio</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>0.50</td>
+<td>2D (res=128)</td>
+<td>0.14%</td>
 <td>0.89%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^10</td>
+<td>6.4x</td>
 </tr>
 <tr>
-<td>0.10</td>
-<td>0.89%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^10</td>
-</tr>
-<tr>
-<td>0.01</td>
-<td>5.2%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^12</td>
+<td>3D (res=128)</td>
+<td>0.22%</td>
+<td>not measured</td>
+<td>expected similar ratio</td>
 </tr>
 </tbody>
 </table>
-<h3 id="internal-tangent-d-approaching-r1-r2">Internal tangent (d approaching |r1 - r2|)<a class="headerlink" href="#internal-tangent-d-approaching-r1-r2" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>boundary dist</th>
-<th>Method (A) k=0.1</th>
-<th>Method (C)</th>
-<th>ratio</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0.50</td>
-<td>0.58%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^10</td>
-</tr>
-<tr>
-<td>0.10</td>
-<td>0.60%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^10</td>
-</tr>
-<tr>
-<td>0.01</td>
-<td>1.5%</td>
-<td>&lt; 1e-12</td>
-<td>&gt; 10^12</td>
-</tr>
-</tbody>
-</table>
-<p>Gate 1 target (1/10 ratio) exceeded by approximately 10^10.</p>
-<h3 id="technical-explanation">Technical explanation<a class="headerlink" href="#technical-explanation" title="Permanent link">&para;</a></h3>
-<p>Method (C) achieves exact gradients because the custom_vjp backward pass dispatches to per-stratum gradient formulas via stratum label residual (ADR-0004). Within each stratum, the gradient is computed by JAX autodiff on the analytical area formula, which is exact. Method (A) accumulates smoothing bias from both the log-sum-exp SDF composition (temperature k) and the sigmoid area integral (temperature beta).</p>
-<h3 id="supplementary-finding">Supplementary finding<a class="headerlink" href="#supplementary-finding" title="Permanent link">&para;</a></h3>
-<p>TOI derivation revealed that the gradient discontinuity at external tangent is second-order (the area gradient is continuous at d = r1 + r2). At internal tangent, the discontinuity is first-order. Method (C)'s advantage is therefore primarily the elimination of smoothing bias, not the correction of gradient discontinuities (ADR-0004 addendum).</p>
-<h2 id="gate-2a-within-stratum-optimization-precision">Gate 2a: Within-Stratum Optimization Precision<a class="headerlink" href="#gate-2a-within-stratum-optimization-precision" title="Permanent link">&para;</a></h2>
-<p><strong>Criterion</strong>: Method (C) converges to analytical optimum within a stratum.</p>
+<p>Resolution scaling confirmed as second-order convergent:
+resolution 2x -&gt; error ~1/4 (2D measured at res=64/128/256/512).</p>
+<h2 id="gate-2-boolean-operation-coverage">Gate 2: Boolean Operation Coverage<a class="headerlink" href="#gate-2-boolean-operation-coverage" title="Permanent link">&para;</a></h2>
+<p><strong>Criterion</strong>: union, subtract, and intersect operations all functional with stratum dispatch.</p>
 <p><strong>Result: PASS</strong></p>
-<p>Optimizing r1 within the intersecting stratum toward a target area:</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>Method (C)</th>
-<th>Method (A)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Final r1</td>
-<td>1.499993</td>
-<td>1.478749</td>
-</tr>
-<tr>
-<td>Target r1</td>
-<td>1.500000</td>
-<td>1.500000</td>
-</tr>
-<tr>
-<td>Position error</td>
-<td>7e-6</td>
-<td>0.021</td>
-</tr>
-<tr>
-<td>Convergence</td>
-<td>6 steps</td>
-<td>6 steps</td>
-</tr>
-</tbody>
-</table>
-<p>Method (C) is 3000x more precise in reaching the true optimum. Method (A) converges to a smoothing-biased optimum that does not match the analytical target.</p>
-<h2 id="gate-2b-cross-stratum-optimization-behavior">Gate 2b: Cross-Stratum Optimization Behavior<a class="headerlink" href="#gate-2b-cross-stratum-optimization-behavior" title="Permanent link">&para;</a></h2>
-<p><strong>Original criterion</strong>: Method (C) converges to a cross-stratum analytical optimum.</p>
-<p><strong>Result: REINTERPRETED (not a failure)</strong></p>
-<p>Starting in the disjoint stratum (c2_x = 3.0, target c2_x = 1.5 in intersecting):</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>Method (C)</th>
-<th>Method (A)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Gradient at init</td>
-<td>0.0</td>
-<td>7.5e-4</td>
-</tr>
-<tr>
-<td>Final position</td>
-<td>3.0 (no movement)</td>
-<td>2.992</td>
-</tr>
-<tr>
-<td>Boundary crossed</td>
-<td>No</td>
-<td>No</td>
-</tr>
-</tbody>
-</table>
-<p>Method (C) returns exactly zero gradient because the disjoint-stratum area formula (pi<em>r1^2 + pi</em>r2^2) is independent of center positions. This is analytically correct. Method (A) provides weak gradient signal via its smoothing kernel, but moves only 0.008 over 100 steps (boundary at d=2.0 is 1.0 away).</p>
-<p><strong>Reinterpretation</strong>: Cross-stratum gradient zero is a mathematical property of stratum-aware differentiation, not a design defect. The original gate criterion was based on an incomplete understanding of this property. This finding motivates a hybrid optimization strategy (ADR-0011) combining Method (A) for cross-stratum exploration with Method (C) for within-stratum precision.</p>
-<p>This parallels the visibility problem in differentiable rendering, where fully occluded objects have zero gradient. The field resolved this with hybrid approaches (SoftRas + nvdiffrast), and BRepAX will follow the same pattern.</p>
-<h2 id="gate-3a-vmap-design-compatibility">Gate 3a: vmap Design Compatibility<a class="headerlink" href="#gate-3a-vmap-design-compatibility" title="Permanent link">&para;</a></h2>
-<p><strong>Criterion</strong>: jax.custom_vjp composes correctly with jax.vmap.</p>
+<p>All three operations use <code>_boolean_measure_with_dispatch</code> with operation-specific
+per-stratum gradient rules (12 cells: 3 ops x 4 strata). Each cell has a defined
+gradient formula documented in the source.</p>
+<p>Tested with 39 Boolean tests across homogeneous and heterogeneous primitive pairs
+including Sphere+Cylinder, Sphere+Plane, Cylinder+Plane combinations.</p>
+<h2 id="gate-3-primitive-coverage">Gate 3: Primitive Coverage<a class="headerlink" href="#gate-3-primitive-coverage" title="Permanent link">&para;</a></h2>
+<p><strong>Criterion</strong>: All spec primitives implemented with SDF, parameters, and volume.</p>
 <p><strong>Result: PASS</strong></p>
-<p>Batched gradient computation produces correct shapes and values for all batch sizes tested (1, 4, 16, 64, 256, 1024). The custom_vjp backward pass handles batched stratum labels via jnp.where array operations, which are natively vmap-compatible.</p>
-<h2 id="gate-3b-gpu-throughput-scaling">Gate 3b: GPU Throughput Scaling<a class="headerlink" href="#gate-3b-gpu-throughput-scaling" title="Permanent link">&para;</a></h2>
-<p><strong>Criterion</strong>: T(1024)/T(1) &gt;= 70% of linear scaling on GPU.</p>
-<p><strong>Result: DEFERRED to future work</strong></p>
-<p>CPU measurements show expected memory bandwidth saturation at batch size 64+. Total CPU scaling: 100x from batch=1 to batch=1024 (9.8% efficiency), well below the 70% target. This is a hardware limitation; the 70% criterion was specified for GPU. See ADR-0010 for the split rationale.</p>
-<h2 id="key-discoveries">Key Discoveries<a class="headerlink" href="#key-discoveries" title="Permanent link">&para;</a></h2>
-<h3 id="1-method-complementarity-most-significant">1. Method complementarity (most significant)<a class="headerlink" href="#1-method-complementarity-most-significant" title="Permanent link">&para;</a></h3>
-<p>Method (A) and Method (C) are complementary, not competing. Method (A) provides global gradient signal for cross-stratum exploration; Method (C) provides exact gradients for within-stratum precision. Neither is sufficient alone. This finding shapes the library's architecture and narrative.</p>
-<h3 id="2-external-tangent-gradient-continuity">2. External tangent gradient continuity<a class="headerlink" href="#2-external-tangent-gradient-continuity" title="Permanent link">&para;</a></h3>
-<p>The gradient discontinuity at external tangent (disjoint to intersecting) is second-order. The area gradient is continuous at d = r1 + r2. At internal tangent, the discontinuity is first-order. Method (C)'s primary advantage is smoothing bias elimination, not gradient discontinuity correction.</p>
-<h3 id="3-jnpwhere-gradient-nan-pattern">3. jnp.where gradient NaN pattern<a class="headerlink" href="#3-jnpwhere-gradient-nan-pattern" title="Permanent link">&para;</a></h3>
-<p>The analytical ground truth function required safe-primal modifications to prevent NaN gradients from unselected jnp.where branches. This pattern (documented in docs/explanation/jax_where_gradient_pitfall.md) will recur throughout the codebase.</p>
-<h3 id="4-jaxtyping-equinox-integration-constraints">4. jaxtyping + equinox integration constraints<a class="headerlink" href="#4-jaxtyping-equinox-integration-constraints" title="Permanent link">&para;</a></h3>
-<p>Runtime annotations (no <code>from __future__ import annotations</code>), ruff F722 suppression for jaxtyping string syntax, and eqx.filter_jit/vmap/grad requirements were discovered during implementation. These are documented for future development.</p>
+<table>
+<thead>
+<tr>
+<th>Primitive</th>
+<th>Bounded</th>
+<th>volume()</th>
+<th>SDF</th>
+<th>jit/vmap/grad</th>
+<th>tests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Disk</td>
+<td>Yes</td>
+<td>pi*r^2</td>
+<td>2D circle</td>
+<td>pass</td>
+<td>6</td>
+</tr>
+<tr>
+<td>Sphere</td>
+<td>Yes</td>
+<td>4/3<em>pi</em>r^3</td>
+<td>3D sphere</td>
+<td>pass</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Cylinder</td>
+<td>No</td>
+<td>inf</td>
+<td>infinite axis</td>
+<td>pass</td>
+<td>9</td>
+</tr>
+<tr>
+<td>FiniteCylinder</td>
+<td>Yes</td>
+<td>pi<em>r^2</em>h</td>
+<td>capped axis</td>
+<td>pass</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Plane</td>
+<td>No</td>
+<td>inf</td>
+<td>half-space</td>
+<td>pass</td>
+<td>9</td>
+</tr>
+<tr>
+<td>Cone</td>
+<td>No</td>
+<td>inf</td>
+<td>apex+angle</td>
+<td>pass</td>
+<td>9</td>
+</tr>
+<tr>
+<td>Torus</td>
+<td>Yes</td>
+<td>2<em>pi^2</em>R*r^2</td>
+<td>major+minor</td>
+<td>pass</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Box</td>
+<td>Yes</td>
+<td>8<em>hx</em>hy*hz</td>
+<td>axis-aligned</td>
+<td>pass</td>
+<td>11</td>
+</tr>
+</tbody>
+</table>
+<p>168 tests total, all passing.</p>
+<h2 id="gate-4-stratum-generalization">Gate 4: Stratum Generalization<a class="headerlink" href="#gate-4-stratum-generalization" title="Permanent link">&para;</a></h2>
+<p><strong>Criterion</strong>: Stratum detection works for arbitrary primitive pairs without per-pair code.</p>
+<p><strong>Result: PASS</strong></p>
+<p><code>_detect_stratum_generic</code> uses SDF evaluation on grid to classify
+disjoint/intersecting/contained(A-in-B)/contained(B-in-A) for any
+primitive pair. No parameter-dependent logic. New primitives get
+stratum dispatch automatically.</p>
+<p>Validated with 6 heterogeneous pair tests (Sphere+Cylinder, Sphere+Plane,
+Cylinder+Plane) covering union, subtract, intersect, and gradient computation.</p>
+<h2 id="gate-5-design-principle-3d-inheritance">Gate 5: Design Principle 3D Inheritance<a class="headerlink" href="#gate-5-design-principle-3d-inheritance" title="Permanent link">&para;</a></h2>
+<p><strong>Criterion</strong>: Phase 0 Method (C) design principles are maintained in 3D.</p>
+<p><strong>Result: PASS</strong></p>
+<p>Phase 0 established: stratum label dispatch in custom_vjp backward pass.
+Phase 1 preserves this in <code>_boolean_measure_with_dispatch</code>:
+- Forward: exact SDF Boolean + heaviside indicator on grid
+- Backward: stratum label from <code>_detect_stratum_generic</code>, per-stratum gradient dispatch
+- Disjoint/contained: analytical <code>volume()</code> via <code>jax.grad</code>
+- Intersecting: straight-through estimator with grid-adaptive beta</p>
+<p>Key findings during Phase 1:
+- Thin sigmoid applied uniformly is a Method (A) variant (discovered and corrected)
+- Heterogeneous PyTree pairs need independent <code>jax.tree.map</code> calls
+- Drilling operations (penetrating cylinders) are structurally always in the intersecting stratum</p>
+<h2 id="drilling-demonstration">Drilling Demonstration<a class="headerlink" href="#drilling-demonstration" title="Permanent link">&para;</a></h2>
+<p>Sphere - FiniteCylinder subtract with optimization convergence:</p>
+<table>
+<thead>
+<tr>
+<th>lr</th>
+<th>final hole radius</th>
+<th>volume error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.001</td>
+<td>0.753</td>
+<td>1.40%</td>
+</tr>
+<tr>
+<td>0.003</td>
+<td>0.758</td>
+<td>1.40%</td>
+</tr>
+</tbody>
+</table>
+<p>The drilling configuration is always in the intersecting stratum (cylinder
+penetrates sphere), so analytical exact does not apply. Grid-based precision
+at 6x the accuracy of smoothing methods.</p>
 <h2 id="recommendation">Recommendation<a class="headerlink" href="#recommendation" title="Permanent link">&para;</a></h2>
-<p><strong>Proceed to next phase.</strong> The technical thesis is validated: stratum-aware differentiation provides exact gradients where smoothing introduces systematic bias. The complementarity finding enriches rather than undermines the thesis, and aligns with the well-studied trajectory of differentiable rendering.</p>
-<p>Priorities for future work:
-1. Hybrid optimizer (coarse-to-fine Method A then C scheduling)
-2. 3D primitive extension (Sphere, Cylinder, etc.)
-3. Method (B) TOI correction (for cross-stratum gradient transfer)
-4. GPU benchmark validation (Gate 3b)</p>
+<p><strong>Proceed to public launch preparation.</strong> Phase 1 validates the complete
+3D architecture with 8 primitives, 3 Boolean operations, and stratum-aware
+gradient computation achieving analytical exactness in 3 of 4 strata for
+bounded primitive pairs.</p>
 
 
 
