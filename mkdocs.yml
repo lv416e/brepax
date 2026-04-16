@@ -56,16 +56,8 @@ nav:
       - Quickstart: tutorials/01_quickstart.md
       - First Optimization: tutorials/02_first_optimization.md
       - Stratum Tracking: tutorials/03_stratum_tracking.md
-  - How-To Guides:
-      - Compose Primitives: how-to/compose_primitives.md
-      - Custom Loss Functions: how-to/custom_loss.md
-      - Batch with vmap: how-to/batch_with_vmap.md
-      - Interop with pythonOCC: how-to/interop_pythonocc.md
   - Explanation:
       - Design Thesis: explanation/design_thesis.md
-      - Stratification Theory: explanation/stratification_theory.md
-      - Contact Dynamics Analogy: explanation/contact_dynamics_analogy.md
-      - Pseudo-SDF Problem: explanation/pseudo_sdf_problem.md
       - Why B-Rep: explanation/why_brep.md
       - License Strategy: explanation/license_strategy.md
       - JAX Where Gradient Pitfall: explanation/jax_where_gradient_pitfall.md
@@ -73,7 +65,12 @@ nav:
       - Hybrid Optimization Strategy: explanation/hybrid_optimization_strategy.md
       - Concept Proof Evaluation: explanation/concept_proof_evaluation.md
       - 3D Extension Evaluation: explanation/3d_extension_evaluation.md
-  - Reference: reference/index.md
+  - Reference:
+      - Overview: reference/index.md
+      - Primitives: reference/primitives.md
+      - Boolean Operations: reference/boolean.md
+      - Analytical: reference/analytical.md
+      - Applications: reference/applications.md
   - Architecture:
       - Overview: architecture/index.md
       - 3D Extension Roadmap: architecture/3d-extension-roadmap.md
