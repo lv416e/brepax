@@ -3,8 +3,8 @@
 
 ## Language and Style
 
-**English** -- code, comments, docstrings, commit messages, log messages.
-**Japanese** -- PR titles/bodies, issue titles/bodies, markdown documentation, user-facing communication.
+**English** -- all repository content: code, comments, docstrings, commit messages, log messages,
+PR titles/bodies, issue titles/bodies, markdown documentation.
 No emojis in code, comments, or documentation.
 
 ## Project Mission
@@ -84,7 +84,7 @@ All changes go through pull requests. Direct pushes to `main` are blocked.
 - **PR title = commit message**: PR title must be a valid Conventional Commits message (this becomes the squash commit on `main`)
 - **Co-Authored-By**: When Claude contributed, include `Co-Authored-By: Claude <noreply@anthropic.com>` in the squash commit body
 - **No merge comments**: Do not leave "LGTM" or similar comments when self-merging
-- **PR body template** (must follow this format, written in Japanese):
+- **PR body template** (must follow this format):
 
   ```markdown
   ## Summary

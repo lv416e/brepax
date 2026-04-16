@@ -23,9 +23,13 @@ from OCP.GeomAbs import (
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.STEPControl import STEPControl_Reader
 from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_VERTEX
-from OCP.TopExp import TopExp_Explorer
+from OCP.TopExp import TopExp, TopExp_Explorer
 from OCP.TopLoc import TopLoc_Location
 from OCP.TopoDS import TopoDS
+from OCP.TopTools import (
+    TopTools_IndexedDataMapOfShapeListOfShape,
+    TopTools_IndexedMapOfShape,
+)
 
 __all__ = [
     "BRepAdaptor_Surface",
@@ -46,7 +50,10 @@ __all__ = [
     "TopAbs_EDGE",
     "TopAbs_FACE",
     "TopAbs_VERTEX",
+    "TopExp",
     "TopExp_Explorer",
     "TopLoc_Location",
+    "TopTools_IndexedDataMapOfShapeListOfShape",
+    "TopTools_IndexedMapOfShape",
     "TopoDS",
 ]
