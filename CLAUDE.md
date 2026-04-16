@@ -76,6 +76,16 @@ All changes go through pull requests. Direct pushes to `main` are blocked.
 6. Wait for maintainer review and merge
 7. After merge: `git checkout main && git pull`
 
+### Commit and Merge Conventions
+
+- **Conventional Commits**: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `ci:`, `test:`
+- **Squash merge only**: All PRs are squash-merged to keep `main` history clean
+- **Squash commit message**: PR title + `(#PR_number)` -- e.g. `feat(io): add STEP reader (#7)`
+- **PR title = commit message**: PR title must be a valid Conventional Commits message (this becomes the squash commit on `main`)
+- **PR body**: Japanese. Summary (bullet points) + Test plan
+- **Co-Authored-By**: When Claude contributed, include `Co-Authored-By: Claude <noreply@anthropic.com>` in the squash commit body
+- **No merge comments**: Do not leave "LGTM" or similar comments when self-merging
+
 ### PR Checklist
 
 1. All tests pass (`uv run pytest`)
