@@ -19,18 +19,37 @@ from brepax.primitives._base import Primitive
 # --- Grid utilities ---
 
 
+def _primitive_bounds(p: Primitive) -> tuple[Array, Array]:
+    """Estimate bounding box for a single primitive."""
+    params = p.parameters()
+    if "center" in params:
+        c = params["center"]
+        r = params["radius"]
+        return c - r, c + r
+    elif "point" in params:
+        # Infinite cylinder/cone: use point +/- radius in all dims
+        pt = params["point"]
+        r = params["radius"]
+        return pt - r - 2.0, pt + r + 2.0
+    elif "normal" in params:
+        # Plane: half-space, use a large default domain
+        dim = params["normal"].shape[0]
+        return -jnp.ones(dim) * 3.0, jnp.ones(dim) * 3.0
+    else:
+        dim = 3
+        return -jnp.ones(dim) * 3.0, jnp.ones(dim) * 3.0
+
+
 def _auto_domain(
     a: Primitive,
     b: Primitive,
 ) -> tuple[Array, Array]:
-    """Compute bounding box from primitive parameters with padding."""
-    p_a = a.parameters()
-    p_b = b.parameters()
-    c_a, r_a = p_a["center"], p_a["radius"]
-    c_b, r_b = p_b["center"], p_b["radius"]
+    """Compute bounding box from two primitives with padding."""
+    lo_a, hi_a = _primitive_bounds(a)
+    lo_b, hi_b = _primitive_bounds(b)
     margin = 0.5
-    lo = jnp.minimum(c_a - r_a - margin, c_b - r_b - margin)
-    hi = jnp.maximum(c_a + r_a + margin, c_b + r_b + margin)
+    lo = jnp.minimum(lo_a, lo_b) - margin
+    hi = jnp.maximum(hi_a, hi_b) + margin
     return lo, hi
 
 
@@ -158,7 +177,103 @@ def _grad_intersecting(
     return grad_a, grad_b
 
 
+# --- Generic Boolean measure (for intersection/subtract) ---
+
+
+def _boolean_measure_straight_through(
+    a: Primitive,
+    b: Primitive,
+    sdf_combiner: str,
+    resolution: int,
+    lo: Array,
+    hi: Array,
+) -> Float[Array, ""]:
+    """Grid-based Boolean measure with straight-through estimator.
+
+    Used for intersection and subtract where stratum dispatch is not
+    yet specialized. Forward uses heaviside, backward uses sigmoid
+    with grid-adaptive beta.
+    """
+
+    def _sdf_combine(
+        a_: Primitive,
+        b_: Primitive,
+        grid: Array,
+    ) -> Array:
+        if sdf_combiner == "intersect":
+            return jnp.maximum(a_.sdf(grid), b_.sdf(grid))
+        elif sdf_combiner == "subtract":
+            return jnp.maximum(a_.sdf(grid), -b_.sdf(grid))
+        else:
+            return jnp.minimum(a_.sdf(grid), b_.sdf(grid))
+
+    @jax.custom_vjp
+    def _measure(a: Primitive, b: Primitive) -> Float[Array, ""]:
+        grid, cell_m = _make_grid_nd(lo, hi, resolution)
+        sdf_vals = _sdf_combine(a, b, grid)
+        indicator = jnp.heaviside(-sdf_vals, 0.5)
+        return jnp.sum(indicator) * cell_m
+
+    def _fwd(
+        a: Primitive,
+        b: Primitive,
+    ) -> tuple[Float[Array, ""], tuple[Primitive, Primitive]]:
+        primal = _measure(a, b)
+        return primal, (a, b)
+
+    def _bwd(
+        residuals: tuple[Primitive, Primitive],
+        g_bar: Float[Array, ""],
+    ) -> tuple[Primitive, Primitive]:
+        a_, b_ = residuals
+
+        def _diff(
+            a__: Primitive,
+            b__: Primitive,
+        ) -> Float[Array, ""]:
+            grid, cell_m = _make_grid_nd(lo, hi, resolution)
+            sdf_vals = _sdf_combine(a__, b__, grid)
+            cell_width = (hi[0] - lo[0]) / (resolution - 1)
+            indicator = jax.nn.sigmoid(-sdf_vals / cell_width)
+            return jnp.sum(indicator) * cell_m
+
+        grad_a, grad_b = jax.grad(_diff, argnums=(0, 1))(a_, b_)
+        return (
+            jax.tree.map(lambda x: g_bar * x, grad_a),
+            jax.tree.map(lambda x: g_bar * x, grad_b),
+        )
+
+    _measure.defvjp(_fwd, _bwd)
+    return _measure(a, b)
+
+
 # --- Public API ---
+
+
+def subtract_volume_stratum(
+    a: Primitive,
+    b: Primitive,
+    *,
+    resolution: int = 64,
+) -> Float[Array, ""]:
+    """Compute volume of a - b (subtract b from a) with exact SDF gradients."""
+    lo, hi = _auto_domain(a, b)
+    lo = jax.lax.stop_gradient(lo)
+    hi = jax.lax.stop_gradient(hi)
+    return _boolean_measure_straight_through(a, b, "subtract", resolution, lo, hi)
+
+
+def intersect_volume_stratum(
+    a: Primitive,
+    b: Primitive,
+    *,
+    resolution: int = 64,
+) -> Float[Array, ""]:
+    """Compute intersection volume of a and b with exact SDF gradients."""
+    lo, hi = _auto_domain(a, b)
+    lo = jax.lax.stop_gradient(lo)
+    hi = jax.lax.stop_gradient(hi)
+    return _boolean_measure_straight_through(a, b, "intersect", resolution, lo, hi)
 
 
 def union_area_stratum(

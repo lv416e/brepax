@@ -1,8 +1,7 @@
 """Boolean operations on geometric primitives.
 
 Provides a unified API for computing Boolean operations using different
-differentiation strategies. Method dispatch is handled internally;
-callers use the same `union_area()` interface regardless of method.
+differentiation strategies. Method dispatch is handled internally.
 """
 
 from typing import Literal
@@ -10,7 +9,12 @@ from typing import Literal
 from jaxtyping import Array, Float
 
 from brepax.boolean.smoothing import union_area_smoothing
-from brepax.boolean.stratum import union_area_stratum, union_volume_stratum
+from brepax.boolean.stratum import (
+    intersect_volume_stratum,
+    subtract_volume_stratum,
+    union_area_stratum,
+    union_volume_stratum,
+)
 from brepax.primitives._base import Primitive
 
 BooleanMethod = Literal["smoothing", "toi", "stratum"]
@@ -23,28 +27,7 @@ def union_area(
     method: BooleanMethod = "stratum",
     **kwargs: float | int | tuple[tuple[float, float], tuple[float, float]] | None,
 ) -> Float[Array, ""]:
-    """Compute the union area of two primitives.
-
-    Dispatches to the appropriate backend based on method selection.
-    All methods return a differentiable scalar area estimate.
-
-    Args:
-        a: First primitive.
-        b: Second primitive.
-        method: Differentiation strategy. One of:
-            - "smoothing": Smooth-min SDF + sigmoid soft indicator.
-              kwargs: k, beta, resolution, domain.
-            - "toi": Time-of-impact boundary correction (not yet implemented).
-            - "stratum": Stratum-aware tracking (not yet implemented).
-        **kwargs: Method-specific parameters passed to the backend.
-
-    Returns:
-        Union area as a differentiable scalar.
-
-    Raises:
-        ValueError: If method is unknown.
-        NotImplementedError: If method is not yet implemented.
-    """
+    """Compute the union area of two 2D primitives."""
     if method == "smoothing":
         return union_area_smoothing(a, b, **kwargs)  # type: ignore[arg-type]
     elif method == "toi":
@@ -63,17 +46,7 @@ def union_volume(
     method: BooleanMethod = "stratum",
     **kwargs: float | int | None,
 ) -> Float[Array, ""]:
-    """Compute the union volume of two 3D primitives.
-
-    Args:
-        a: First primitive.
-        b: Second primitive.
-        method: Differentiation strategy.
-        **kwargs: Method-specific parameters.
-
-    Returns:
-        Union volume as a differentiable scalar.
-    """
+    """Compute the union volume of two 3D primitives."""
     if method == "stratum":
         return union_volume_stratum(a, b, **kwargs)  # type: ignore[arg-type]
     elif method == "toi":
@@ -83,3 +56,33 @@ def union_volume(
     else:
         msg = f"unknown method: {method}"
         raise ValueError(msg)
+
+
+def subtract_volume(
+    a: Primitive,
+    b: Primitive,
+    *,
+    method: BooleanMethod = "stratum",
+    **kwargs: float | int | None,
+) -> Float[Array, ""]:
+    """Compute volume of a minus b (subtract b from a)."""
+    if method == "stratum":
+        return subtract_volume_stratum(a, b, **kwargs)  # type: ignore[arg-type]
+    else:
+        msg = f"subtract not yet implemented for method: {method}"
+        raise NotImplementedError(msg)
+
+
+def intersect_volume(
+    a: Primitive,
+    b: Primitive,
+    *,
+    method: BooleanMethod = "stratum",
+    **kwargs: float | int | None,
+) -> Float[Array, ""]:
+    """Compute intersection volume of a and b."""
+    if method == "stratum":
+        return intersect_volume_stratum(a, b, **kwargs)  # type: ignore[arg-type]
+    else:
+        msg = f"intersect not yet implemented for method: {method}"
+        raise NotImplementedError(msg)
