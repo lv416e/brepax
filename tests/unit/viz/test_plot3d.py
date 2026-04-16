@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import matplotlib
-import matplotlib.pyplot as plt
 import pytest
 
+matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 
-from brepax.io.step import read_step
-from brepax.viz.plot3d import plot_shape
+from brepax.io.step import read_step  # noqa: E402
+from brepax.viz.plot3d import plot_shape  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
