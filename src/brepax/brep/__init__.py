@@ -6,6 +6,12 @@ from brepax.brep.convert import (
     faces_to_primitives,
     shape_metadata,
 )
+from brepax.brep.csg import (
+    CSGLeaf,
+    CSGNode,
+    CSGOperation,
+    reconstruct_stock_minus_features,
+)
 from brepax.brep.topology import (
     FaceAdjacencyGraph,
     build_adjacency_graph,
@@ -15,6 +21,9 @@ from brepax.brep.topology import (
 )
 
 __all__ = [
+    "CSGLeaf",
+    "CSGNode",
+    "CSGOperation",
     "FaceAdjacencyGraph",
     "ShapeMetadata",
     "build_adjacency_graph",
@@ -22,6 +31,7 @@ __all__ = [
     "face_to_primitive",
     "faces_to_primitives",
     "neighbors",
+    "reconstruct_stock_minus_features",
     "shape_metadata",
     "shared_edges",
 ]
