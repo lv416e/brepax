@@ -179,8 +179,8 @@ def evaluate_stump_volume_stratum(
     if not non_box_are_planes:
         return None
 
-    box_lo = np.asarray(box.center - box.half_extents)
-    box_hi = np.asarray(box.center + box.half_extents)
+    box_lo = box.center - box.half_extents
+    box_hi = box.center + box.half_extents
 
     total = jnp.array(0.0)
     for k in range(m):
@@ -188,8 +188,8 @@ def evaluate_stump_volume_stratum(
             continue
         if t_mat[k, box_idx] < 0.5:
             continue
-        lo = box_lo.copy()
-        hi = box_hi.copy()
+        lo = box_lo
+        hi = box_hi
         for j in range(len(stump.primitives)):
             if j == box_idx or t_mat[k, j] == 0:
                 continue
@@ -197,18 +197,17 @@ def evaluate_stump_volume_stratum(
             if not isinstance(p, PlanePrim):
                 continue
             n = np.asarray(p.normal)
-            d = float(p.offset)
             axis = int(np.argmax(np.abs(n)))
             sign_n = float(np.sign(n[axis]))
-            plane_pos = d / sign_n
+            plane_pos = p.offset / sign_n
             if t_mat[k, j] * sign_n > 0:
-                hi[axis] = min(hi[axis], plane_pos)
+                hi = hi.at[axis].set(jnp.minimum(hi[axis], plane_pos))
             else:
-                lo[axis] = max(lo[axis], plane_pos)
-        cell_vol = float(np.prod(np.maximum(hi - lo, 0)))
+                lo = lo.at[axis].set(jnp.maximum(lo[axis], plane_pos))
+        cell_vol = jnp.prod(jnp.maximum(hi - lo, 0.0))
         total = total + cell_vol
 
-    return total if float(total) > 0 else None
+    return total
 
 
 class DifferentiableCSGStump(eqx.Module):
