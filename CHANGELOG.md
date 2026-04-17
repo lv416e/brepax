@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.2.0](https://github.com/lv416e/brepax/compare/v0.1.1...v0.2.0) (2026-04-17)
+
+
+### Features
+
+* **brep:** add CSG tree reconstruction for stock-minus-features patterns ([#11](https://github.com/lv416e/brepax/issues/11)) ([22326c5](https://github.com/lv416e/brepax/commit/22326c51127a8a815f3903cecabdacd711eac6b0))
+* **brep:** add differentiable CSG tree evaluation ([#12](https://github.com/lv416e/brepax/issues/12)) ([d83b9e2](https://github.com/lv416e/brepax/commit/d83b9e278560a43395af9d7985df1d566d2dcaa8))
+* **brep:** add face adjacency graph from B-Rep topology ([#9](https://github.com/lv416e/brepax/issues/9)) ([0535a6a](https://github.com/lv416e/brepax/commit/0535a6a6028920d7eac4d2ac9d7498cb20e66d55))
+* **brep:** add face-to-primitive conversion from STEP surfaces ([06e3b5a](https://github.com/lv416e/brepax/commit/06e3b5a283f13f3c68ad64a0e25d564a0c1b5665))
+
+
+### Bug Fixes
+
+* **ci:** change publish trigger from release event to tag push ([cd60aaf](https://github.com/lv416e/brepax/commit/cd60aaf84608a5bca292241f63b8342d7bbc598c))
+
+
+### Documentation
+
+* add commit and merge conventions to CLAUDE.md ([#8](https://github.com/lv416e/brepax/issues/8)) ([d647dd3](https://github.com/lv416e/brepax/commit/d647dd3ef73ebcd550dda12a1f011b1e8d0b8e8e))
+* add CSG reconstruction feasibility assessment ([#10](https://github.com/lv416e/brepax/issues/10)) ([b9851be](https://github.com/lv416e/brepax/commit/b9851be80cd7f915e2c8dfe830122205d183a3b8))
+* add STEP-to-optimization end-to-end demo ([#13](https://github.com/lv416e/brepax/issues/13)) ([a921567](https://github.com/lv416e/brepax/commit/a921567ab1973bf728ffba254b68cdc92ab9150e))
+
+
+### Miscellaneous Chores
+
+* bump release target to v0.2.0 ([#15](https://github.com/lv416e/brepax/issues/15)) ([bd7a1cb](https://github.com/lv416e/brepax/commit/bd7a1cb169c69271dd8015d80aeb2d160eaf6b20))
+
 ## [0.1.1](https://github.com/lv416e/brepax/compare/v0.1.0...v0.1.1) (2026-04-16)
 
 
