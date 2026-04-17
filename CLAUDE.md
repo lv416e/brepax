@@ -132,6 +132,20 @@ Do NOT proceed autonomously in the following cases:
 5. **Admin bypass**: Never use admin privileges to bypass branch protection
    rules, even if technically possible.
 
+### Release Process
+
+Releases are managed by release-please. The workflow:
+
+1. Conventional Commits on `main` accumulate a changelog in a release-please PR
+2. To override the version (e.g., minor bump), squash-merge a commit with the body
+   set to **only** the git trailer: `Release-As: 0.2.0` (no prose -- squash merge
+   replaces the body, so prose destroys the trailer)
+3. Maintainer merges the release-please PR
+4. release-please creates a GitHub Release and tag via the API
+5. The API-created tag does **not** trigger `on: push: tags` workflows. Run the
+   publish workflow manually: `gh workflow run publish.yaml -f tag=v0.2.0`
+6. Verify on PyPI that the new version is available
+
 ## Imports
 
 Follow PEP 8 grouping (stdlib, third-party, local). All imports at the top of the file.
