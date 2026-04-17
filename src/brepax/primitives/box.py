@@ -20,11 +20,13 @@ class Box(Primitive):
     def sdf(self, x: Float[Array, "... 3"]) -> Float[Array, "..."]:
         """Signed distance from query points to the box surface."""
         q = jnp.abs(x - self.center) - self.half_extents
-        # Outside: Euclidean distance to nearest surface point
-        outside = jnp.linalg.norm(jnp.maximum(q, 0.0), axis=-1)
-        # Inside: negative of distance to nearest face
+        qp = jnp.maximum(q, 0.0)
+        # eps avoids NaN gradient from norm at zero (same pattern as FiniteCylinder)
+        outside = jnp.sqrt(jnp.sum(qp**2, axis=-1) + 1e-20)
+        is_outside = jnp.max(q, axis=-1) > 0
+        outside = jnp.where(is_outside, outside, 0.0)
         inside = jnp.minimum(jnp.max(q, axis=-1), 0.0)
-        return outside + inside  # type: ignore[no-any-return]
+        return outside + inside
 
     def parameters(self) -> dict[str, Array]:
         """Return differentiable design parameters."""
