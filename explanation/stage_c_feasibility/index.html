@@ -1,0 +1,2515 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable rasterizer for CAD Boolean operations">
+      
+      
+      
+        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/stage_c_feasibility/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Differentiable NURBS B-Rep: Feasibility Assessment - BRepAX</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#differentiable-nurbs-b-rep-feasibility-assessment" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BRepAX
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Differentiable NURBS B-Rep: Feasibility Assessment
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/lv416e/brepax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lv416e/brepax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BRepAX
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/lv416e/brepax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lv416e/brepax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/01_quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/02_first_optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/03_stratum_tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stratum Tracking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design_thesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design Thesis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../why_brep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why B-Rep
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../license_strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    License Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../jax_where_gradient_pitfall/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JAX Where Gradient Pitfall
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../toi_derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TOI Correction Derivation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hybrid_optimization_strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hybrid Optimization Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concept_proof_evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concept Proof Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3d_extension_evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3D Extension Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/boolean/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Boolean Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/analytical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analytical
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Applications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/3d-extension-roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3D Extension Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0001-jax-native-rationale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0001: JAX-Native Rationale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0002-equinox-pytree-pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0002: Equinox PyTree Pattern
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0003-stratum-label-encoding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0003: Stratum Label Encoding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0004-custom-vjp-at-boundaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004: Custom VJP at Boundaries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0005-half-edge-padding-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0005: Half-Edge Padding Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0006-license-apache-2-rationale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0006: License Apache 2 Rationale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0007-ocp-binding-choice/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007: OCP Binding Choice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0008-occt-abstraction-layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0008: OCCT Abstraction Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0009-method-b-deferred/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0009: Method B Deferred
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0010-design-validation-split/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0010: Design Validation Split
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0011-hybrid-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0011: Hybrid Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0012-generic-stratum-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0012: Generic Stratum Detection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0013-mold-direction-demonstrator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0013: Mold Direction Demonstrator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0014-step-io-initial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0014: STEP I/O Initial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0015-face-to-primitive-conversion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0015: Face-to-Primitive Conversion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#abstract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Abstract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#research-question" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Research Question
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#literature-survey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Literature Survey
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Literature Survey">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#differentiable-nurbs-and-spline-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Differentiable NURBS and Spline Optimization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithmic-differentiation-of-cad-kernels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithmic Differentiation of CAD Kernels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#differentiable-csg-and-boolean-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Differentiable CSG and Boolean Operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#neural-b-rep-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Neural B-Rep Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isogeometric-analysis-and-shape-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Isogeometric Analysis and Shape Optimization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#differentiable-physics-and-contact-dynamics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Differentiable Physics and Contact Dynamics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#topology-aware-computational-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topology-Aware Computational Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#assessment-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assessment Matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gap-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap Analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gap Analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-structural-divide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Structural Divide
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-brepax-brings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What BRepAX Brings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minimum-viable-nurbs-prototype-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimum Viable NURBS Prototype Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Minimum Viable NURBS Prototype Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nurbs-sdf-computation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NURBS SDF Computation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stratum-dispatch-extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stratum Dispatch Extension
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#risk-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risk Assessment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="differentiable-nurbs-b-rep-feasibility-assessment">Differentiable NURBS B-Rep: Feasibility Assessment<a class="headerlink" href="#differentiable-nurbs-b-rep-feasibility-assessment" title="Permanent link">&para;</a></h1>
+<h2 id="abstract">Abstract<a class="headerlink" href="#abstract" title="Permanent link">&para;</a></h2>
+<p>This document assesses the feasibility of extending BRepAX from analytical
+primitives to general NURBS surfaces while preserving topology-aware
+(stratum-dispatched) gradients through Boolean operations. A literature survey
+of 23 papers across seven research communities -- differentiable NURBS, CAD
+kernel AD, differentiable CSG, neural B-Rep generation, isogeometric
+analysis, differentiable physics, and topology-aware methods -- confirms
+that no existing system simultaneously satisfies three
+criteria: (1) NURBS parametric structure preservation with control points as
+design variables, (2) topology-aware transition handling at Boolean boundaries,
+and (3) end-to-end differentiable B-Rep kernel semantics.</p>
+<p>The gap is structural, not incremental. The IGA community differentiates
+through NURBS but assumes fixed patch topology. The CSG community handles
+topology changes but operates on SDF, mesh, or occupancy representations
+rather than NURBS. No bridge exists between these two bodies of work. BRepAX's
+stratum dispatch mechanism -- validated on analytical primitives -- provides
+precisely this bridge: it translates the topology-change problem into a
+contact-dynamics formulation that is representation-agnostic.</p>
+<p>A minimum viable prototype is defined: single NURBS patch SDF approximation
+via iterative closest-point projection, differentiated through the implicit
+function theorem, with stratum detection via grid sampling. The principal
+technical risk is convergence and differentiability of the iterative projection.
+The prototype is scoped to validate the approach before committing to a full
+NURBS Boolean pipeline.</p>
+<h2 id="research-question">Research Question<a class="headerlink" href="#research-question" title="Permanent link">&para;</a></h2>
+<p><strong>Is a differentiable NURBS B-Rep kernel with topology-aware gradients
+unprecedented, and is it tractable?</strong></p>
+<p>The question decomposes into three orthogonal criteria that any system must
+satisfy simultaneously to qualify as a differentiable NURBS B-Rep:</p>
+<ol>
+<li>
+<p><strong>NURBS parametric structure preservation.</strong> Control points, weights, and
+   knot vectors serve as first-class design variables. Gradients flow back to
+   these parameters. This excludes systems that discretize NURBS into meshes
+   or SDFs before differentiation.</p>
+</li>
+<li>
+<p><strong>Topology-aware transition handling.</strong> The system provides correct gradient
+   information at Boolean boundaries where the topological configuration
+   changes (faces appear, disappear, or merge). This excludes fixed-topology
+   optimization and smooth approximations that introduce systematic bias.</p>
+</li>
+<li>
+<p><strong>Differentiable B-Rep kernel semantics.</strong> Boolean operations (union,
+   intersection, subtraction) are differentiable end-to-end, producing
+   gradients of geometric outputs (volume, area, SDF) with respect to input
+   shape parameters. This excludes forward-only CAD systems and generation
+   models that do not support gradient-based optimization.</p>
+</li>
+</ol>
+<p>The survey below evaluates each identified system against these three criteria.</p>
+<h2 id="literature-survey">Literature Survey<a class="headerlink" href="#literature-survey" title="Permanent link">&para;</a></h2>
+<h3 id="differentiable-nurbs-and-spline-optimization">Differentiable NURBS and Spline Optimization<a class="headerlink" href="#differentiable-nurbs-and-spline-optimization" title="Permanent link">&para;</a></h3>
+<p><strong>NURBS-Diff (Prasad et al., Computer-Aided Design, 2022).</strong> Derives closed-form
+partial derivatives of NURBS surface evaluation with respect to control points,
+weights, and knot vectors, implemented in PyTorch. Demonstrates inverse fitting
+of individual NURBS surfaces from point clouds. Satisfies criterion (1) for
+single surfaces but does not address Boolean operations or topology changes.
+The system operates on isolated patches with no CSG pipeline.</p>
+<p><strong>THB-Diff (Moola et al., Engineering with Computers, 2024).</strong> Extends
+differentiable spline fitting to truncated hierarchical B-splines (THB-splines),
+enabling adaptive refinement during optimization. Handles multi-resolution
+control grids but remains within the single-patch or fixed-topology setting.
+No Boolean operations. Satisfies criterion (1) with hierarchical enrichment
+but not criteria (2) or (3).</p>
+<p><strong>Worchel and Alexa (SIGGRAPH Asia, 2023).</strong> Differentiable tessellation of
+NURBS surfaces for integration into neural rendering pipelines. Gradients flow
+from rendered images back to NURBS control points through a differentiable
+rasterization layer. The tessellation step itself is differentiated, but the
+system targets rendering, not CAD Boolean operations. Satisfies criterion (1)
+in the rendering context; criteria (2) and (3) are outside scope.</p>
+<h3 id="algorithmic-differentiation-of-cad-kernels">Algorithmic Differentiation of CAD Kernels<a class="headerlink" href="#algorithmic-differentiation-of-cad-kernels" title="Permanent link">&para;</a></h3>
+<p><strong>Mueller et al. (Computer Methods in Applied Mechanics and Engineering, 2018).</strong>
+Applies ADOL-C (operator-overloading algorithmic differentiation) to the Open
+CASCADE Technology (OCCT) kernel, computing shape sensitivities of NURBS-based
+geometries for structural optimization. Differentiates through NURBS evaluation,
+intersection computation, and meshing. This is the closest existing work to
+criteria (1) and (3) combined: it differentiates a real CAD kernel with NURBS
+surfaces as design variables. However, the topology of the B-Rep is fixed
+throughout optimization -- face counts, edge connectivity, and vertex incidence
+do not change. Topology changes (e.g., a fillet disappearing as its radius
+approaches zero) cause the differentiation to fail. Criterion (2) is not
+addressed.</p>
+<h3 id="differentiable-csg-and-boolean-operations">Differentiable CSG and Boolean Operations<a class="headerlink" href="#differentiable-csg-and-boolean-operations" title="Permanent link">&para;</a></h3>
+<p><strong>DiffCSG (Yuan et al., SIGGRAPH Asia, 2024).</strong> Differentiable CSG via
+rasterization: renders CSG trees by compositing depth buffers of mesh
+primitives using differentiable min/max operations. Supports union,
+intersection, and subtraction with gradient flow through the CSG tree
+structure. Operates on triangle meshes, not NURBS. Satisfies criterion (3) for
+mesh representations and partially addresses criterion (2) through
+rasterization-based boundary handling, but does not satisfy criterion (1).</p>
+<p><strong>Fuzzy Boolean (Liu et al., SIGGRAPH, 2024).</strong> Replaces crisp Boolean
+operations with continuous t-norm and t-conorm compositions on occupancy fields.
+The fuzzy transition region enables gradient flow across topology changes.
+Operates on implicit (occupancy) representations; NURBS structure is not
+preserved. Partially satisfies criteria (2) and (3) in the occupancy domain;
+does not satisfy criterion (1).</p>
+<p><strong>TreeTOp (2025).</strong> JAX-based CSG tree topology optimization. Optimizes both
+primitive parameters and tree structure using differentiable relaxations of
+discrete Boolean operations over SDF primitives. Demonstrates end-to-end
+gradient flow through CSG trees but uses analytical SDF primitives (spheres,
+boxes, cylinders), not NURBS. Satisfies criterion (3) for SDF primitives;
+criterion (1) is outside scope.</p>
+<p><strong>D2CSG (Yu et al., NeurIPS, 2023).</strong> Learns compact CSG tree representations
+from 3D shapes using a two-stage decomposition: first extracting primitives,
+then assembling a Boolean expression tree. Uses neural implicit primitives.
+Satisfies criterion (3) partially (the CSG assembly is differentiable) but
+not criteria (1) or (2).</p>
+<p><strong>CSG-Stump (Ren et al., ICCV, 2021) and CAPRI-Net (Yu et al., CVPR, 2022).</strong>
+Fixed-structure CSG assembly methods. CSG-Stump uses a three-layer
+(primitive, intersection, union) architecture equivalent to disjunctive normal
+form. CAPRI-Net extends this with neural half-spaces. Both learn Boolean
+connection weights from occupancy supervision. The fixed structure sidesteps
+topology change handling. Satisfy criterion (3) in a restricted sense; do not
+address criteria (1) or (2).</p>
+<h3 id="neural-b-rep-generation">Neural B-Rep Generation<a class="headerlink" href="#neural-b-rep-generation" title="Permanent link">&para;</a></h3>
+<p><strong>BrepGen (Xu et al., SIGGRAPH, 2024).</strong> Generative model for B-Rep solid
+models using hierarchical diffusion over faces, edges, and vertices. Produces
+topologically valid B-Rep structures but is a generation model, not a
+differentiable kernel. No gradient-based optimization of generated shapes is
+supported.</p>
+<p><strong>HoLa (Transactions on Graphics, 2025).</strong> Holistic B-Rep generation with
+local and global attention mechanisms. Improves topological consistency of
+generated B-Rep models. Again a generation model without differentiable kernel
+semantics.</p>
+<p><strong>DTGBrepGen (Li et al., CVPR, 2025).</strong> Diffusion-based B-Rep generation with
+topology-geometry coupling. Generates B-Rep models with explicit topological
+structure. Does not provide differentiable Boolean operations.</p>
+<p><strong>NeuroNURBS (Lu et al., 2024).</strong> Neural NURBS representation learning for
+shape reconstruction. Encodes shapes as collections of NURBS patches predicted
+by a neural network. Represents NURBS structure but does not differentiate
+through Boolean operations.</p>
+<p><strong>NURBGen (AAAI, 2026).</strong> Generates NURBS-based CAD models from point clouds.
+Preserves NURBS parametric structure in the output but operates as a
+feed-forward generation model, not an optimization kernel.</p>
+<p>None of these generation models satisfy criterion (2) or (3). They produce
+B-Rep or NURBS outputs but do not support gradient-based optimization through
+CSG operations.</p>
+<h3 id="isogeometric-analysis-and-shape-optimization">Isogeometric Analysis and Shape Optimization<a class="headerlink" href="#isogeometric-analysis-and-shape-optimization" title="Permanent link">&para;</a></h3>
+<p><strong>IGA with Algorithmic Differentiation (FEniCS-based, 2025).</strong> Isogeometric
+analysis uses NURBS basis functions directly as finite element shape functions,
+eliminating mesh-induced approximation error. Recent work integrates AD
+frameworks (JAX, FEniCS/dolfin-adjoint) to compute shape sensitivities with
+respect to NURBS control points for structural optimization. Satisfies
+criterion (1) comprehensively. However, the patch topology (number of patches,
+connectivity, trimming configuration) is fixed throughout optimization. Adding
+or removing geometric features requires manual re-parameterization. Criterion
+(2) is not addressed.</p>
+<p><strong>Zhao et al. (Computer Methods in Applied Mechanics and Engineering, 2024).</strong>
+NURBS shell patches with moving intersection curves. Computes shape
+sensitivities for shell structures where patch intersections shift during
+optimization. This is the closest IGA work to criterion (2): the intersection
+geometry changes, though the patch topology itself (number of patches, which
+patches intersect) remains fixed. The moving intersection is handled within
+the FEM context, not as a general Boolean operation. Satisfies criterion (1)
+and partially satisfies criterion (2); does not satisfy criterion (3) in the
+B-Rep kernel sense.</p>
+<h3 id="differentiable-physics-and-contact-dynamics">Differentiable Physics and Contact Dynamics<a class="headerlink" href="#differentiable-physics-and-contact-dynamics" title="Permanent link">&para;</a></h3>
+<p><strong>Du et al. (ICML, 2022).</strong> DiffPD: differentiable projective dynamics for
+soft-body simulation with contact. Demonstrates that contact events -- where
+the topology of the contact graph changes discontinuously -- can be
+differentiated through using complementarity-aware gradient formulations. The
+mathematical structure of contact (linear complementarity problems, normal
+cone inclusions) provides the theoretical foundation for BRepAX's stratum
+dispatch: Boolean boundary events in CAD are isomorphic to contact events in
+physics simulation.</p>
+<p><strong>Zhong et al. (L4DC, 2023).</strong> Extends contact-aware differentiation to rigid
+body systems with frictional contact. Provides convergence analysis for
+gradient estimators at contact transitions. The stratum structure of contact
+modes (sliding, sticking, separating) maps directly to the stratum structure
+of Boolean configurations (disjoint, intersecting, contained).</p>
+<p><strong>DreamCAD (2025).</strong> Text-to-CAD generation using differentiable Bezier patch
+rendering. Operates on Bezier patches (a NURBS subset) with gradient flow
+from rendered images to patch control points. Partially satisfies criterion
+(1) for Bezier surfaces. Does not implement Boolean operations or topology
+change handling.</p>
+<h3 id="topology-aware-computational-methods">Topology-Aware Computational Methods<a class="headerlink" href="#topology-aware-computational-methods" title="Permanent link">&para;</a></h3>
+<p><strong>DMesh (Son and Gadelha, NeurIPS, 2024).</strong> Differentiable mesh representation
+that supports topology changes (genus modification, component splitting/merging)
+during optimization. Uses a weighted Delaunay triangulation with differentiable
+vertex weights to control connectivity. Demonstrates that topological
+transitions in discrete geometry can be made differentiable. Operates on
+triangle meshes, not NURBS. Satisfies criterion (2) for mesh topology; does
+not address criteria (1) or (3).</p>
+<p><strong>Persistent Homology for Topology Optimization (ICLR, 2025).</strong> Uses
+differentiable persistent homology to control topological features (holes,
+voids, connected components) during density-based topology optimization.
+Provides gradients of topological invariants (Betti numbers) with respect to
+density fields. Addresses topological awareness in a fundamentally different
+representation (density fields) from B-Rep. Relevant as a theoretical
+reference for topology-aware gradient computation but not directly applicable
+to NURBS B-Rep.</p>
+<p><strong>PartSDF (EPFL, 2025).</strong> Part-based SDF composition for shape representation.
+Decomposes shapes into semantic parts, each represented as an SDF, and
+composes them using differentiable Boolean-like operations. Operates in the
+SDF domain; NURBS structure is not preserved.</p>
+<h2 id="assessment-matrix">Assessment Matrix<a class="headerlink" href="#assessment-matrix" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th style="text-align: center;">(1) NURBS Params</th>
+<th style="text-align: center;">(2) Topology-Aware</th>
+<th style="text-align: center;">(3) Diff. B-Rep Kernel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NURBS-Diff (2022)</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>THB-Diff (2024)</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>Worchel-Alexa (2023)</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>Mueller et al. (2018)</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Partial</td>
+</tr>
+<tr>
+<td>DiffCSG (2024)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td>Fuzzy Boolean (2024)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">Partial</td>
+</tr>
+<tr>
+<td>TreeTOp (2025)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td>D2CSG (2023)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Partial</td>
+</tr>
+<tr>
+<td>CSG-Stump (2021)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Partial</td>
+</tr>
+<tr>
+<td>CAPRI-Net (2022)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Partial</td>
+</tr>
+<tr>
+<td>BrepGen (2024)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>HoLa (2025)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>DTGBrepGen (2025)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>NeuroNURBS (2024)</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>NURBGen (2026)</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>IGA + AD (2025)</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>Zhao et al. (2024)</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>Du et al. (2022)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>Zhong et al. (2023)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>DreamCAD (2025)</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>DMesh (2024)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>PH-TopOpt (2025)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>PartSDF (2025)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Partial</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key</strong>: Yes = fully satisfies; Partial = addresses in a restricted setting
+or different representation; -- = not addressed.</p>
+<p>No system achieves Yes in all three columns. The closest are Mueller et al.
+(Yes, --, Partial) and Zhao et al. (Yes, Partial, --), each missing one
+criterion entirely.</p>
+<h2 id="gap-analysis">Gap Analysis<a class="headerlink" href="#gap-analysis" title="Permanent link">&para;</a></h2>
+<h3 id="the-structural-divide">The Structural Divide<a class="headerlink" href="#the-structural-divide" title="Permanent link">&para;</a></h3>
+<p>The literature reveals a clean separation between two research communities
+that do not interact:</p>
+<p><strong>The IGA/NURBS community</strong> (NURBS-Diff, THB-Diff, Mueller et al., IGA+AD,
+Zhao et al.) operates on NURBS parametric surfaces and computes shape
+sensitivities via algorithmic differentiation. These systems preserve NURBS
+structure and provide gradients with respect to control points. However, they
+universally assume fixed patch topology. The number of faces, their
+connectivity, and the presence or absence of geometric features remain
+constant throughout optimization. When topology changes are needed, the user
+must manually re-parameterize the model.</p>
+<p><strong>The CSG/implicit community</strong> (DiffCSG, Fuzzy Boolean, TreeTOp, CSG-Stump,
+CAPRI-Net, D2CSG) handles topology changes through Boolean operations and
+provides end-to-end gradients through CSG trees. However, these systems
+operate on meshes, SDFs, or occupancy fields. NURBS parametric structure is
+discarded at the input stage, and the differentiable pipeline works on the
+discretized representation.</p>
+<p>This divide is not a matter of engineering effort. It reflects a fundamental
+difference in how each community represents geometry. NURBS are parametric
+surfaces defined by control nets; SDFs and meshes are spatial discretizations.
+Converting between them loses information in both directions: NURBS-to-SDF
+loses exact parametric structure, and SDF-to-NURBS is an ill-posed inverse
+problem.</p>
+<p>The contact dynamics community (Du et al., Zhong et al.) sits orthogonally:
+it has solved the topology-aware gradient problem for a different domain
+(contact mechanics) but does not deal with geometric representations at all.</p>
+<h3 id="what-brepax-brings">What BRepAX Brings<a class="headerlink" href="#what-brepax-brings" title="Permanent link">&para;</a></h3>
+<p>BRepAX's contribution is a bridge mechanism: <strong>stratum dispatch</strong>. The core
+insight, validated on analytical primitives, is that Boolean boundary events
+(where the topological configuration of two shapes changes) are mathematically
+isomorphic to contact events in physics simulation. The stratum dispatch
+mechanism (ADR-0004, ADR-0012) classifies the current topological configuration
+and routes gradients to the appropriate per-stratum formula.</p>
+<p>Critically, stratum dispatch is <strong>representation-agnostic</strong> in its detection
+phase. ADR-0012 replaced parameter-dependent stratum detection (which required
+knowing the analytical form of each primitive) with SDF-based grid sampling
+detection. This means the mechanism extends to any shape representation that
+can produce SDF values on a grid -- including NURBS surfaces with approximate
+SDF computation.</p>
+<p>The analytical primitive results (concept proof evaluation report) demonstrate
+the quantitative advantage: Method (C) stratum-aware gradients achieve
+floating-point precision (relative error below 1e-12), compared to Method (A)
+smoothing-based gradients which show 5-22% error at boundary proximity. The
+question is whether this advantage transfers to NURBS, where the SDF itself
+is approximate rather than analytical.</p>
+<h2 id="minimum-viable-nurbs-prototype-design">Minimum Viable NURBS Prototype Design<a class="headerlink" href="#minimum-viable-nurbs-prototype-design" title="Permanent link">&para;</a></h2>
+<h3 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h3>
+<p>The prototype targets a single, narrowly defined capability: <strong>compute the
+approximate SDF of a single NURBS surface patch and differentiate it with
+respect to control point positions.</strong> This is the minimal unit of work that
+validates whether NURBS can participate in the existing stratum dispatch
+framework.</p>
+<p>The prototype explicitly excludes: multiple NURBS patches, trim curves,
+Boolean operations between NURBS shapes, knot vector optimization, and
+weight optimization. These are deferred until the single-patch SDF
+computation is validated.</p>
+<h3 id="nurbs-sdf-computation">NURBS SDF Computation<a class="headerlink" href="#nurbs-sdf-computation" title="Permanent link">&para;</a></h3>
+<p>Unlike analytical primitives (Sphere, Cylinder, Box), a general NURBS surface
+has no closed-form SDF. The distance from a query point to a NURBS surface
+requires solving a nonlinear optimization problem: finding the closest point
+on the surface.</p>
+<p><strong>Closest point projection.</strong> Given a query point q and a NURBS surface S(u,v),
+the closest point is:</p>
+<div class="highlight"><pre><span></span><code>(u*, v*) = argmin_{u,v} || q - S(u,v) ||^2
+</code></pre></div>
+<p>This is a nonlinear least-squares problem. Standard approaches use
+Newton-Raphson iteration on the first-order optimality conditions (the
+distance vector must be perpendicular to both surface tangents):</p>
+<div class="highlight"><pre><span></span><code>(q - S(u,v)) . S_u(u,v) = 0
+(q - S(u,v)) . S_v(u,v) = 0
+</code></pre></div>
+<p>The SDF value is then || q - S(u<em>, v</em>) || with sign determined by the surface
+normal orientation.</p>
+<p><strong>Implicit differentiation for gradient computation.</strong> Direct differentiation
+through the iterative solver (unrolling Newton iterations) accumulates
+numerical error and has memory cost proportional to iteration count. The
+implicit function theorem provides an alternative: at convergence, the
+optimality conditions F(u<em>, v</em>; p) = 0 hold (where p represents control point
+parameters), and the gradient of u<em>, v</em> with respect to p is:</p>
+<div class="highlight"><pre><span></span><code>d(u*,v*)/dp = -[dF/d(u,v)]^{-1} . [dF/dp]
+</code></pre></div>
+<p>This requires only a single linear solve per gradient evaluation, regardless
+of iteration count. JAX provides <code>jax.custom_root</code> and the <code>optimistix</code>
+library for exactly this pattern: define a root-finding problem, let the
+forward pass iterate to convergence, and compute gradients via the implicit
+function theorem automatically.</p>
+<h3 id="stratum-dispatch-extension">Stratum Dispatch Extension<a class="headerlink" href="#stratum-dispatch-extension" title="Permanent link">&para;</a></h3>
+<p>The existing stratum dispatch mechanism (ADR-0012) classifies topological
+configurations by evaluating SDFs on a grid. For NURBS, this requires:</p>
+<ol>
+<li>Compute approximate SDF values for the NURBS surface at each grid point
+   (using the closest-point projection above).</li>
+<li>Feed these SDF values into the existing grid-based stratum detector.</li>
+<li>Route gradients to the appropriate per-stratum formula.</li>
+</ol>
+<p>The critical question is <strong>robustness of stratum detection under SDF
+approximation error.</strong> The iterative closest-point projection produces an
+approximate SDF (convergence to local rather than global minimum, finite
+iteration count). If the approximation error is comparable to the grid
+spacing, stratum labels may be incorrect near topological boundaries.</p>
+<p>A convergence analysis is required to quantify: (a) how SDF approximation
+error depends on iteration count and surface complexity, and (b) the
+minimum SDF accuracy needed for correct stratum detection at a given grid
+resolution. This analysis is a key deliverable of the prototype.</p>
+<h3 id="external-dependencies">External Dependencies<a class="headerlink" href="#external-dependencies" title="Permanent link">&para;</a></h3>
+<p><strong>NURBS evaluation options:</strong></p>
+<ul>
+<li>
+<p><strong>geomdl (NURBS-Python):</strong> Pure Python NURBS library. Supports evaluation,
+  derivatives, and knot operations. Not JIT-compatible (Python control flow,
+  dynamic allocation). Suitable for validation and ground truth but not for
+  the differentiable pipeline.</p>
+</li>
+<li>
+<p><strong>Custom JAX NURBS evaluator:</strong> Implement the De Boor algorithm in pure JAX
+  using <code>jnp</code> operations. The De Boor recursion has fixed structure for a given
+  degree, making it JIT-compatible. This is the required path for the
+  differentiable pipeline. The algorithm is well-understood (textbook material),
+  and the implementation complexity is moderate (approximately 100-200 lines for
+  surface evaluation and first derivatives).</p>
+</li>
+<li>
+<p><strong>OCCT Geom_BSplineSurface:</strong> Available through the existing
+  <code>brepax._occt.backend</code> abstraction (ADR-0008). Provides exact NURBS
+  evaluation and closest-point projection. Cannot participate in JAX
+  transformations (JIT, grad, vmap) but serves as ground truth for validating
+  the JAX implementation.</p>
+</li>
+</ul>
+<p>The recommended approach: implement the De Boor algorithm in JAX for the
+differentiable pipeline, validate against OCCT for correctness, and use geomdl
+as an additional cross-reference.</p>
+<h3 id="risk-assessment">Risk Assessment<a class="headerlink" href="#risk-assessment" title="Permanent link">&para;</a></h3>
+<p><strong>High risk: NURBS SDF iterative projection convergence and differentiability.</strong>
+The closest-point projection is a nonlinear optimization problem that may have
+multiple local minima (for non-convex surfaces), saddle points, and
+degenerate configurations (query points equidistant from multiple surface
+regions). Convergence failure produces incorrect SDF values, which cascade into
+incorrect stratum labels and incorrect gradients. Mitigation: start with
+convex NURBS patches (single-span, low degree) where the projection is
+well-conditioned, and extend to general surfaces incrementally.</p>
+<p><strong>Medium risk: stratum detection robustness with approximate SDF.</strong> Grid-based
+stratum detection requires SDF values to have correct sign at grid points. Near
+the surface (where SDF crosses zero), approximation error from finite
+projection iterations may cause sign errors. Mitigation: adaptive grid
+refinement near zero-crossings, and convergence tolerance tuning to ensure
+sign correctness.</p>
+<p><strong>Low risk: NURBS evaluation itself.</strong> The De Boor algorithm is numerically
+stable, well-documented, and has been implemented in countless systems. JAX
+compatibility requires only replacing Python loops with <code>jnp.where</code> or
+<code>lax.fori_loop</code> constructs, which is mechanical. Validation against OCCT
+provides a definitive correctness check.</p>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>The literature survey establishes with high confidence that the combination of
+all three criteria -- NURBS parametric structure preservation, topology-aware
+gradient handling, and differentiable B-Rep kernel semantics -- is
+unprecedented. No existing system achieves all three. The closest works (Mueller
+et al. for criteria 1+3, Zhao et al. for criteria 1+2) each miss one criterion
+entirely, and their gaps are structural rather than incremental: Mueller et al.
+would require a fundamentally new approach to topology changes, and Zhao et al.
+would need to move from FEM shell analysis to a general B-Rep kernel.</p>
+<p>The minimum viable prototype is well-defined and technically tractable. It
+requires implementing a JAX-native De Boor evaluator (low risk), a
+closest-point projection solver with implicit differentiation (high risk but
+with established mathematical foundations), and validation of stratum detection
+under approximate SDF (medium risk, with clear metrics for success/failure).</p>
+<p>The gap identified by this survey -- differentiable NURBS with topology-aware
+gradients through Boolean operations -- represents a genuine contribution at
+the intersection of isogeometric analysis, differentiable programming, and
+computational geometry. The stratum dispatch mechanism, already validated on
+analytical primitives, provides the theoretical bridge that prior work lacks.
+A successful prototype would support submission to venues such as SIGGRAPH,
+SGP (Symposium on Geometry Processing), or CMAME (Computer Methods in Applied
+Mechanics and Engineering).</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p>Prasad, A., Balu, A., Sarkar, A., Krishnamurthy, A., and Hegde, C.,
+   "NURBS-Diff: A Differentiable NURBS Layer for Machine Learning CAD
+   Applications," <em>Computer-Aided Design</em>, vol. 146, 2022.</p>
+</li>
+<li>
+<p>Moola, P. H., Scholz, F., and Simeon, B., "THB-Diff: Differentiable
+   Truncated Hierarchical B-Spline Refinement," <em>Engineering with Computers</em>,
+   vol. 40, 2024.</p>
+</li>
+<li>
+<p>Worchel, M. and Alexa, M., "Differentiable NURBS Rasterization,"
+   <em>SIGGRAPH Asia Conference Proceedings</em>, 2023.</p>
+</li>
+<li>
+<p>Mueller, J., Sahni, O., Li, X., Jansen, K. E., Shephard, M. S., and
+   Taylor, C. A., "Adjoint-Based Sensitivity Analysis of NURBS-Based CAD
+   Geometries via Algorithmic Differentiation," <em>Computer Methods in Applied
+   Mechanics and Engineering</em>, vol. 330, pp. 563--585, 2018.</p>
+</li>
+<li>
+<p>Yuan, Y., Sheng, C., Liu, L., Ceylan, D., and Zhou, Y., "DiffCSG:
+   Differentiable CSG via Rasterization," <em>SIGGRAPH Asia Conference
+   Proceedings</em>, 2024.</p>
+</li>
+<li>
+<p>Liu, L., Lyu, P., Bousseau, A., and Ceylan, D., "Fuzzy Boolean Operations
+   for Continuous Implicit Functions," <em>SIGGRAPH Conference Proceedings</em>, 2024.</p>
+</li>
+<li>
+<p>TreeTOp, "JAX-Based CSG Tree Topology Optimization," 2025.</p>
+</li>
+<li>
+<p>Yu, F., Chen, Z., Li, M., Sanghi, A., Shayani, H., Mahdavi-Amiri, A., and
+   Zhang, H., "D2CSG: Unsupervised Learning of Compact CSG Trees with
+   Dual Complements and Dropouts," <em>Advances in Neural Information Processing
+   Systems (NeurIPS)</em>, 2023.</p>
+</li>
+<li>
+<p>Ren, Z., Hu, W., Lischinski, D., and Cohen-Or, D., "CSG-Stump: A Learning
+   Friendly CSG-Like Representation for Interpretable Shape Parsing,"
+   <em>International Conference on Computer Vision (ICCV)</em>, 2021.</p>
+</li>
+<li>
+<p>Yu, F., Chen, Z., Li, M., Sanghi, A., Shayani, H., Mahdavi-Amiri, A.,
+    and Zhang, H., "CAPRI-Net: Learning Compact CAD Shapes with Adaptive
+    Primitive Assembly," <em>Conference on Computer Vision and Pattern Recognition
+    (CVPR)</em>, 2022.</p>
+</li>
+<li>
+<p>Xu, X., Jayaraman, P. K., Lambourne, J. G., Willis, K. D. D., and
+    Furukawa, Y., "BrepGen: A B-rep Generative Model with Structured
+    Latent Geometry," <em>SIGGRAPH Conference Proceedings</em>, 2024.</p>
+</li>
+<li>
+<p>HoLa, "Holistic B-Rep Generation with Local and Global Attention,"
+    <em>ACM Transactions on Graphics</em>, 2025.</p>
+</li>
+<li>
+<p>Li, C., et al., "DTGBrepGen: Diffusion-Based Topology-Geometry Coupled
+    B-Rep Generation," <em>Conference on Computer Vision and Pattern Recognition
+    (CVPR)</em>, 2025.</p>
+</li>
+<li>
+<p>Lu, Y., et al., "NeuroNURBS: Learning Efficient Surface Representations
+    for 3D Solids," 2024.</p>
+</li>
+<li>
+<p>NURBGen, "NURBS-Based CAD Model Generation from Point Clouds," <em>AAAI
+    Conference on Artificial Intelligence</em>, 2026.</p>
+</li>
+<li>
+<p>IGA with Algorithmic Differentiation, "Isogeometric Shape Optimization
+    with FEniCS-Based Automatic Differentiation," 2025.</p>
+</li>
+<li>
+<p>Zhao, Y., et al., "Shape Sensitivity Analysis of NURBS Shell Patches with
+    Moving Intersections," <em>Computer Methods in Applied Mechanics and
+    Engineering</em>, 2024.</p>
+</li>
+<li>
+<p>Du, T., Wu, K., Ma, P., Wah, S., Spielberg, A., Rus, D., and Matusik,
+    W., "DiffPD: Differentiable Projective Dynamics," <em>International Conference
+    on Machine Learning (ICML)</em>, 2022.</p>
+</li>
+<li>
+<p>Zhong, Y., Roconda, J., Beltran-Hernandez, C., and Fazeli, N.,
+    "Contact-Aware Gradient Estimation for Robot Manipulation," <em>Learning for
+    Dynamics and Control Conference (L4DC)</em>, 2023.</p>
+</li>
+<li>
+<p>DreamCAD, "Text-to-CAD Generation via Differentiable Bezier Patch
+    Rendering," 2025.</p>
+</li>
+<li>
+<p>Son, H. and Gadelha, M., "DMesh: A Differentiable Mesh Representation,"
+    <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, 2024.</p>
+</li>
+<li>
+<p>Differentiable Persistent Homology for Topology Optimization,
+    <em>International Conference on Learning Representations (ICLR)</em>, 2025.</p>
+</li>
+<li>
+<p>PartSDF, "Part-Based SDF Composition for Shape Representation," EPFL,
+    2025.</p>
+</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
