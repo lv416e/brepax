@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import jax.numpy as jnp
+import numpy as np
 
 from brepax._occt.backend import (
     Bnd_Box,
@@ -27,6 +28,7 @@ from brepax._occt.backend import (
     TopoDS,
 )
 from brepax._occt.types import TopoDS_Face, TopoDS_Shape
+from brepax.primitives import BSplineSurface as BSplinePrim
 from brepax.primitives import Cone as ConePrim
 from brepax.primitives import Cylinder as CylinderPrim
 from brepax.primitives import Plane as PlanePrim
@@ -178,12 +180,84 @@ def face_to_primitive(face: TopoDS_Face) -> Primitive | None:
             minor_radius=minor_radius,
         )
 
+    if stype == GeomAbs_BSplineSurface:
+        return _convert_bspline_face(adaptor)
+
     type_name = _SURFACE_TYPE_NAMES.get(stype, "unknown")
     warnings.warn(
         f"Unsupported surface type: {type_name}, skipping face",
         stacklevel=2,
     )
     return None
+
+
+def _expand_knots(unique_knots: list[float], multiplicities: list[int]) -> jnp.ndarray:
+    """Expand unique knots + multiplicities to repeated knot vector.
+
+    OCCT stores knots as (unique values, multiplicities).  The De Boor
+    algorithm expects the fully repeated form.
+    """
+    repeated: list[float] = []
+    for knot, mult in zip(unique_knots, multiplicities, strict=True):
+        repeated.extend([knot] * mult)
+    return jnp.array(repeated)
+
+
+def _convert_bspline_face(adaptor: Any) -> BSplinePrim | None:
+    """Convert an OCCT B-spline surface to a BSplineSurface primitive.
+
+    Extracts control points, knot vectors, and degree from the OCCT
+    Geom_BSplineSurface handle.  Rational (weighted) B-splines are
+    not yet supported and return None with a warning.
+    """
+    bspl = adaptor.BSpline()
+
+    if bspl.IsURational() or bspl.IsVRational():
+        warnings.warn(
+            "Rational B-spline surfaces not yet supported, skipping face",
+            stacklevel=3,
+        )
+        return None
+
+    n_u = bspl.NbUPoles()
+    n_v = bspl.NbVPoles()
+    deg_u = bspl.UDegree()
+    deg_v = bspl.VDegree()
+
+    # Extract control points (OCCT uses 1-based indexing)
+    poles = np.zeros((n_u, n_v, 3))
+    for i in range(1, n_u + 1):
+        for j in range(1, n_v + 1):
+            pt = bspl.Pole(i, j)
+            poles[i - 1, j - 1] = [pt.X(), pt.Y(), pt.Z()]
+
+    # Extract knot vectors: OCCT (unique + multiplicities) → repeated
+    from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
+
+    uk = TColStd_Array1OfReal(1, bspl.NbUKnots())
+    um = TColStd_Array1OfInteger(1, bspl.NbUKnots())
+    bspl.UKnots(uk)
+    bspl.UMultiplicities(um)
+    u_knots_unique = [uk.Value(i) for i in range(1, bspl.NbUKnots() + 1)]
+    u_mults = [um.Value(i) for i in range(1, bspl.NbUKnots() + 1)]
+
+    vk = TColStd_Array1OfReal(1, bspl.NbVKnots())
+    vm = TColStd_Array1OfInteger(1, bspl.NbVKnots())
+    bspl.VKnots(vk)
+    bspl.VMultiplicities(vm)
+    v_knots_unique = [vk.Value(i) for i in range(1, bspl.NbVKnots() + 1)]
+    v_mults = [vm.Value(i) for i in range(1, bspl.NbVKnots() + 1)]
+
+    knots_u = _expand_knots(u_knots_unique, u_mults)
+    knots_v = _expand_knots(v_knots_unique, v_mults)
+
+    return BSplinePrim(
+        control_points=jnp.array(poles),
+        knots_u=knots_u,
+        knots_v=knots_v,
+        degree_u=deg_u,
+        degree_v=deg_v,
+    )
 
 
 def faces_to_primitives(shape: TopoDS_Shape) -> list[Primitive | None]:
