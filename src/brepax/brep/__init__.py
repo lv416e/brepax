@@ -12,6 +12,12 @@ from brepax.brep.csg import (
     CSGOperation,
     reconstruct_stock_minus_features,
 )
+from brepax.brep.csg_eval import (
+    DifferentiableCSG,
+    csg_to_differentiable,
+    evaluate_csg_sdf,
+    evaluate_csg_volume,
+)
 from brepax.brep.topology import (
     FaceAdjacencyGraph,
     build_adjacency_graph,
@@ -24,9 +30,13 @@ __all__ = [
     "CSGLeaf",
     "CSGNode",
     "CSGOperation",
+    "DifferentiableCSG",
     "FaceAdjacencyGraph",
     "ShapeMetadata",
     "build_adjacency_graph",
+    "csg_to_differentiable",
+    "evaluate_csg_sdf",
+    "evaluate_csg_volume",
     "face_degree",
     "face_to_primitive",
     "faces_to_primitives",
