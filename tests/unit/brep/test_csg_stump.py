@@ -19,6 +19,7 @@ from brepax.brep.csg_stump import (
     csg_tree_to_stump,
     evaluate_stump_sdf,
     evaluate_stump_volume,
+    evaluate_stump_volume_stratum,
     group_stump_primitives,
     reconstruct_csg_stump,
     stump_to_differentiable,
@@ -466,3 +467,35 @@ class TestGroupStumpPrimitives:
         types = [type(p).__name__ for p in grouped.primitives]
         assert "Box" in types
         assert len(grouped.primitives) < len(raw.primitives)
+
+
+class TestStratumDispatch:
+    """Stratum dispatch on grouped CSG-Stumps."""
+
+    def test_holes_stratum_precision(self) -> None:
+        """box_with_holes (single-term): stratum dispatch < 0.1% error."""
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        vol = evaluate_stump_volume_stratum(grouped, resolution=64)
+        assert vol is not None
+        analytical = 40 * 30 * 20 - jnp.pi * 16 * 20 - jnp.pi * 9 * 20
+        assert float(vol) == pytest.approx(float(analytical), rel=0.001)
+
+    def test_pocket_falls_back(self) -> None:
+        """box_with_pocket (multi-term): stratum returns None."""
+        shape = read_step(FIXTURES / "box_with_pocket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        assert evaluate_stump_volume_stratum(grouped) is None
+
+    @pytest.mark.filterwarnings("ignore:.*has no cylindrical faces.*:UserWarning")
+    def test_slot_falls_back(self) -> None:
+        """box_with_slot (unbounded prims): stratum returns None."""
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        assert evaluate_stump_volume_stratum(grouped) is None

@@ -109,6 +109,72 @@ def evaluate_stump_volume(
     return integrate_sdf_volume(sdf, lo, hi, resolution)
 
 
+def evaluate_stump_volume_stratum(
+    stump: CSGStump,
+    *,
+    resolution: int = 64,
+) -> Float[Array, ""] | None:
+    """Evaluate volume using stratum dispatch for analytical exact gradients.
+
+    Only works when **all** primitives in the stump are bounded (have
+    finite ``volume()``).  Returns ``None`` if any primitive is unbounded,
+    in which case the caller should fall back to grid-based
+    :func:`evaluate_stump_volume`.
+
+    For a single intersection term ``T = [[s1, s2, ..., sn]]``, this
+    decomposes the CSG into a chain of pairwise Boolean operations that
+    the Phase 0/1 stratum dispatch can handle.
+
+    Args:
+        stump: A CSG-Stump with bounded (grouped) primitives.
+        resolution: Grid resolution for the intersecting stratum.
+
+    Returns:
+        Scalar volume, or ``None`` if stratum dispatch is not applicable.
+    """
+    from brepax.boolean import intersect_volume
+
+    for p in stump.primitives:
+        if not jnp.isfinite(p.volume()):
+            return None
+
+    t_mat = np.asarray(stump.intersection_matrix)
+    m = t_mat.shape[0]
+
+    term_volumes: list[Float[Array, ""]] = []
+    for k in range(m):
+        if float(stump.union_mask[k]) < 0.5:
+            continue
+        row = t_mat[k]
+        inside_prims = [stump.primitives[j] for j in range(len(row)) if row[j] > 0.5]
+        outside_prims = [stump.primitives[j] for j in range(len(row)) if row[j] < -0.5]
+
+        if not inside_prims:
+            continue
+
+        # Start with the first inside primitive's volume
+        vol = inside_prims[0].volume()
+
+        # Intersect with remaining inside primitives
+        base = inside_prims[0]
+        for p in inside_prims[1:]:
+            vol = intersect_volume(base, p, resolution=resolution)
+            base = p
+
+        # Subtract each outside primitive
+        for p in outside_prims:
+            vol = vol - intersect_volume(base, p, resolution=resolution)
+
+        term_volumes.append(vol)
+
+    if len(term_volumes) != 1:
+        # Multi-term union requires inclusion-exclusion with compound
+        # region intersections, which is not yet supported.
+        return None
+
+    return term_volumes[0]
+
+
 class DifferentiableCSGStump(eqx.Module):
     """CSG-Stump wrapped for differentiable evaluation via equinox.
 
@@ -573,6 +639,7 @@ __all__ = [
     "csg_tree_to_stump",
     "evaluate_stump_sdf",
     "evaluate_stump_volume",
+    "evaluate_stump_volume_stratum",
     "group_stump_primitives",
     "reconstruct_csg_stump",
     "stump_to_differentiable",
