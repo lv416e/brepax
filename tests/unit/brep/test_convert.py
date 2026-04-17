@@ -9,7 +9,7 @@ import pytest
 
 from brepax.brep.convert import faces_to_primitives
 from brepax.io.step import read_step
-from brepax.primitives import Cone, Cylinder, Plane, Sphere, Torus
+from brepax.primitives import BSplineSurface, Cone, Cylinder, Plane, Sphere, Torus
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
@@ -106,3 +106,40 @@ class TestFaceToPrimitive:
         # Point at origin: SDF should be -3
         origin = jnp.array([0.0, 0.0, 0.0])
         assert float(sph.sdf(origin)) == pytest.approx(-3.0, abs=1e-6)
+
+    def test_bspline_face_converted(self) -> None:
+        """NURBS STEP face converts to BSplineSurface primitive."""
+        shape = read_step(FIXTURES / "nurbs_saddle.step")
+        prims = faces_to_primitives(shape)
+        assert len(prims) == 1
+        assert isinstance(prims[0], BSplineSurface)
+
+    def test_bspline_control_points_shape(self) -> None:
+        """Converted B-spline has correct control point grid shape."""
+        shape = read_step(FIXTURES / "nurbs_saddle.step")
+        prims = faces_to_primitives(shape)
+        surf = prims[0]
+        assert isinstance(surf, BSplineSurface)
+        assert surf.control_points.shape == (4, 4, 3)
+        assert surf.degree_u == 3
+        assert surf.degree_v == 3
+
+    def test_bspline_knots_clamped(self) -> None:
+        """Converted knot vectors are in clamped repeated form."""
+        shape = read_step(FIXTURES / "nurbs_saddle.step")
+        prims = faces_to_primitives(shape)
+        surf = prims[0]
+        assert isinstance(surf, BSplineSurface)
+        expected = jnp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0])
+        assert jnp.allclose(surf.knots_u, expected)
+        assert jnp.allclose(surf.knots_v, expected)
+
+    def test_bspline_sdf_evaluates(self) -> None:
+        """Converted B-spline SDF returns correct distance."""
+        shape = read_step(FIXTURES / "nurbs_saddle.step")
+        prims = faces_to_primitives(shape)
+        surf = prims[0]
+        assert isinstance(surf, BSplineSurface)
+        dist = surf.sdf(jnp.array([0.5, 0.5, 1.0]))
+        assert jnp.isfinite(dist)
+        assert jnp.isclose(jnp.abs(dist), 1.0, rtol=0.05)
