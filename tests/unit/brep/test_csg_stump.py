@@ -288,3 +288,64 @@ class TestReconstructCsgStump:
         assert stump is not None
         assert stump.bbox_lo is not None
         assert stump.bbox_hi is not None
+
+
+class TestPmcFixtureValidation:
+    """PMC reconstruction on diverse shape patterns."""
+
+    def test_pocket_sdf(self) -> None:
+        """Blind hole: inside solid negative, inside pocket positive."""
+        shape = read_step(FIXTURES / "box_with_pocket.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        assert float(evaluate_stump_sdf(stump, jnp.array([5.0, 5.0, 5.0]))) < 0
+        assert float(evaluate_stump_sdf(stump, jnp.array([20.0, 15.0, 18.0]))) > 0
+        assert float(evaluate_stump_sdf(stump, jnp.array([50.0, 50.0, 50.0]))) > 0
+
+    def test_pocket_volume(self) -> None:
+        shape = read_step(FIXTURES / "box_with_pocket.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        vol = float(evaluate_stump_volume(stump, resolution=64))
+        analytical = 40 * 30 * 20 - jnp.pi * 25 * 10
+        assert vol == pytest.approx(float(analytical), rel=0.10)
+
+    def test_slot_sdf(self) -> None:
+        """Rectangular slot: inside solid negative, inside slot positive."""
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        assert float(evaluate_stump_sdf(stump, jnp.array([5.0, 3.0, 5.0]))) < 0
+        assert float(evaluate_stump_sdf(stump, jnp.array([20.0, 15.0, 16.0]))) > 0
+        assert float(evaluate_stump_sdf(stump, jnp.array([50.0, 50.0, 50.0]))) > 0
+
+    def test_slot_volume(self) -> None:
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        vol = float(evaluate_stump_volume(stump, resolution=64))
+        analytical = 40 * 30 * 20 - 20 * 20 * 8
+        assert vol == pytest.approx(float(analytical), rel=0.10)
+
+    def test_l_bracket_sdf(self) -> None:
+        """L-bracket union: both arms inside, gap outside."""
+        shape = read_step(FIXTURES / "l_bracket.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        assert float(evaluate_stump_sdf(stump, jnp.array([5.0, 5.0, 10.0]))) < 0
+        assert float(evaluate_stump_sdf(stump, jnp.array([30.0, 5.0, 10.0]))) < 0
+        assert float(evaluate_stump_sdf(stump, jnp.array([30.0, 20.0, 10.0]))) > 0
+
+    def test_l_bracket_volume(self) -> None:
+        shape = read_step(FIXTURES / "l_bracket.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        vol = float(evaluate_stump_volume(stump, resolution=64))
+        assert vol == pytest.approx(12000.0, rel=0.05)
+
+    def test_l_bracket_multi_term(self) -> None:
+        """L-bracket should produce multiple intersection terms (union)."""
+        shape = read_step(FIXTURES / "l_bracket.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        assert stump.intersection_matrix.shape[0] > 1
