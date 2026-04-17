@@ -483,13 +483,16 @@ class TestStratumDispatch:
         analytical = 40 * 30 * 20 - jnp.pi * 16 * 20 - jnp.pi * 9 * 20
         assert float(vol) == pytest.approx(float(analytical), rel=0.001)
 
-    def test_pocket_falls_back(self) -> None:
-        """box_with_pocket (multi-term): stratum returns None."""
+    def test_pocket_stratum_precision(self) -> None:
+        """box_with_pocket (single-term after grouping): stratum < 0.1%."""
         shape = read_step(FIXTURES / "box_with_pocket.step")
         raw = reconstruct_csg_stump(shape)
         assert raw is not None
         grouped = group_stump_primitives(raw, shape)
-        assert evaluate_stump_volume_stratum(grouped) is None
+        vol = evaluate_stump_volume_stratum(grouped, resolution=64)
+        assert vol is not None
+        analytical = 40 * 30 * 20 - jnp.pi * 25 * 10
+        assert float(vol) == pytest.approx(float(analytical), rel=0.001)
 
     @pytest.mark.filterwarnings("ignore:.*has no cylindrical faces.*:UserWarning")
     def test_slot_falls_back(self) -> None:

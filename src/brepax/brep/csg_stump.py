@@ -353,35 +353,28 @@ def group_stump_primitives(
                 grouped_primitives.append(stump.primitives[fid])
                 face_to_group[fid] = gid
 
-    n_old = len(stump.primitives)
     n_new = len(grouped_primitives)
     t_old = np.asarray(stump.intersection_matrix)
     m = t_old.shape[0]
 
-    # Compute the T-value pattern for "inside the Box" by evaluating
-    # each constituent face's SDF at the box center.
-    box_inside_t: dict[int, float] = {}
-    for fid in box_face_ids:
-        sdf_val = float(np.asarray(stump.primitives[fid].sdf(box.center)))
-        box_inside_t[fid] = -float(np.sign(sdf_val))
+    # Re-derive T values using representative points from each cell.
+    # This avoids face-level → grouped-level mapping errors when
+    # multiple faces with conflicting T values map to the same group.
+    rng = np.random.default_rng(123)
+    lo_np = np.asarray(stump.bbox_lo if stump.bbox_lo is not None else -np.ones(3) * 10)
+    hi_np = np.asarray(stump.bbox_hi if stump.bbox_hi is not None else np.ones(3) * 10)
 
     t_new = np.zeros((m, n_new))
     for k in range(m):
-        # Box group: check if all face T-values match the "inside Box" pattern
-        box_match = True
-        for fid in box_face_ids:
-            actual = t_old[k, fid]
-            if actual != 0 and actual != box_inside_t[fid]:
-                box_match = False
-                break
-        t_new[k, 0] = 1.0 if box_match else -1.0
-
-        # Other grouped primitives: direct mapping
-        for j_old in range(n_old):
-            j_new = face_to_group.get(j_old)
-            if j_new is None or j_new == 0:
-                continue
-            t_new[k, j_new] = t_old[k, j_old]
+        # Find a representative point for this cell
+        rep = _find_cell_representative(t_old[k], stump.primitives, lo_np, hi_np, rng)
+        if rep is None:
+            continue
+        # Evaluate grouped primitives' SDF at the representative point
+        rep_jax = jnp.array(rep)
+        for g, gp in enumerate(grouped_primitives):
+            sdf_val = float(np.asarray(gp.sdf(rep_jax)))
+            t_new[k, g] = -float(np.sign(sdf_val)) if abs(sdf_val) > 1e-10 else 0.0
 
     # Remove duplicate rows and all-zero rows
     nonzero_mask = np.any(t_new != 0, axis=1)
@@ -459,6 +452,30 @@ def compact_stump(stump: CSGStump) -> CSGStump:
         bbox_lo=stump.bbox_lo,
         bbox_hi=stump.bbox_hi,
     )
+
+
+def _find_cell_representative(
+    row: np.ndarray,
+    primitives: list[Primitive],
+    lo: np.ndarray,
+    hi: np.ndarray,
+    rng: np.random.Generator,
+    n_samples: int = 5000,
+) -> np.ndarray | None:
+    """Find a point whose face-level SDF signs match the given T row."""
+    pts = rng.uniform(lo, hi, size=(n_samples, 3))
+    pts_jax = jnp.array(pts)
+    for j, prim in enumerate(primitives):
+        if row[j] == 0:
+            continue
+        sdf_vals = np.asarray(prim.sdf(pts_jax))
+        expected_sign = -row[j]
+        mask = np.sign(sdf_vals) == expected_sign
+        pts = pts[mask]
+        pts_jax = jnp.array(pts)
+        if len(pts) == 0:
+            return None
+    return pts[0] if len(pts) > 0 else None
 
 
 # --- Bounds utilities ---
