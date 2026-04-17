@@ -124,16 +124,16 @@ class TestMinWallThickness:
     """Tests for the min_wall_thickness diagnostic function."""
 
     def test_thin_plate(self) -> None:
-        """Thin plate (0.5 thick) returns ~0.5."""
+        """Thin plate (2.0 thick) returns ~2.0."""
         box = Box(
             center=jnp.zeros(3),
-            half_extents=jnp.array([5.0, 5.0, 0.25]),
+            half_extents=jnp.array([3.0, 3.0, 1.0]),
         )
-        lo, hi = jnp.array([-7.0] * 3), jnp.array([7.0] * 3)
+        lo, hi = jnp.array([-5.0] * 3), jnp.array([5.0] * 3)
         thickness = min_wall_thickness(box.sdf, lo=lo, hi=hi, resolution=64)
-        # Thin dimension = 0.5, so min wall thickness should be ~0.5
-        assert jnp.isclose(thickness, 0.5, rtol=0.25), (
-            f"thickness={float(thickness):.4f}, expected ~0.5"
+        # Thin dimension = 2.0 (2 * 1.0)
+        assert jnp.isclose(thickness, 2.0, rtol=0.25), (
+            f"thickness={float(thickness):.4f}, expected ~2.0"
         )
 
     def test_cube_gives_smallest_dimension(self) -> None:

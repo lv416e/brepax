@@ -120,6 +120,50 @@ def thin_wall_volume(
     return integrate_sdf_thin_wall_volume(sdf_vals, threshold, lo, hi, resolution)
 
 
+def integrate_sdf_min_wall_thickness(
+    sdf: Float[Array, ...],
+    lo: Float[Array, 3],
+    hi: Float[Array, 3],
+    resolution: int,
+    temperature: float = 0.01,
+) -> Float[Array, ""]:
+    """Integrate SDF values to estimate minimum wall thickness.
+
+    Uses a normalized soft-max (log-mean-exp) over interior SDF values
+    weighted by interior membership.  The normalization ensures the
+    estimate is invariant to grid resolution and domain size.
+
+    This assumes the input is a proper signed distance field where
+    ``||grad(f)|| = 1``.
+
+    Args:
+        sdf: Pre-evaluated SDF values on a cell-centered grid
+            with shape ``(R, R, R)`` from :func:`make_grid_3d`.
+        lo: Grid lower bound ``(3,)``.
+        hi: Grid upper bound ``(3,)``.
+        resolution: Number of grid points per axis.
+        temperature: Soft-max temperature; lower values approximate
+            the true maximum more closely.
+
+    Returns:
+        Scalar estimate of minimum wall thickness.
+    """
+    cell_vol = jnp.prod((hi - lo) / resolution)
+    cell_width = jnp.power(cell_vol, 1.0 / 3.0)
+
+    interior_dist = jnp.clip(-sdf, 0.0, None)
+    weight = jax.nn.sigmoid(-sdf / cell_width)
+
+    flat_dist = interior_dist.ravel()
+    flat_weight = weight.ravel()
+    # Normalized soft-max: subtract log(sum(w)) for resolution invariance
+    max_dist = temperature * (
+        jax.nn.logsumexp(flat_dist / temperature, b=flat_weight)
+        - jnp.log(jnp.sum(flat_weight) + 1e-10)
+    )
+    return 2.0 * max_dist
+
+
 def min_wall_thickness(
     sdf_fn: Callable[..., Float[Array, ...]],
     *,
@@ -133,7 +177,8 @@ def min_wall_thickness(
     For a convex shape, the minimum wall thickness equals twice the
     maximum inscribed distance (the SDF value at the deepest interior
     point).  This function returns a differentiable approximation via
-    soft-max (log-sum-exp) over interior SDF values.
+    normalized soft-max (log-mean-exp) over interior SDF values,
+    ensuring the estimate is invariant to grid resolution.
 
     For shapes with varying wall thickness (e.g. a box with holes
     near an edge), this returns a global estimate that may not reflect
@@ -168,23 +213,13 @@ def min_wall_thickness(
     hi = jax.lax.stop_gradient(hi)
     grid, _ = make_grid_3d(lo, hi, resolution)
     sdf_vals = sdf_fn(grid)
-    cell_vol = jnp.prod((hi - lo) / resolution)
-    cell_width = jnp.power(cell_vol, 1.0 / 3.0)
-
-    # Interior distance to nearest surface (positive inside, 0 outside)
-    interior_dist = jnp.clip(-sdf_vals, 0.0, None)
-
-    # Weight by interior membership to suppress exterior contributions
-    weight = jax.nn.sigmoid(-sdf_vals / cell_width)
-
-    # Soft-max of interior distances: temperature * logsumexp(dist/T, b=w)
-    flat_dist = interior_dist.ravel()
-    flat_weight = weight.ravel()
-    max_dist = temperature * jax.nn.logsumexp(flat_dist / temperature, b=flat_weight)
-    return 2.0 * max_dist
+    return integrate_sdf_min_wall_thickness(
+        sdf_vals, lo, hi, resolution, temperature=temperature
+    )
 
 
 __all__ = [
+    "integrate_sdf_min_wall_thickness",
     "integrate_sdf_thin_wall_volume",
     "min_wall_thickness",
     "thin_wall_volume",
