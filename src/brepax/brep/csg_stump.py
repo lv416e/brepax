@@ -28,6 +28,8 @@ import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Array, Float
 
+from brepax._occt.backend import BRepClass3d_SolidClassifier, TopAbs_IN, gp_Pnt
+from brepax._occt.types import TopoDS_Shape
 from brepax.brep.csg import CSGLeaf, CSGNode, CSGOperation
 from brepax.brep.csg_eval import integrate_sdf_volume, make_grid_3d, primitive_bounds
 from brepax.primitives._base import Primitive
@@ -47,6 +49,8 @@ class CSGStump:
     intersection_matrix: Array
     union_mask: Array
     face_ids: list[list[int]] = field(default_factory=list)
+    bbox_lo: Array | None = None
+    bbox_hi: Array | None = None
 
 
 def evaluate_stump_sdf(
@@ -87,13 +91,12 @@ def evaluate_stump_volume(
     Returns:
         Scalar volume estimate.
     """
-    if lo is None or hi is None:
-        lo_auto, hi_auto = _stump_bounds(stump)
-        margin = 0.5
-        if lo is None:
-            lo = lo_auto - margin
-        if hi is None:
-            hi = hi_auto + margin
+    if lo is None:
+        lo = stump.bbox_lo if stump.bbox_lo is not None else _stump_bounds(stump)[0]
+        lo = lo - 0.5
+    if hi is None:
+        hi = stump.bbox_hi if stump.bbox_hi is not None else _stump_bounds(stump)[1]
+        hi = hi + 0.5
 
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
@@ -267,11 +270,150 @@ def _primitives_bounds(
     return lo, hi
 
 
+def reconstruct_csg_stump(
+    shape: TopoDS_Shape,
+    *,
+    samples_per_round: int = 5000,
+    max_rounds: int = 10,
+    convergence_rounds: int = 3,
+    tolerance: float = 1e-6,
+    seed: int = 42,
+) -> CSGStump | None:
+    """Reconstruct a CSG-Stump from a B-Rep shape via point membership classification.
+
+    Enumerates spatial cells by sampling random points and computing
+    sign vectors (signs of each primitive's SDF).  Each unique sign
+    vector is classified as inside or outside using OCCT's solid
+    classifier.  Inside cells form the rows of the intersection matrix.
+
+    Sampling runs in rounds; if no new sign vectors are found for
+    ``convergence_rounds`` consecutive rounds, enumeration stops.
+
+    Args:
+        shape: An OCCT topological shape (must be a closed solid).
+        samples_per_round: Random points per sampling round.
+        max_rounds: Maximum number of sampling rounds.
+        convergence_rounds: Stop after this many rounds with no new cells.
+        tolerance: Tolerance for OCCT solid classifier.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        A :class:`CSGStump`, or ``None`` if reconstruction fails.
+    """
+    # Lazy imports to avoid circular dependency
+    from brepax.brep.convert import face_to_primitive
+    from brepax.brep.csg import _extract_indexed_faces
+
+    faces = _extract_indexed_faces(shape)
+    primitives = [face_to_primitive(f) for f in faces]
+    valid_primitives: list[Primitive] = []
+    face_id_map: list[int] = []
+    for i, p in enumerate(primitives):
+        if p is not None:
+            face_id_map.append(i)
+            valid_primitives.append(p)
+
+    if not valid_primitives:
+        return None
+
+    n = len(valid_primitives)
+
+    # Use OCCT bounding box (handles unbounded primitives like Plane)
+    from brepax.brep.convert import shape_metadata
+
+    meta = shape_metadata(shape)
+    lo_np = np.array(meta.bbox_min) - 0.5
+    hi_np = np.array(meta.bbox_max) + 0.5
+
+    # Cell enumeration via random sampling with convergence check
+    rng = np.random.default_rng(seed)
+    found_sign_vectors: set[tuple[float, ...]] = set()
+    no_new_count = 0
+
+    for _round in range(max_rounds):
+        pts = rng.uniform(lo_np, hi_np, size=(samples_per_round, 3))
+        sign_matrix = np.zeros((samples_per_round, n))
+        for j, prim in enumerate(valid_primitives):
+            sdf_vals = np.asarray(prim.sdf(jnp.array(pts)))
+            sign_matrix[:, j] = np.sign(sdf_vals)
+
+        new_vectors = {tuple(row) for row in sign_matrix} - found_sign_vectors
+        if not new_vectors:
+            no_new_count += 1
+            if no_new_count >= convergence_rounds:
+                break
+        else:
+            no_new_count = 0
+            found_sign_vectors.update(new_vectors)
+
+    if not found_sign_vectors:
+        return None
+
+    # PMC: classify each sign vector as IN or OUT
+    classifier = BRepClass3d_SolidClassifier()
+    classifier.Load(shape)
+
+    inside_sign_vectors: list[tuple[float, ...]] = []
+
+    for sv in found_sign_vectors:
+        # Find a representative point for this sign vector
+        rep_point = _find_representative_point(sv, valid_primitives, lo_np, hi_np, rng)
+        if rep_point is None:
+            continue
+
+        gp = gp_Pnt(float(rep_point[0]), float(rep_point[1]), float(rep_point[2]))
+        classifier.Perform(gp, tolerance)
+        if classifier.State() == TopAbs_IN:
+            inside_sign_vectors.append(sv)
+
+    if not inside_sign_vectors:
+        return None
+
+    # Build T matrix: T[j] = -sign_vector[j]
+    t_rows = []
+    for sv in inside_sign_vectors:
+        t_rows.append([-s for s in sv])
+
+    intersection_matrix = jnp.array(t_rows)
+    union_mask = jnp.ones(len(t_rows))
+
+    face_ids = [[fid] for fid in face_id_map]
+
+    return CSGStump(
+        primitives=valid_primitives,
+        intersection_matrix=intersection_matrix,
+        union_mask=union_mask,
+        face_ids=face_ids,
+        bbox_lo=jnp.array(meta.bbox_min),
+        bbox_hi=jnp.array(meta.bbox_max),
+    )
+
+
+def _find_representative_point(
+    sign_vector: tuple[float, ...],
+    primitives: list[Primitive],
+    lo: np.ndarray,
+    hi: np.ndarray,
+    rng: np.random.Generator,
+    max_attempts: int = 1000,
+) -> np.ndarray | None:
+    """Find a point whose SDF signs match the given sign vector."""
+    pts = rng.uniform(lo, hi, size=(max_attempts, 3))
+    for pt in pts:
+        signs = tuple(
+            float(np.sign(np.asarray(p.sdf(jnp.array(pt))))) for p in primitives
+        )
+        if signs == sign_vector:
+            return np.asarray(pt)
+    return None
+
+
 __all__ = [
     "CSGStump",
     "DifferentiableCSGStump",
     "csg_tree_to_stump",
     "evaluate_stump_sdf",
     "evaluate_stump_volume",
+    "reconstruct_csg_stump",
     "stump_to_differentiable",
 ]
