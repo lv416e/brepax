@@ -1,12 +1,13 @@
 # BRepAX
 
 [![CI](https://github.com/lv416e/brepax/actions/workflows/ci.yaml/badge.svg)](https://github.com/lv416e/brepax/actions/workflows/ci.yaml)
+[![PyPI](https://img.shields.io/pypi/v/brepax.svg)](https://pypi.org/project/brepax/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
-**Differentiable rasterizer for CAD Boolean operations.**
+**JAX-native differentiable B-Rep kernel with NURBS support.**
 
-BRepAX is a JAX-native library that enables gradient-based optimization through B-Rep (Boundary Representation) topology changes. It translates contact dynamics formulations from differentiable physics into the CAD domain, providing stratum-aware differentiation for Boolean operations on geometric primitives.
+BRepAX loads STEP files into a JAX computation graph, enabling gradient-based optimization of CAD geometry through Boolean operations. It provides stratum-aware differentiation that handles topological transitions at Boolean boundaries, and supports both analytical primitives and freeform B-spline surfaces.
 
 ## Installation
 
@@ -14,48 +15,61 @@ BRepAX is a JAX-native library that enables gradient-based optimization through 
 pip install brepax
 ```
 
-With optional dependencies:
-
-```bash
-pip install "brepax[viz]"          # Visualization
-pip install "brepax[persistence]"  # Persistent homology
-pip install "brepax[all]"          # Everything
-```
-
 ## Quick Start
 
 ```python
-import jax
 import jax.numpy as jnp
-from brepax.primitives import Disk
+import equinox as eqx
+from brepax.io.step import read_step
+from brepax.brep.csg_stump import reconstruct_csg_stump, stump_to_differentiable
+from brepax.metrics import surface_area, thin_wall_volume
 
-# Create two disks
-disk1 = Disk(center=jnp.array([0.0, 0.0]), radius=jnp.array(1.0))
-disk2 = Disk(center=jnp.array([1.5, 0.0]), radius=jnp.array(1.0))
+# Load STEP file and build differentiable representation
+shape = read_step("part.step")
+stump = reconstruct_csg_stump(shape)
+diff = stump_to_differentiable(stump)
 
-# Evaluate SDF -- fully differentiable
-query = jnp.array([0.75, 0.0])
-sdf_value = disk1.sdf(query)
+# Compute metrics
+lo, hi = jnp.array([-1.0] * 3), jnp.array([41.0, 31.0, 21.0])
+vol = diff.volume(resolution=32, lo=lo, hi=hi)
+area = surface_area(diff.sdf, lo=lo, hi=hi, resolution=32)
+thin = thin_wall_volume(diff.sdf, 2.0, lo=lo, hi=hi, resolution=32)
 
-# Gradients flow through everything
-grad_fn = jax.grad(lambda q: disk1.sdf(q))
-gradient = grad_fn(query)
+# Gradient of volume w.r.t. all design parameters
+grad = eqx.filter_grad(lambda d: d.volume(resolution=16, lo=lo, hi=hi))(diff)
 ```
 
-## Roadmap
+## Features
 
-BRepAX is under active development. Current capabilities:
+### Primitives
 
-- **Primitives**: 8 geometric types with differentiable SDF interface
-- **Boolean operations**: Union, subtract, intersect with stratum-dispatched gradients
-- **STEP I/O**: Read STEP files, extract metadata, convert faces to primitives
-- **Visualization**: 3D tessellated shape rendering
-- **Applications**: Mold direction optimization demonstrator
+9 geometric types with differentiable SDF interface: Plane, Cylinder, Sphere, Cone, Torus, Box, FiniteCylinder, Disk, and **BSplineSurface** (rational NURBS with weights).
 
-Planned modules (not yet implemented):
+### STEP Pipeline
 
-- `persistence/` — Persistent homology integration
-- `topology/` — Half-edge mesh representation
+- Read STEP files via OCCT (cadquery-ocp-novtk)
+- Convert all face types to primitives (100% conversion on 4,080 faces across 28 test files)
+- PMC-based CSG-Stump reconstruction (tested up to 664 faces)
+- Differentiable volume, metrics, and gradients end-to-end
+
+### Differentiable Metrics
+
+8 metrics, all differentiable via `jax.grad`:
+
+| Metric | Description |
+|--------|------------|
+| `volume` | Sigmoid indicator integral |
+| `surface_area` | Sigmoid-derivative delta function |
+| `center_of_mass` | Volume-weighted position average |
+| `moment_of_inertia` | Inertia tensor with Richardson extrapolation |
+| `thin_wall_volume` | Volume below wall thickness threshold |
+| `min_wall_thickness` | Soft-argmax with sub-grid refinement |
+| `draft_angle_violation` | Surface area with insufficient draft angle |
+| `undercut_volume` | Surface-weighted undercut severity |
+
+### Boolean Operations
+
+Union, subtract, intersect with stratum-dispatched gradients. Analytical exact gradients for bounded primitive pairs in 3 of 4 topological configurations.
 
 ## Documentation
 
