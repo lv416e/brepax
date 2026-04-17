@@ -91,12 +91,15 @@ def evaluate_stump_volume(
     Returns:
         Scalar volume estimate.
     """
-    if lo is None:
-        lo = stump.bbox_lo if stump.bbox_lo is not None else _stump_bounds(stump)[0]
-        lo = lo - 0.5
-    if hi is None:
-        hi = stump.bbox_hi if stump.bbox_hi is not None else _stump_bounds(stump)[1]
-        hi = hi + 0.5
+    if lo is None or hi is None:
+        if stump.bbox_lo is not None and stump.bbox_hi is not None:
+            lo_auto, hi_auto = stump.bbox_lo, stump.bbox_hi
+        else:
+            lo_auto, hi_auto = _stump_bounds(stump)
+        if lo is None:
+            lo = lo_auto - 0.5
+        if hi is None:
+            hi = hi_auto + 0.5
 
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
@@ -325,42 +328,46 @@ def reconstruct_csg_stump(
     lo_np = np.array(meta.bbox_min) - 0.5
     hi_np = np.array(meta.bbox_max) + 0.5
 
-    # Cell enumeration via random sampling with convergence check
+    # Cell enumeration via random sampling with convergence check.
+    # Store a representative point for each sign vector to avoid
+    # expensive re-search later.
     rng = np.random.default_rng(seed)
-    found_sign_vectors: set[tuple[float, ...]] = set()
+    found_cells: dict[tuple[float, ...], np.ndarray] = {}
     no_new_count = 0
 
     for _round in range(max_rounds):
         pts = rng.uniform(lo_np, hi_np, size=(samples_per_round, 3))
+        pts_jax = jnp.array(pts)
         sign_matrix = np.zeros((samples_per_round, n))
         for j, prim in enumerate(valid_primitives):
-            sdf_vals = np.asarray(prim.sdf(jnp.array(pts)))
+            sdf_vals = np.asarray(prim.sdf(pts_jax))
             sign_matrix[:, j] = np.sign(sdf_vals)
 
-        new_vectors = {tuple(row) for row in sign_matrix} - found_sign_vectors
-        if not new_vectors:
+        any_new = False
+        unique_svs, first_indices = np.unique(sign_matrix, axis=0, return_index=True)
+        for sv_arr, idx in zip(unique_svs, first_indices, strict=True):
+            sv = tuple(float(v) for v in sv_arr)
+            if sv not in found_cells:
+                found_cells[sv] = pts[idx]
+                any_new = True
+
+        if not any_new:
             no_new_count += 1
             if no_new_count >= convergence_rounds:
                 break
         else:
             no_new_count = 0
-            found_sign_vectors.update(new_vectors)
 
-    if not found_sign_vectors:
+    if not found_cells:
         return None
 
-    # PMC: classify each sign vector as IN or OUT
+    # PMC: classify each cell as IN or OUT
     classifier = BRepClass3d_SolidClassifier()
     classifier.Load(shape)
 
     inside_sign_vectors: list[tuple[float, ...]] = []
 
-    for sv in found_sign_vectors:
-        # Find a representative point for this sign vector
-        rep_point = _find_representative_point(sv, valid_primitives, lo_np, hi_np, rng)
-        if rep_point is None:
-            continue
-
+    for sv, rep_point in found_cells.items():
         gp = gp_Pnt(float(rep_point[0]), float(rep_point[1]), float(rep_point[2]))
         classifier.Perform(gp, tolerance)
         if classifier.State() == TopAbs_IN:
@@ -387,25 +394,6 @@ def reconstruct_csg_stump(
         bbox_lo=jnp.array(meta.bbox_min),
         bbox_hi=jnp.array(meta.bbox_max),
     )
-
-
-def _find_representative_point(
-    sign_vector: tuple[float, ...],
-    primitives: list[Primitive],
-    lo: np.ndarray,
-    hi: np.ndarray,
-    rng: np.random.Generator,
-    max_attempts: int = 1000,
-) -> np.ndarray | None:
-    """Find a point whose SDF signs match the given sign vector."""
-    pts = rng.uniform(lo, hi, size=(max_attempts, 3))
-    for pt in pts:
-        signs = tuple(
-            float(np.sign(np.asarray(p.sdf(jnp.array(pt))))) for p in primitives
-        )
-        if signs == sign_vector:
-            return np.asarray(pt)
-    return None
 
 
 __all__ = [
