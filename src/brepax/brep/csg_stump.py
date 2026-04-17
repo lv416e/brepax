@@ -66,24 +66,7 @@ def evaluate_stump_sdf(
         Signed distance values with shape ``(...)``.
     """
     sdfs = jnp.stack([p.sdf(x) for p in stump.primitives], axis=-1)
-
-    m, _n = stump.intersection_matrix.shape
-    term_sdfs = []
-    for i in range(m):
-        if float(stump.union_mask[i]) == 0.0:
-            continue
-        row = stump.intersection_matrix[i]
-        active = jnp.abs(row) > 0.5
-        signed = row * sdfs
-        # max over active half-spaces; inactive get -inf (ignored by max)
-        masked = jnp.where(active, signed, jnp.full_like(signed, -jnp.inf))
-        term_sdf = jnp.max(masked, axis=-1)
-        term_sdfs.append(term_sdf)
-
-    if not term_sdfs:
-        return jnp.full(x.shape[:-1], jnp.inf)
-
-    return jnp.min(jnp.stack(term_sdfs, axis=-1), axis=-1)
+    return _evaluate_dnf_sdf(sdfs, stump.intersection_matrix, stump.union_mask)
 
 
 def evaluate_stump_volume(
@@ -139,20 +122,7 @@ class DifferentiableCSGStump(eqx.Module):
     def sdf(self, x: Float[Array, "... 3"]) -> Float[Array, ...]:
         """Composite SDF of the CSG-Stump."""
         sdfs = jnp.stack([p.sdf(x) for p in self.primitives], axis=-1)
-        m = self.intersection_matrix.shape[0]
-        term_sdfs = []
-        for i in range(m):
-            if float(self.union_mask[i]) == 0.0:
-                continue
-            row = self.intersection_matrix[i]
-            active = jnp.abs(row) > 0.5
-            signed = row * sdfs
-            masked = jnp.where(active, signed, jnp.full_like(signed, -jnp.inf))
-            term_sdfs.append(jnp.max(masked, axis=-1))
-
-        if not term_sdfs:
-            return jnp.full(x.shape[:-1], jnp.inf)
-        return jnp.min(jnp.stack(term_sdfs, axis=-1), axis=-1)
+        return _evaluate_dnf_sdf(sdfs, self.intersection_matrix, self.union_mask)
 
     def volume(
         self,
@@ -255,6 +225,33 @@ def stump_to_differentiable(stump: CSGStump) -> DifferentiableCSGStump:
 def _stump_bounds(stump: CSGStump) -> tuple[Array, Array]:
     """Compute bounding box for a CSG-Stump."""
     return _primitives_bounds(stump.primitives)
+
+
+def _evaluate_dnf_sdf(
+    sdfs: Float[Array, "... n"],
+    intersection_matrix: Array | np.ndarray,
+    union_mask: Array | np.ndarray,
+) -> Float[Array, ...]:
+    """Core DNF SDF evaluation shared by CSGStump and DifferentiableCSGStump.
+
+    For each active intersection term, computes max(sign * sdf) over
+    participating half-spaces.  Returns min over active terms.
+    """
+    m = intersection_matrix.shape[0]
+    term_sdfs = []
+    for i in range(m):
+        row = intersection_matrix[i]
+        active = jnp.abs(row) > 0.5
+        signed = row * sdfs
+        masked = jnp.where(active, signed, -jnp.inf)
+        term_sdf = jnp.max(masked, axis=-1)
+        # Weight by union_mask: inactive terms get +inf (ignored by min)
+        term_sdf = jnp.where(union_mask[i] > 0.5, term_sdf, jnp.inf)
+        term_sdfs.append(term_sdf)
+
+    if not term_sdfs:
+        return jnp.full(sdfs.shape[:-1], jnp.inf)
+    return jnp.min(jnp.stack(term_sdfs, axis=-1), axis=-1)
 
 
 def _primitives_bounds(
