@@ -73,10 +73,13 @@ def evaluate_surface(
     degree_v: int,
     u: Float[Array, ""],
     v: Float[Array, ""],
+    weights: Float[Array, "nu nv"] | None = None,
 ) -> Float[Array, 3]:
     """Evaluate a B-spline surface at parameters ``(u, v)``.
 
-    Computes ``S(u, v) = N_u^T P N_v`` via tensor-product basis.
+    For non-rational surfaces, computes ``S(u,v) = N_u^T P N_v``.
+    For rational (NURBS) surfaces with weights ``w``, computes
+    ``S(u,v) = (N_u^T (w*P) N_v) / (N_u^T w N_v)``.
 
     Args:
         control_points: Control point grid, shape ``(n_u, n_v, 3)``.
@@ -86,6 +89,8 @@ def evaluate_surface(
         degree_v: Polynomial degree in v.
         u: Parameter in u-direction (scalar).
         v: Parameter in v-direction (scalar).
+        weights: Optional weight grid, shape ``(n_u, n_v)``.
+            If None, non-rational evaluation is used.
 
     Returns:
         Surface point, shape ``(3,)``.
@@ -101,7 +106,14 @@ def evaluate_surface(
     n_v = control_points.shape[1]
     basis_u = bspline_basis(u, knots_u, degree_u, n_u)
     basis_v = bspline_basis(v, knots_v, degree_v, n_v)
-    return jnp.einsum("i,ijk,j->k", basis_u, control_points, basis_v)
+
+    if weights is None:
+        return jnp.einsum("i,ijk,j->k", basis_u, control_points, basis_v)
+
+    # Rational: weighted sum / weight denominator
+    numerator = jnp.einsum("i,ij,ijk,j->k", basis_u, weights, control_points, basis_v)
+    denominator = jnp.einsum("i,ij,j->", basis_u, weights, basis_v)
+    return numerator / (denominator + 1e-10)
 
 
 def evaluate_surface_derivs(
@@ -112,11 +124,12 @@ def evaluate_surface_derivs(
     degree_v: int,
     u: Float[Array, ""],
     v: Float[Array, ""],
+    weights: Float[Array, "nu nv"] | None = None,
 ) -> tuple[Float[Array, 3], Float[Array, 3], Float[Array, 3]]:
     """Evaluate surface point and partial derivatives at ``(u, v)``.
 
-    Computes ``S(u,v)``, ``dS/du``, and ``dS/dv`` via ``jax.grad``
-    applied to each coordinate of :func:`evaluate_surface`.
+    Computes ``S(u,v)``, ``dS/du``, and ``dS/dv`` via ``jax.jacfwd``.
+    Supports both non-rational and rational (NURBS) surfaces.
 
     Args:
         control_points: Control point grid, shape ``(n_u, n_v, 3)``.
@@ -126,6 +139,7 @@ def evaluate_surface_derivs(
         degree_v: Polynomial degree in v.
         u: Parameter in u-direction (scalar).
         v: Parameter in v-direction (scalar).
+        weights: Optional weight grid for rational surfaces.
 
     Returns:
         Tuple of ``(point, du, dv)`` each with shape ``(3,)``.
@@ -133,7 +147,14 @@ def evaluate_surface_derivs(
 
     def _surf(u_val: Float[Array, ""], v_val: Float[Array, ""]) -> Float[Array, 3]:
         return evaluate_surface(
-            control_points, knots_u, knots_v, degree_u, degree_v, u_val, v_val
+            control_points,
+            knots_u,
+            knots_v,
+            degree_u,
+            degree_v,
+            u_val,
+            v_val,
+            weights,
         )
 
     point = _surf(u, v)

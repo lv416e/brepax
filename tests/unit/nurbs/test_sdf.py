@@ -2,6 +2,7 @@
 
 import jax
 import jax.numpy as jnp
+import pytest
 
 from brepax.nurbs.sdf import bspline_sdf
 
@@ -66,6 +67,7 @@ class TestBsplineSdf:
         assert float(dist) < 1.0, f"Expected < 1.0, got {float(dist)}"
 
 
+@pytest.mark.slow
 class TestBsplineSdfGradient:
     """Tests for SDF gradient w.r.t. control points."""
 
@@ -150,6 +152,7 @@ def _make_bumpy_patch():
     return pts, knots, knots, 3, 3
 
 
+@pytest.mark.slow
 class TestNonConvexSdf:
     """Tests for SDF on non-convex B-spline surfaces."""
 

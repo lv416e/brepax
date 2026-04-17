@@ -28,6 +28,7 @@ def closest_point(
     degree_v: int,
     u0: Float[Array, ""] | float = 0.5,
     v0: Float[Array, ""] | float = 0.5,
+    weights: Float[Array, "nu nv"] | None = None,
 ) -> tuple[Float[Array, ""], Float[Array, ""]]:
     """Find the closest point on a B-spline surface to a query point.
 
@@ -43,6 +44,7 @@ def closest_point(
         degree_v: Polynomial degree in v.
         u0: Initial guess for u parameter.
         v0: Initial guess for v parameter.
+        weights: Optional weight grid for rational surfaces.
 
     Returns:
         Optimal parameters ``(u*, v*)``, each a scalar.
@@ -57,6 +59,7 @@ def closest_point(
             degree_v,
             uv[0],
             uv[1],
+            weights,
         )
         return 0.5 * jnp.sum((query - pt) ** 2)
 

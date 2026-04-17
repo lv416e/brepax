@@ -213,9 +213,28 @@ def min_wall_thickness(
     hi = jax.lax.stop_gradient(hi)
     grid, _ = make_grid_3d(lo, hi, resolution)
     sdf_vals = sdf_fn(grid)
-    return integrate_sdf_min_wall_thickness(
-        sdf_vals, lo, hi, resolution, temperature=temperature
-    )
+
+    # Sub-grid refinement: soft-argmax gives continuous position
+    # of the deepest interior point, then re-evaluate SDF there
+    cell_vol = jnp.prod((hi - lo) / resolution)
+    cell_width = jnp.power(cell_vol, 1.0 / 3.0)
+    interior_dist = jnp.clip(-sdf_vals, 0.0, None)
+    weight = jax.nn.sigmoid(-sdf_vals / cell_width)
+
+    flat_dist = interior_dist.ravel()
+    flat_weight = weight.ravel()
+    flat_grid = grid.reshape(-1, 3)
+
+    # Softmax over interior distances: weighted average position
+    log_w = flat_dist / temperature + jnp.log(flat_weight + 1e-20)
+    softmax_w = jax.nn.softmax(log_w)
+    x_refined = jnp.sum(flat_grid * softmax_w[:, None], axis=0)
+
+    # Re-evaluate SDF at the refined sub-grid position
+    refined_sdf = sdf_fn(x_refined[None, None, None, :]).squeeze()
+    refined_dist = jnp.clip(-refined_sdf, 0.0, None)
+
+    return 2.0 * refined_dist
 
 
 __all__ = [

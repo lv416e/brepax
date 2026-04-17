@@ -35,6 +35,59 @@ from brepax.brep.csg_eval import integrate_sdf_volume, make_grid_3d, primitive_b
 from brepax.primitives._base import Primitive
 
 
+def _fast_sign_sdf(
+    prim: Primitive, pts_jax: jnp.ndarray, pts_np: np.ndarray
+) -> jnp.ndarray:
+    """Sign-only SDF for PMC cell enumeration.
+
+    For BSplineSurface, uses surface center normal dot product
+    with bounding box pruning instead of full Newton projection.
+    Other primitives use exact SDF (already fast).
+    """
+    # Lazy import to avoid circular dependency at module level
+    from brepax.primitives.bspline_surface import BSplineSurface
+
+    if not isinstance(prim, BSplineSurface):
+        return prim.sdf(pts_jax)
+
+    # Bounding box pruning: points outside control polygon are outside
+    cp = np.asarray(prim.control_points)
+    lo = cp.reshape(-1, 3).min(axis=0) - 0.1
+    hi = cp.reshape(-1, 3).max(axis=0) + 0.1
+    inside_bbox = np.all((pts_np >= lo) & (pts_np <= hi), axis=1)
+
+    # Default: outside (+1)
+    result = np.ones(len(pts_np))
+
+    if not np.any(inside_bbox):
+        return jnp.array(result)
+
+    # For points inside bbox: evaluate surface center + normal dot product
+    from brepax.nurbs.evaluate import evaluate_surface_derivs
+
+    u_mid = jnp.array(0.5)
+    v_mid = jnp.array(0.5)
+    center, du, dv = evaluate_surface_derivs(
+        prim.control_points,
+        prim.knots_u,
+        prim.knots_v,
+        prim.degree_u,
+        prim.degree_v,
+        u_mid,
+        v_mid,
+        prim.weights,
+    )
+    normal = jnp.cross(du, dv)
+    normal = normal / (jnp.linalg.norm(normal) + 1e-10)
+
+    bbox_pts = jnp.array(pts_np[inside_bbox])
+    diff = bbox_pts - center
+    dots = jnp.sum(diff * normal, axis=-1)
+    result[inside_bbox] = np.asarray(dots)
+
+    return jnp.array(result)
+
+
 @dataclass
 class CSGStump:
     """Disjunctive normal form of a CSG expression.
@@ -627,7 +680,7 @@ def reconstruct_csg_stump(
         pts_jax = jnp.array(pts)
         sign_matrix = np.zeros((samples_per_round, n))
         for j, prim in enumerate(valid_primitives):
-            sdf_vals = np.asarray(prim.sdf(pts_jax))
+            sdf_vals = np.asarray(_fast_sign_sdf(prim, pts_jax, pts))
             sign_matrix[:, j] = np.sign(sdf_vals)
 
         any_new = False

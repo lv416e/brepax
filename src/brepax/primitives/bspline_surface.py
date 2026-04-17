@@ -50,6 +50,7 @@ class BSplineSurface(Primitive):
     knots_v: Array = eqx.field()
     degree_u: int = eqx.field(static=True)
     degree_v: int = eqx.field(static=True)
+    weights: Array | None = eqx.field(default=None)
 
     def sdf(self, x: Float[Array, "... 3"]) -> Float[Array, "..."]:
         """Signed distance from query points to the B-spline surface.
@@ -68,6 +69,7 @@ class BSplineSurface(Primitive):
                 self.knots_v,
                 self.degree_u,
                 self.degree_v,
+                weights=self.weights,
             )
 
         result = jax.vmap(_single_sdf)(flat)
@@ -75,8 +77,11 @@ class BSplineSurface(Primitive):
 
     def parameters(self) -> dict[str, Array]:
         """Return differentiable design parameters."""
-        return {
+        params: dict[str, Array] = {
             "control_points": self.control_points,
             "knots_u": self.knots_u,
             "knots_v": self.knots_v,
         }
+        if self.weights is not None:
+            params["weights"] = self.weights
+        return params
