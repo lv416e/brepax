@@ -149,6 +149,10 @@ def _classify_faces_and_build_box(
     if len(groups) != 3:
         return None
 
+    normals = [g[0] for g in groups]
+    if not _are_axis_aligned_and_orthogonal(normals):
+        return None
+
     box_face_ids: list[int] = []
     inner_plane_ids: list[int] = []
     center = jnp.zeros(3)
@@ -176,6 +180,23 @@ def _classify_faces_and_build_box(
     feature_ids = sorted(non_planar + inner_plane_ids)
     box = Box(center=center, half_extents=half_extents)
     return box, sorted(box_face_ids), feature_ids
+
+
+def _are_axis_aligned_and_orthogonal(
+    normals: list[Float[Array, 3]],
+) -> bool:
+    """Check that three normals are axis-aligned and mutually orthogonal."""
+    if len(normals) != 3:
+        return False
+    for n in normals:
+        # Each normal must be approximately a coordinate axis vector
+        if float(jnp.max(jnp.abs(n))) < 1.0 - _DIRECTION_TOL:
+            return False
+    for i in range(3):
+        for j in range(i + 1, 3):
+            if abs(float(jnp.dot(normals[i], normals[j]))) > _DIRECTION_TOL:
+                return False
+    return True
 
 
 def _group_planes_by_direction(
@@ -224,16 +245,16 @@ def _group_connected_faces(
         if fid in visited:
             continue
         group: list[int] = []
-        queue = [fid]
-        while queue:
-            current = queue.pop(0)
+        stack = [fid]
+        while stack:
+            current = stack.pop()
             if current in visited or current not in face_set:
                 continue
             visited.add(current)
             group.append(current)
             for neighbor, _ in graph.adjacency.get(current, []):
                 if neighbor in face_set and neighbor not in visited:
-                    queue.append(neighbor)
+                    stack.append(neighbor)
         if group:
             groups.append(sorted(group))
 
@@ -263,7 +284,20 @@ def _reconstruct_cylinder_feature(
         )
         return None
 
-    _, cyl = cyl_faces[0]
+    _, ref_cyl = cyl_faces[0]
+    for _fid, cyl in cyl_faces[1:]:
+        if abs(float(cyl.radius - ref_cyl.radius)) > _DIRECTION_TOL:
+            warnings.warn(
+                f"Inconsistent cylinder radii in feature group {face_ids}",
+                stacklevel=2,
+            )
+            return None
+        if abs(float(jnp.dot(cyl.axis, ref_cyl.axis))) < 1.0 - _DIRECTION_TOL:
+            warnings.warn(
+                f"Inconsistent cylinder axes in feature group {face_ids}",
+                stacklevel=2,
+            )
+            return None
 
     v_min = float("inf")
     v_max = float("-inf")
@@ -276,12 +310,12 @@ def _reconstruct_cylinder_feature(
     if height <= 0:
         return None
 
-    center = cyl.point + cyl.axis * (v_min + v_max) / 2.0
+    center = ref_cyl.point + ref_cyl.axis * (v_min + v_max) / 2.0
 
     finite_cyl = FiniteCylinder(
         center=center,
-        axis=cyl.axis,
-        radius=cyl.radius,
+        axis=ref_cyl.axis,
+        radius=ref_cyl.radius,
         height=jnp.array(height),
     )
     return CSGLeaf(primitive=finite_cyl, face_ids=face_ids)
