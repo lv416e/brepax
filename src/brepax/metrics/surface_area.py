@@ -35,8 +35,14 @@ def integrate_sdf_surface_area(
     ``1 / cell_width``, matching the convention in
     :func:`~brepax.brep.csg_eval.integrate_sdf_volume`.
 
+    This assumes the input is a proper signed distance field where
+    ``||grad(f)|| = 1``.  CSG Boolean SDFs (min/max compositions)
+    satisfy this almost everywhere except at the Boolean boundary
+    itself, where the kink does not affect the integral.
+
     Args:
-        sdf: Pre-evaluated SDF values on a cell-centered grid.
+        sdf: Pre-evaluated SDF values on a cell-centered grid
+            with shape ``(R, R, R)`` from :func:`make_grid_3d`.
         lo: Grid lower bound ``(3,)``.
         hi: Grid upper bound ``(3,)``.
         resolution: Number of grid points per axis.
@@ -72,7 +78,8 @@ def surface_area(
 
     Evaluates the SDF on a cell-centered grid and integrates a
     sigmoid-derivative delta function to approximate the area of the
-    zero level-set.
+    zero level-set.  Assumes ``sdf_fn`` returns a proper signed
+    distance field (``||grad(f)|| = 1``).
 
     Args:
         sdf_fn: Signed distance function accepting points of shape
