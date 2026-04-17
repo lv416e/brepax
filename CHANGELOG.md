@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.3.0](https://github.com/lv416e/brepax/compare/v0.2.0...v0.3.0) (2026-04-17)
+
+
+### Features
+
+* **brep:** add CSG-Stump DNF representation and evaluation ([#17](https://github.com/lv416e/brepax/issues/17)) ([d5a2f49](https://github.com/lv416e/brepax/commit/d5a2f496c4625f024c934c8680b7cbb697959b91))
+* **brep:** add PMC-based CSG-Stump reconstruction ([#19](https://github.com/lv416e/brepax/issues/19)) ([3f278d3](https://github.com/lv416e/brepax/commit/3f278d38e2a264bc0dc532be24f43a74457e4a31))
+* **brep:** enable CSG reconstruction with NURBS surfaces ([#27](https://github.com/lv416e/brepax/issues/27)) ([a53d688](https://github.com/lv416e/brepax/commit/a53d688711b782d0d533e3d0f8f381bbe6026daa))
+* **brep:** PMC fixture validation, compaction, grouping, and analytical evaluation ([#20](https://github.com/lv416e/brepax/issues/20)) ([a03d5c3](https://github.com/lv416e/brepax/commit/a03d5c3f6dd6677e070eadd7a58bca690c7413ae))
+* **metrics:** add differentiable draft angle violation metric ([#25](https://github.com/lv416e/brepax/issues/25)) ([e5e1f50](https://github.com/lv416e/brepax/commit/e5e1f50178b32f6ff79c402ae2d6dbe6c575c798))
+* **metrics:** add differentiable surface area via SDF boundary integral ([#22](https://github.com/lv416e/brepax/issues/22)) ([5755b22](https://github.com/lv416e/brepax/commit/5755b22b56dfc1b2ffb9c97145a7d3f5b6243264))
+* **metrics:** add differentiable wall thickness metrics ([#24](https://github.com/lv416e/brepax/issues/24)) ([2ae247a](https://github.com/lv416e/brepax/commit/2ae247ad7a70e90d43653d589c882edb22b78f58))
+* **nurbs:** add differentiable B-spline SDF proof of concept ([#26](https://github.com/lv416e/brepax/issues/26)) ([3c62787](https://github.com/lv416e/brepax/commit/3c627879e170b364b9c644ad1f81e47159e1b42a))
+* **nurbs:** add rational B-spline weights and slow test markers ([#28](https://github.com/lv416e/brepax/issues/28)) ([f7b95c3](https://github.com/lv416e/brepax/commit/f7b95c3af2d9294f2d9e9f3f04c41ac8011f02ce))
+
+
+### Documentation
+
+* add differentiable NURBS B-Rep feasibility assessment ([#23](https://github.com/lv416e/brepax/issues/23)) ([aaa8e00](https://github.com/lv416e/brepax/commit/aaa8e00b62190e52476fbb71c3456772a202377c))
+
+
+### Miscellaneous Chores
+
+* bump release target to v0.3.0 ([#21](https://github.com/lv416e/brepax/issues/21)) ([f03fef4](https://github.com/lv416e/brepax/commit/f03fef4f7f719387ff1d8ffbf4aaf3e9626f72e7))
+
 ## [0.2.0](https://github.com/lv416e/brepax/compare/v0.1.1...v0.2.0) (2026-04-17)
 
 
