@@ -137,17 +137,23 @@ def moment_of_inertia(
     lo: Float[Array, 3],
     hi: Float[Array, 3],
     resolution: int = 64,
+    richardson: bool = True,
 ) -> Float[Array, "3 3"]:
     """Compute differentiable moment of inertia tensor of a shape.
 
     Returns the 3x3 inertia tensor about the center of mass,
-    assuming unit density.
+    assuming unit density.  Uses Richardson extrapolation by default
+    to cancel the leading-order sigmoid bleeding bias that amplifies
+    at r^2-weighted integrals.
 
     Args:
         sdf_fn: Signed distance function.
         lo: Lower corner of the evaluation domain.
         hi: Upper corner of the evaluation domain.
         resolution: Grid resolution per axis.
+        richardson: If True (default), use Richardson extrapolation
+            with resolutions ``resolution`` and ``resolution // 2``
+            for improved accuracy on r^2-weighted integrals.
 
     Returns:
         Inertia tensor, shape ``(3, 3)``, differentiable w.r.t.
@@ -161,9 +167,26 @@ def moment_of_inertia(
     """
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
-    grid, _ = make_grid_3d(lo, hi, resolution)
-    sdf_vals = sdf_fn(grid)
-    return integrate_sdf_moment_of_inertia(sdf_vals, grid, lo, hi, resolution)
+
+    if not richardson:
+        grid, _ = make_grid_3d(lo, hi, resolution)
+        sdf_vals = sdf_fn(grid)
+        return integrate_sdf_moment_of_inertia(sdf_vals, grid, lo, hi, resolution)
+
+    # Richardson extrapolation: cancel O(epsilon) sigmoid bias
+    # I_corrected = (4 * I_fine - I_coarse) / 3
+    res_fine = resolution
+    res_coarse = resolution // 2
+
+    grid_f, _ = make_grid_3d(lo, hi, res_fine)
+    sdf_f = sdf_fn(grid_f)
+    i_fine = integrate_sdf_moment_of_inertia(sdf_f, grid_f, lo, hi, res_fine)
+
+    grid_c, _ = make_grid_3d(lo, hi, res_coarse)
+    sdf_c = sdf_fn(grid_c)
+    i_coarse = integrate_sdf_moment_of_inertia(sdf_c, grid_c, lo, hi, res_coarse)
+
+    return (4.0 * i_fine - i_coarse) / 3.0
 
 
 __all__ = [

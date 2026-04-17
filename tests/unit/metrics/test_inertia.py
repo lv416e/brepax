@@ -61,15 +61,14 @@ class TestMomentOfInertia:
     """Tests for moment_of_inertia."""
 
     def test_sphere_diagonal(self) -> None:
-        """Sphere inertia: I = 2/5 * V * r^2 on diagonal (approximate)."""
+        """Sphere inertia: I = 2/5 * V * r^2 on diagonal."""
         r = 2.0
         s = Sphere(center=jnp.zeros(3), radius=jnp.array(r))
         lo, hi = jnp.array([-3.0] * 3), jnp.array([3.0] * 3)
         inertia = moment_of_inertia(s.sdf, lo=lo, hi=hi, resolution=48)
         vol = 4.0 / 3.0 * jnp.pi * r**3
         expected = 2.0 / 5.0 * vol * r**2
-        # Sigmoid bleeding amplifies at r^2; tolerance is wider than volume
-        assert jnp.isclose(inertia[0, 0], expected, rtol=0.25), (
+        assert jnp.isclose(inertia[0, 0], expected, rtol=0.05), (
             f"I_xx={float(inertia[0, 0]):.2f}, expected={float(expected):.2f}"
         )
 
@@ -83,7 +82,7 @@ class TestMomentOfInertia:
         assert jnp.allclose(inertia[0, 1], 0.0, atol=0.5)
 
     def test_box_analytical(self) -> None:
-        """Box inertia: I_xx = V/12 * (b^2 + c^2) (approximate)."""
+        """Box inertia: I_xx = V/12 * (b^2 + c^2)."""
         he = jnp.array([2.0, 1.5, 1.0])
         b = Box(center=jnp.zeros(3), half_extents=he)
         lo, hi = jnp.array([-3.0] * 3), jnp.array([3.0] * 3)
@@ -91,7 +90,7 @@ class TestMomentOfInertia:
         vol = 8.0 * he[0] * he[1] * he[2]
         _, b2, c2 = (2 * he[0]) ** 2, (2 * he[1]) ** 2, (2 * he[2]) ** 2
         expected_xx = vol / 12.0 * (b2 + c2)
-        assert jnp.isclose(inertia[0, 0], expected_xx, rtol=0.30), (
+        assert jnp.isclose(inertia[0, 0], expected_xx, rtol=0.05), (
             f"I_xx={float(inertia[0, 0]):.1f}, expected={float(expected_xx):.1f}"
         )
 

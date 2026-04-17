@@ -77,8 +77,11 @@ class BSplineSurface(Primitive):
 
     def parameters(self) -> dict[str, Array]:
         """Return differentiable design parameters."""
-        return {
+        params: dict[str, Array] = {
             "control_points": self.control_points,
             "knots_u": self.knots_u,
             "knots_v": self.knots_v,
         }
+        if self.weights is not None:
+            params["weights"] = self.weights
+        return params

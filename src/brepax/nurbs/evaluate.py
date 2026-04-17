@@ -111,10 +111,9 @@ def evaluate_surface(
         return jnp.einsum("i,ijk,j->k", basis_u, control_points, basis_v)
 
     # Rational: weighted sum / weight denominator
-    weighted_pts = control_points * weights[..., None]
-    numerator = jnp.einsum("i,ijk,j->k", basis_u, weighted_pts, basis_v)
+    numerator = jnp.einsum("i,ij,ijk,j->k", basis_u, weights, control_points, basis_v)
     denominator = jnp.einsum("i,ij,j->", basis_u, weights, basis_v)
-    return numerator / (denominator + 1e-20)
+    return numerator / (denominator + 1e-10)
 
 
 def evaluate_surface_derivs(
