@@ -242,8 +242,9 @@ def primitive_bounds(p: Primitive) -> tuple[Array, Array]:
     if "control_points" in params:
         # B-spline convex hull property: surface is within control polygon
         cp = params["control_points"]
-        lo = jnp.min(cp.reshape(-1, 3), axis=0)
-        hi = jnp.max(cp.reshape(-1, 3), axis=0)
+        flat = cp.reshape(-1, cp.shape[-1])
+        lo = jnp.min(flat, axis=0)
+        hi = jnp.max(flat, axis=0)
         return lo, hi
     warnings.warn(
         f"Cannot determine bounds for {type(p).__name__}, using default",
