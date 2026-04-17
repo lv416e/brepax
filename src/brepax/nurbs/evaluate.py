@@ -131,18 +131,14 @@ def evaluate_surface_derivs(
         Tuple of ``(point, du, dv)`` each with shape ``(3,)``.
     """
 
-    def _eval_component(
-        u_val: Float[Array, ""], v_val: Float[Array, ""], idx: int
-    ) -> Float[Array, ""]:
+    def _surf(u_val: Float[Array, ""], v_val: Float[Array, ""]) -> Float[Array, 3]:
         return evaluate_surface(
             control_points, knots_u, knots_v, degree_u, degree_v, u_val, v_val
-        )[idx]
+        )
 
-    point = evaluate_surface(control_points, knots_u, knots_v, degree_u, degree_v, u, v)
-
-    du = jnp.array([jax.grad(_eval_component, argnums=0)(u, v, i) for i in range(3)])
-    dv = jnp.array([jax.grad(_eval_component, argnums=1)(u, v, i) for i in range(3)])
-
+    point = _surf(u, v)
+    du = jax.jacfwd(_surf, argnums=0)(u, v).squeeze()
+    dv = jax.jacfwd(_surf, argnums=1)(u, v).squeeze()
     return point, du, dv
 
 
