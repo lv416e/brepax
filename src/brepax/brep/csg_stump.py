@@ -119,7 +119,7 @@ def evaluate_stump_volume_stratum(
     Supports two analytical paths:
 
     1. **Stratum dispatch** (single-term, all bounded primitives):
-       Decomposes into pairwise Boolean operations with Phase 0/1
+       Decomposes into pairwise Boolean operations with
        stratum dispatch for analytical exact gradients.
 
     2. **Clipped-box** (Box + axis-aligned Planes):
