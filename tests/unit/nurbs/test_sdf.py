@@ -115,3 +115,123 @@ class TestBsplineSdfGradient:
         assert float(grad_pts[1, 1, 2]) < 0.0, (
             f"Expected negative z-grad, got {float(grad_pts[1, 1, 2])}"
         )
+
+
+def _make_saddle_patch():
+    """Cubic saddle surface: z ~ (x-0.5)^2 - (y-0.5)^2."""
+    pts = jnp.zeros((4, 4, 3))
+    for i in range(4):
+        for j in range(4):
+            x, y = i / 3.0, j / 3.0
+            pts = pts.at[i, j, 0].set(x)
+            pts = pts.at[i, j, 1].set(y)
+            pts = pts.at[i, j, 2].set(0.3 * ((x - 0.5) ** 2 - (y - 0.5) ** 2))
+    knots = jnp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0])
+    return pts, knots, knots, 3, 3
+
+
+def _make_bumpy_patch():
+    """Cubic patch with alternating peaks and valleys."""
+    pts = jnp.zeros((4, 4, 3))
+    heights = jnp.array(
+        [
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.4, -0.3, 0.0],
+            [0.0, -0.3, 0.4, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+        ]
+    )
+    for i in range(4):
+        for j in range(4):
+            pts = pts.at[i, j, 0].set(i / 3.0)
+            pts = pts.at[i, j, 1].set(j / 3.0)
+            pts = pts.at[i, j, 2].set(heights[i, j])
+    knots = jnp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0])
+    return pts, knots, knots, 3, 3
+
+
+class TestNonConvexSdf:
+    """Tests for SDF on non-convex B-spline surfaces."""
+
+    def test_saddle_sign_flips(self) -> None:
+        """Points on opposite sides of saddle have opposite signs."""
+        pts, ku, kv, du, dv = _make_saddle_patch()
+        above = bspline_sdf(jnp.array([0.5, 0.5, 0.5]), pts, ku, kv, du, dv)
+        below = bspline_sdf(jnp.array([0.5, 0.5, -0.5]), pts, ku, kv, du, dv)
+        assert float(above) * float(below) < 0.0, (
+            f"Expected opposite signs: above={float(above)}, below={float(below)}"
+        )
+
+    def test_saddle_gradient_finite(self) -> None:
+        """jax.grad on saddle surface produces finite values."""
+        pts, ku, kv, du, dv = _make_saddle_patch()
+
+        def sdf_fn(p):
+            return bspline_sdf(jnp.array([0.5, 0.5, 0.5]), p, ku, kv, du, dv)
+
+        grad = jax.grad(sdf_fn)(pts)
+        assert jnp.all(jnp.isfinite(grad)), "Non-finite gradient"
+
+    def test_saddle_gradient_fd_match(self) -> None:
+        """AD gradient matches finite difference on saddle surface."""
+        pts, ku, kv, du, dv = _make_saddle_patch()
+
+        def sdf_fn(p):
+            return bspline_sdf(jnp.array([0.5, 0.5, 0.5]), p, ku, kv, du, dv)
+
+        grad_ad = jax.grad(sdf_fn)(pts)
+        eps = 1e-5
+        pts_fwd = pts.at[2, 2, 2].add(eps)
+        pts_bwd = pts.at[2, 2, 2].add(-eps)
+        grad_fd = (sdf_fn(pts_fwd) - sdf_fn(pts_bwd)) / (2.0 * eps)
+        assert jnp.isclose(grad_ad[2, 2, 2], grad_fd, rtol=0.10), (
+            f"AD={float(grad_ad[2, 2, 2]):.6f}, FD={float(grad_fd):.6f}"
+        )
+
+    def test_bumpy_gradient_finite(self) -> None:
+        """jax.grad on bumpy surface produces finite values."""
+        pts, ku, kv, du, dv = _make_bumpy_patch()
+
+        def sdf_fn(p):
+            return bspline_sdf(jnp.array([0.5, 0.5, 0.5]), p, ku, kv, du, dv)
+
+        grad = jax.grad(sdf_fn)(pts)
+        assert jnp.all(jnp.isfinite(grad)), "Non-finite gradient"
+
+    def test_bumpy_gradient_fd_match(self) -> None:
+        """AD gradient matches finite difference on bumpy surface."""
+        pts, ku, kv, du, dv = _make_bumpy_patch()
+
+        def sdf_fn(p):
+            return bspline_sdf(jnp.array([0.3, 0.3, 0.5]), p, ku, kv, du, dv)
+
+        grad_ad = jax.grad(sdf_fn)(pts)
+        eps = 1e-5
+        pts_fwd = pts.at[1, 1, 2].add(eps)
+        pts_bwd = pts.at[1, 1, 2].add(-eps)
+        grad_fd = (sdf_fn(pts_fwd) - sdf_fn(pts_bwd)) / (2.0 * eps)
+        assert jnp.isclose(grad_ad[1, 1, 2], grad_fd, rtol=0.10), (
+            f"AD={float(grad_ad[1, 1, 2]):.6f}, FD={float(grad_fd):.6f}"
+        )
+
+    def test_bumpy_distance_vs_brute_force(self) -> None:
+        """SDF distance matches brute-force parameter-space search."""
+        from brepax.nurbs.evaluate import evaluate_surface
+
+        pts, ku, kv, du, dv = _make_bumpy_patch()
+        query = jnp.array([0.3, 0.3, 0.5])
+
+        # Brute-force: sample parameter space densely
+        us = jnp.linspace(0.0, 1.0, 50)
+        vs = jnp.linspace(0.0, 1.0, 50)
+        min_dist = jnp.inf
+        for u_val in us:
+            for v_val in vs:
+                pt = evaluate_surface(pts, ku, kv, du, dv, u_val, v_val)
+                d = jnp.linalg.norm(query - pt)
+                min_dist = jnp.minimum(min_dist, d)
+
+        sdf_val = bspline_sdf(query, pts, ku, kv, du, dv)
+        assert jnp.isclose(jnp.abs(sdf_val), min_dist, rtol=0.05), (
+            f"SDF={float(jnp.abs(sdf_val)):.4f}, brute={float(min_dist):.4f}"
+        )
