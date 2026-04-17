@@ -109,6 +109,107 @@ def evaluate_stump_volume(
     return integrate_sdf_volume(sdf, lo, hi, resolution)
 
 
+def evaluate_stump_volume_stratum(
+    stump: CSGStump,
+    *,
+    resolution: int = 64,
+) -> Float[Array, ""] | None:
+    """Evaluate volume using analytical methods where possible.
+
+    Supports two analytical paths:
+
+    1. **Stratum dispatch** (single-term, all bounded primitives):
+       Decomposes into pairwise Boolean operations with Phase 0/1
+       stratum dispatch for analytical exact gradients.
+
+    2. **Clipped-box** (Box + axis-aligned Planes):
+       Each term is a Box clipped by axis-aligned half-spaces,
+       producing a smaller Box whose volume is analytically computable.
+       PMC cells are disjoint, so term volumes sum correctly.
+
+    Returns ``None`` if neither path applies.
+
+    Args:
+        stump: A CSG-Stump (typically after :func:`group_stump_primitives`).
+        resolution: Grid resolution for the intersecting stratum.
+
+    Returns:
+        Scalar volume, or ``None`` if analytical evaluation is not applicable.
+    """
+    from brepax.primitives import Box as BoxPrim
+    from brepax.primitives import Plane as PlanePrim
+
+    all_bounded = all(jnp.isfinite(p.volume()) for p in stump.primitives)
+    t_mat = np.asarray(stump.intersection_matrix)
+    m = t_mat.shape[0]
+
+    # Path 1: single-term + all bounded → stratum dispatch
+    if all_bounded:
+        from brepax.boolean import intersect_volume
+
+        term_volumes: list[Float[Array, ""]] = []
+        for k in range(m):
+            if float(stump.union_mask[k]) < 0.5:
+                continue
+            row = t_mat[k]
+            inside = [stump.primitives[j] for j in range(len(row)) if row[j] > 0.5]
+            outside = [stump.primitives[j] for j in range(len(row)) if row[j] < -0.5]
+            if not inside:
+                continue
+            vol = inside[0].volume()
+            base = inside[0]
+            for p in inside[1:]:
+                vol = intersect_volume(base, p, resolution=resolution)
+                base = p
+            for p in outside:
+                vol = vol - intersect_volume(base, p, resolution=resolution)
+            term_volumes.append(vol)
+
+        if len(term_volumes) == 1:
+            return term_volumes[0]
+
+    # Path 2: Box + axis-aligned Planes → clipped-box analytical
+    boxes = [(j, p) for j, p in enumerate(stump.primitives) if isinstance(p, BoxPrim)]
+    if len(boxes) != 1:
+        return None
+    box_idx, box = boxes[0]
+    non_box_are_planes = all(
+        isinstance(p, PlanePrim) for j, p in enumerate(stump.primitives) if j != box_idx
+    )
+    if not non_box_are_planes:
+        return None
+
+    box_lo = box.center - box.half_extents
+    box_hi = box.center + box.half_extents
+
+    total = jnp.array(0.0)
+    for k in range(m):
+        if float(stump.union_mask[k]) < 0.5:
+            continue
+        if t_mat[k, box_idx] < 0.5:
+            continue
+        lo = box_lo
+        hi = box_hi
+        for j in range(len(stump.primitives)):
+            if j == box_idx or t_mat[k, j] == 0:
+                continue
+            p = stump.primitives[j]
+            if not isinstance(p, PlanePrim):
+                continue
+            n = np.asarray(p.normal)
+            axis = int(np.argmax(np.abs(n)))
+            sign_n = float(np.sign(n[axis]))
+            plane_pos = p.offset / sign_n
+            if t_mat[k, j] * sign_n > 0:
+                hi = hi.at[axis].set(jnp.minimum(hi[axis], plane_pos))
+            else:
+                lo = lo.at[axis].set(jnp.maximum(lo[axis], plane_pos))
+        cell_vol = jnp.prod(jnp.maximum(hi - lo, 0.0))
+        total = total + cell_vol
+
+    return total
+
+
 class DifferentiableCSGStump(eqx.Module):
     """CSG-Stump wrapped for differentiable evaluation via equinox.
 
@@ -223,6 +324,192 @@ def stump_to_differentiable(stump: CSGStump) -> DifferentiableCSGStump:
             intersection_matrix=np.asarray(stump.intersection_matrix),
             union_mask=np.asarray(stump.union_mask),
         )
+
+
+def group_stump_primitives(
+    stump: CSGStump,
+    shape: TopoDS_Shape,
+) -> CSGStump:
+    """Group face-level primitives into bounded primitives (Box, FiniteCylinder).
+
+    Uses the same face classification logic as
+    :func:`~brepax.brep.csg.reconstruct_stock_minus_features` to
+    identify which faces form a Box (3 pairs of antiparallel planes)
+    and which cylindrical faces form FiniteCylinders.
+
+    The T matrix is re-indexed so that grouped primitives replace
+    their constituent face-level columns.  This enables stratum
+    dispatch (which requires bounded primitives with finite volume).
+
+    Args:
+        stump: A CSG-Stump with face-level primitives.
+        shape: The OCCT shape (needed for face parametric bounds).
+
+    Returns:
+        A CSG-Stump with grouped (bounded) primitives.
+    """
+    from brepax.brep.csg import (
+        _classify_faces_and_build_box,
+        _extract_indexed_faces,
+        _group_connected_faces,
+        _reconstruct_cylinder_feature,
+    )
+    from brepax.brep.topology import build_adjacency_graph
+
+    prims_nullable: list[Primitive | None] = list(stump.primitives)
+    result = _classify_faces_and_build_box(prims_nullable)
+    if result is None:
+        return stump
+
+    box, box_face_ids, feature_face_ids = result
+
+    # Group cylinder features via adjacency
+    faces = _extract_indexed_faces(shape)
+    graph = build_adjacency_graph(shape)
+    feature_groups = _group_connected_faces(feature_face_ids, graph)
+
+    grouped_primitives: list[Primitive] = [box]
+    # Mapping: old face index → new primitive index
+    face_to_group: dict[int, int] = {}
+    for fid in box_face_ids:
+        face_to_group[fid] = 0
+
+    for group in feature_groups:
+        cyl_leaf = _reconstruct_cylinder_feature(group, faces, prims_nullable)
+        if cyl_leaf is not None:
+            gid = len(grouped_primitives)
+            grouped_primitives.append(cyl_leaf.primitive)
+            for fid in group:
+                face_to_group[fid] = gid
+        else:
+            for fid in group:
+                gid = len(grouped_primitives)
+                grouped_primitives.append(stump.primitives[fid])
+                face_to_group[fid] = gid
+
+    n_new = len(grouped_primitives)
+    t_old = np.asarray(stump.intersection_matrix)
+    m = t_old.shape[0]
+
+    # Re-derive T values using representative points from each cell.
+    # This avoids face-level → grouped-level mapping errors when
+    # multiple faces with conflicting T values map to the same group.
+    rng = np.random.default_rng(123)
+    lo_np = np.asarray(stump.bbox_lo if stump.bbox_lo is not None else -np.ones(3) * 10)
+    hi_np = np.asarray(stump.bbox_hi if stump.bbox_hi is not None else np.ones(3) * 10)
+
+    t_new = np.zeros((m, n_new))
+    for k in range(m):
+        # Find a representative point for this cell
+        rep = _find_cell_representative(t_old[k], stump.primitives, lo_np, hi_np, rng)
+        if rep is None:
+            continue
+        # Evaluate grouped primitives' SDF at the representative point
+        rep_jax = jnp.array(rep)
+        for g, gp in enumerate(grouped_primitives):
+            sdf_val = float(np.asarray(gp.sdf(rep_jax)))
+            t_new[k, g] = -float(np.sign(sdf_val)) if abs(sdf_val) > 1e-10 else 0.0
+
+    # Remove duplicate rows and all-zero rows
+    nonzero_mask = np.any(t_new != 0, axis=1)
+    t_new = t_new[nonzero_mask]
+    if len(t_new) > 0:
+        t_new = np.unique(t_new, axis=0)
+
+    if len(t_new) == 0:
+        return stump
+
+    return CSGStump(
+        primitives=grouped_primitives,
+        intersection_matrix=jnp.array(t_new),
+        union_mask=jnp.ones(len(t_new)),
+        face_ids=stump.face_ids,
+        bbox_lo=stump.bbox_lo,
+        bbox_hi=stump.bbox_hi,
+    )
+
+
+def compact_stump(stump: CSGStump) -> CSGStump:
+    """Compact a CSG-Stump by merging redundant intersection terms.
+
+    Applies don't-care elimination: two rows that differ in exactly one
+    column are merged by setting that column to 0 (don't-care).  This is
+    the basic step of the Quine-McCluskey algorithm.  Duplicate rows are
+    also removed.
+
+    The result is a semantically equivalent CSG-Stump with fewer
+    intersection terms, improving evaluation speed and volume accuracy.
+
+    Args:
+        stump: A CSG-Stump (typically from :func:`reconstruct_csg_stump`).
+
+    Returns:
+        A compact CSG-Stump with reduced intersection terms.
+    """
+    t_mat = np.asarray(stump.intersection_matrix)
+
+    # Iterative don't-care merge
+    changed = True
+    while changed:
+        changed = False
+        new_rows: list[np.ndarray] = []
+        used: set[int] = set()
+        for i in range(len(t_mat)):
+            if i in used:
+                continue
+            merged = False
+            for j in range(i + 1, len(t_mat)):
+                if j in used:
+                    continue
+                diff_mask = t_mat[i] != t_mat[j]
+                if diff_mask.sum() == 1:
+                    merged_row = t_mat[i].copy()
+                    merged_row[diff_mask] = 0.0
+                    new_rows.append(merged_row)
+                    used.add(i)
+                    used.add(j)
+                    merged = True
+                    changed = True
+                    break
+            if not merged and i not in used:
+                new_rows.append(t_mat[i])
+        t_mat = np.array(new_rows) if new_rows else t_mat
+
+    # Remove duplicate rows
+    t_mat = np.unique(t_mat, axis=0)
+
+    return CSGStump(
+        primitives=stump.primitives,
+        intersection_matrix=jnp.array(t_mat),
+        union_mask=jnp.ones(len(t_mat)),
+        face_ids=stump.face_ids,
+        bbox_lo=stump.bbox_lo,
+        bbox_hi=stump.bbox_hi,
+    )
+
+
+def _find_cell_representative(
+    row: np.ndarray,
+    primitives: list[Primitive],
+    lo: np.ndarray,
+    hi: np.ndarray,
+    rng: np.random.Generator,
+    n_samples: int = 5000,
+) -> np.ndarray | None:
+    """Find a point whose face-level SDF signs match the given T row."""
+    pts = rng.uniform(lo, hi, size=(n_samples, 3))
+    pts_jax = jnp.array(pts)
+    for j, prim in enumerate(primitives):
+        if row[j] == 0:
+            continue
+        sdf_vals = np.asarray(prim.sdf(pts_jax))
+        expected_sign = -row[j]
+        mask = np.sign(sdf_vals) == expected_sign
+        pts = pts[mask]
+        pts_jax = jnp.array(pts)
+        if len(pts) == 0:
+            return None
+    return pts[0] if len(pts) > 0 else None
 
 
 # --- Bounds utilities ---
@@ -399,9 +686,12 @@ def reconstruct_csg_stump(
 __all__ = [
     "CSGStump",
     "DifferentiableCSGStump",
+    "compact_stump",
     "csg_tree_to_stump",
     "evaluate_stump_sdf",
     "evaluate_stump_volume",
+    "evaluate_stump_volume_stratum",
+    "group_stump_primitives",
     "reconstruct_csg_stump",
     "stump_to_differentiable",
 ]

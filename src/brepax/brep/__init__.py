@@ -21,9 +21,11 @@ from brepax.brep.csg_eval import (
 from brepax.brep.csg_stump import (
     CSGStump,
     DifferentiableCSGStump,
+    compact_stump,
     csg_tree_to_stump,
     evaluate_stump_sdf,
     evaluate_stump_volume,
+    group_stump_primitives,
     reconstruct_csg_stump,
     stump_to_differentiable,
 )
@@ -45,6 +47,7 @@ __all__ = [
     "FaceAdjacencyGraph",
     "ShapeMetadata",
     "build_adjacency_graph",
+    "compact_stump",
     "csg_to_differentiable",
     "csg_tree_to_stump",
     "evaluate_csg_sdf",
@@ -54,6 +57,7 @@ __all__ = [
     "face_degree",
     "face_to_primitive",
     "faces_to_primitives",
+    "group_stump_primitives",
     "neighbors",
     "reconstruct_csg_stump",
     "reconstruct_stock_minus_features",

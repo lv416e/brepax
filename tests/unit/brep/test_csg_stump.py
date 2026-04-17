@@ -15,9 +15,12 @@ from brepax.brep.csg_eval import evaluate_csg_sdf, evaluate_csg_volume
 from brepax.brep.csg_stump import (
     CSGStump,
     DifferentiableCSGStump,
+    compact_stump,
     csg_tree_to_stump,
     evaluate_stump_sdf,
     evaluate_stump_volume,
+    evaluate_stump_volume_stratum,
+    group_stump_primitives,
     reconstruct_csg_stump,
     stump_to_differentiable,
 )
@@ -288,3 +291,229 @@ class TestReconstructCsgStump:
         assert stump is not None
         assert stump.bbox_lo is not None
         assert stump.bbox_hi is not None
+
+
+class TestPmcFixtureValidation:
+    """PMC reconstruction on diverse shape patterns."""
+
+    @pytest.fixture(scope="class")
+    def pocket_stump(self) -> CSGStump:
+        shape = read_step(FIXTURES / "box_with_pocket.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        return stump
+
+    @pytest.fixture(scope="class")
+    def slot_stump(self) -> CSGStump:
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        return stump
+
+    @pytest.fixture(scope="class")
+    def bracket_stump(self) -> CSGStump:
+        shape = read_step(FIXTURES / "l_bracket.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        return stump
+
+    def test_pocket_sdf(self, pocket_stump: CSGStump) -> None:
+        """Blind hole: inside solid negative, inside pocket positive."""
+        assert float(evaluate_stump_sdf(pocket_stump, jnp.array([5.0, 5.0, 5.0]))) < 0
+        assert (
+            float(evaluate_stump_sdf(pocket_stump, jnp.array([20.0, 15.0, 18.0]))) > 0
+        )
+        assert (
+            float(evaluate_stump_sdf(pocket_stump, jnp.array([50.0, 50.0, 50.0]))) > 0
+        )
+
+    def test_pocket_volume(self, pocket_stump: CSGStump) -> None:
+        vol = float(evaluate_stump_volume(pocket_stump, resolution=64))
+        analytical = 40 * 30 * 20 - jnp.pi * 25 * 10
+        assert vol == pytest.approx(float(analytical), rel=0.10)
+
+    def test_slot_sdf(self, slot_stump: CSGStump) -> None:
+        """Rectangular slot: inside solid negative, inside slot positive."""
+        assert float(evaluate_stump_sdf(slot_stump, jnp.array([5.0, 3.0, 5.0]))) < 0
+        assert float(evaluate_stump_sdf(slot_stump, jnp.array([20.0, 15.0, 16.0]))) > 0
+        assert float(evaluate_stump_sdf(slot_stump, jnp.array([50.0, 50.0, 50.0]))) > 0
+
+    def test_slot_volume(self, slot_stump: CSGStump) -> None:
+        vol = float(evaluate_stump_volume(slot_stump, resolution=64))
+        analytical = 40 * 30 * 20 - 20 * 20 * 8
+        assert vol == pytest.approx(float(analytical), rel=0.10)
+
+    def test_l_bracket_sdf(self, bracket_stump: CSGStump) -> None:
+        """L-bracket union: both arms inside, gap outside."""
+        assert float(evaluate_stump_sdf(bracket_stump, jnp.array([5.0, 5.0, 10.0]))) < 0
+        assert (
+            float(evaluate_stump_sdf(bracket_stump, jnp.array([30.0, 5.0, 10.0]))) < 0
+        )
+        assert (
+            float(evaluate_stump_sdf(bracket_stump, jnp.array([30.0, 20.0, 10.0]))) > 0
+        )
+
+    def test_l_bracket_volume(self, bracket_stump: CSGStump) -> None:
+        vol = float(evaluate_stump_volume(bracket_stump, resolution=64))
+        analytical = (40 * 10 * 20) + (10 * 20 * 20)
+        assert vol == pytest.approx(float(analytical), rel=0.05)
+
+    def test_l_bracket_multi_term(self, bracket_stump: CSGStump) -> None:
+        """L-bracket should produce multiple intersection terms (union)."""
+        assert bracket_stump.intersection_matrix.shape[0] > 1
+
+
+class TestCompactStump:
+    """Don't-care merge compaction of CSG-Stump."""
+
+    def test_slot_reduces_cells(self) -> None:
+        """Slot's 17 cells should compact significantly."""
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        compacted = compact_stump(raw)
+        assert compacted.intersection_matrix.shape[0] < raw.intersection_matrix.shape[0]
+
+    def test_box_with_holes_unchanged(self) -> None:
+        """Single-cell stump should not change."""
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        compacted = compact_stump(raw)
+        assert compacted.intersection_matrix.shape[0] == 1
+
+    def test_compact_preserves_volume(self) -> None:
+        """Volume should not change significantly after compaction."""
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        compacted = compact_stump(raw)
+        vol_raw = float(evaluate_stump_volume(raw, resolution=32))
+        vol_compact = float(evaluate_stump_volume(compacted, resolution=32))
+        assert vol_compact == pytest.approx(vol_raw, rel=0.10)
+
+    def test_compact_preserves_sdf_signs(self) -> None:
+        """SDF signs must be preserved after compaction."""
+        shape = read_step(FIXTURES / "l_bracket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        compacted = compact_stump(raw)
+        pts = jnp.array(
+            [
+                [5.0, 5.0, 10.0],
+                [30.0, 5.0, 10.0],
+                [30.0, 20.0, 10.0],
+            ]
+        )
+        raw_sdf = evaluate_stump_sdf(raw, pts)
+        compact_sdf = evaluate_stump_sdf(compacted, pts)
+        assert jnp.all(jnp.sign(raw_sdf) == jnp.sign(compact_sdf))
+
+
+class TestGroupStumpPrimitives:
+    """Primitive grouping: face-level → bounded primitives."""
+
+    def test_holes_grouped_to_bounded(self) -> None:
+        """box_with_holes: 8 face prims → Box + 2 FiniteCylinder."""
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        types = [type(p).__name__ for p in grouped.primitives]
+        assert "Box" in types
+        assert types.count("FiniteCylinder") == 2
+        assert len(grouped.primitives) == 3
+
+    def test_pocket_grouped_to_bounded(self) -> None:
+        """box_with_pocket: 8 face prims → Box + FiniteCylinder."""
+        shape = read_step(FIXTURES / "box_with_pocket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        types = [type(p).__name__ for p in grouped.primitives]
+        assert "Box" in types
+        assert "FiniteCylinder" in types
+        assert len(grouped.primitives) == 2
+
+    def test_pocket_grouping_improves_precision(self) -> None:
+        """Grouped + compacted pocket should have <3% volume error."""
+        shape = read_step(FIXTURES / "box_with_pocket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        compacted = compact_stump(grouped)
+        vol = float(evaluate_stump_volume(compacted, resolution=64))
+        analytical = 40 * 30 * 20 - jnp.pi * 25 * 10
+        assert vol == pytest.approx(float(analytical), rel=0.03)
+
+    def test_grouping_preserves_sdf_correctness(self) -> None:
+        """SDF signs must be correct after grouping."""
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        compacted = compact_stump(grouped)
+        assert float(evaluate_stump_sdf(compacted, jnp.array([5.0, 5.0, 5.0]))) < 0
+        assert float(evaluate_stump_sdf(compacted, jnp.array([10.0, 15.0, 10.0]))) > 0
+        assert float(evaluate_stump_sdf(compacted, jnp.array([50.0, 50.0, 50.0]))) > 0
+
+    @pytest.mark.filterwarnings("ignore:.*has no cylindrical faces.*:UserWarning")
+    def test_slot_partial_grouping(self) -> None:
+        """Slot: outer box grouped, planar features remain ungrouped."""
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        types = [type(p).__name__ for p in grouped.primitives]
+        assert "Box" in types
+        assert len(grouped.primitives) < len(raw.primitives)
+
+
+class TestStratumDispatch:
+    """Stratum dispatch on grouped CSG-Stumps."""
+
+    def test_holes_stratum_precision(self) -> None:
+        """box_with_holes (single-term): stratum dispatch < 0.1% error."""
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        vol = evaluate_stump_volume_stratum(grouped, resolution=64)
+        assert vol is not None
+        analytical = 40 * 30 * 20 - jnp.pi * 16 * 20 - jnp.pi * 9 * 20
+        assert float(vol) == pytest.approx(float(analytical), rel=0.001)
+
+    def test_pocket_stratum_precision(self) -> None:
+        """box_with_pocket (single-term after grouping): stratum < 0.1%."""
+        shape = read_step(FIXTURES / "box_with_pocket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        vol = evaluate_stump_volume_stratum(grouped, resolution=64)
+        assert vol is not None
+        analytical = 40 * 30 * 20 - jnp.pi * 25 * 10
+        assert float(vol) == pytest.approx(float(analytical), rel=0.001)
+
+    @pytest.mark.filterwarnings("ignore:.*has no cylindrical faces.*:UserWarning")
+    def test_slot_clipped_box_precision(self) -> None:
+        """box_with_slot: clipped-box analytical gives exact volume."""
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        vol = evaluate_stump_volume_stratum(grouped)
+        assert vol is not None
+        analytical = 40 * 30 * 20 - 20 * 20 * 8
+        assert float(vol) == pytest.approx(float(analytical), rel=0.001)
+
+    @pytest.mark.filterwarnings("ignore:.*has no cylindrical faces.*:UserWarning")
+    def test_l_bracket_clipped_box_precision(self) -> None:
+        """l_bracket: clipped-box analytical gives exact volume."""
+        shape = read_step(FIXTURES / "l_bracket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        vol = evaluate_stump_volume_stratum(grouped)
+        assert vol is not None
+        analytical = (40 * 10 * 20) + (10 * 20 * 20)
+        assert float(vol) == pytest.approx(float(analytical), rel=0.001)
