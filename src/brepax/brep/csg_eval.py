@@ -87,8 +87,8 @@ def evaluate_csg_volume(
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
 
-    sdf = evaluate_csg_sdf(node, _make_grid_3d(lo, hi, resolution)[0])
-    return _integrate_sdf_volume(sdf, lo, hi, resolution)
+    sdf = evaluate_csg_sdf(node, make_grid_3d(lo, hi, resolution)[0])
+    return integrate_sdf_volume(sdf, lo, hi, resolution)
 
 
 class DifferentiableCSG(eqx.Module):
@@ -142,7 +142,7 @@ class DifferentiableCSG(eqx.Module):
             Scalar volume estimate.
         """
         if lo is None or hi is None:
-            lo_auto, hi_auto = _primitive_bounds(self.stock)
+            lo_auto, hi_auto = primitive_bounds(self.stock)
             margin = 0.5
             if lo is None:
                 lo = lo_auto - margin
@@ -152,8 +152,8 @@ class DifferentiableCSG(eqx.Module):
         lo = jax.lax.stop_gradient(lo)
         hi = jax.lax.stop_gradient(hi)
 
-        sdf = self.sdf(_make_grid_3d(lo, hi, resolution)[0])
-        return _integrate_sdf_volume(sdf, lo, hi, resolution)
+        sdf = self.sdf(make_grid_3d(lo, hi, resolution)[0])
+        return integrate_sdf_volume(sdf, lo, hi, resolution)
 
 
 def csg_to_differentiable(node: CSGNode) -> DifferentiableCSG:
@@ -186,10 +186,10 @@ def csg_to_differentiable(node: CSGNode) -> DifferentiableCSG:
     return DifferentiableCSG(stock=current.primitive, features=tuple(features))
 
 
-# --- Shared integration helper ---
+# --- Shared integration and grid utilities ---
 
 
-def _integrate_sdf_volume(
+def integrate_sdf_volume(
     sdf: Float[Array, ...],
     lo: Float[Array, 3],
     hi: Float[Array, 3],
@@ -206,10 +206,7 @@ def _integrate_sdf_volume(
     return jnp.sum(indicator) * cell_vol
 
 
-# --- Grid utilities ---
-
-
-def _make_grid_3d(
+def make_grid_3d(
     lo: Float[Array, 3],
     hi: Float[Array, 3],
     resolution: int,
@@ -226,7 +223,7 @@ def _make_grid_3d(
     return grid, cell_vol
 
 
-def _primitive_bounds(p: Primitive) -> tuple[Array, Array]:
+def primitive_bounds(p: Primitive) -> tuple[Array, Array]:
     """Estimate axis-aligned bounding box for a primitive."""
     params = p.parameters()
     if "center" in params:
@@ -255,7 +252,7 @@ def _tree_bounds(node: CSGNode) -> tuple[Array, Array]:
     lo = jnp.full(3, jnp.inf)
     hi = jnp.full(3, -jnp.inf)
     for leaf in leaves:
-        plo, phi = _primitive_bounds(leaf.primitive)
+        plo, phi = primitive_bounds(leaf.primitive)
         lo = jnp.minimum(lo, plo)
         hi = jnp.maximum(hi, phi)
     return lo, hi
@@ -276,4 +273,7 @@ __all__ = [
     "csg_to_differentiable",
     "evaluate_csg_sdf",
     "evaluate_csg_volume",
+    "integrate_sdf_volume",
+    "make_grid_3d",
+    "primitive_bounds",
 ]

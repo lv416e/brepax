@@ -18,6 +18,14 @@ from brepax.brep.csg_eval import (
     evaluate_csg_sdf,
     evaluate_csg_volume,
 )
+from brepax.brep.csg_stump import (
+    CSGStump,
+    DifferentiableCSGStump,
+    csg_tree_to_stump,
+    evaluate_stump_sdf,
+    evaluate_stump_volume,
+    stump_to_differentiable,
+)
 from brepax.brep.topology import (
     FaceAdjacencyGraph,
     build_adjacency_graph,
@@ -30,13 +38,18 @@ __all__ = [
     "CSGLeaf",
     "CSGNode",
     "CSGOperation",
+    "CSGStump",
     "DifferentiableCSG",
+    "DifferentiableCSGStump",
     "FaceAdjacencyGraph",
     "ShapeMetadata",
     "build_adjacency_graph",
     "csg_to_differentiable",
+    "csg_tree_to_stump",
     "evaluate_csg_sdf",
     "evaluate_csg_volume",
+    "evaluate_stump_sdf",
+    "evaluate_stump_volume",
     "face_degree",
     "face_to_primitive",
     "faces_to_primitives",
@@ -44,4 +57,5 @@ __all__ = [
     "reconstruct_stock_minus_features",
     "shape_metadata",
     "shared_edges",
+    "stump_to_differentiable",
 ]
