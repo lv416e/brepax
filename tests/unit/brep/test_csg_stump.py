@@ -495,10 +495,25 @@ class TestStratumDispatch:
         assert float(vol) == pytest.approx(float(analytical), rel=0.001)
 
     @pytest.mark.filterwarnings("ignore:.*has no cylindrical faces.*:UserWarning")
-    def test_slot_falls_back(self) -> None:
-        """box_with_slot (unbounded prims): stratum returns None."""
+    def test_slot_clipped_box_precision(self) -> None:
+        """box_with_slot: clipped-box analytical gives exact volume."""
         shape = read_step(FIXTURES / "box_with_slot.step")
         raw = reconstruct_csg_stump(shape)
         assert raw is not None
         grouped = group_stump_primitives(raw, shape)
-        assert evaluate_stump_volume_stratum(grouped) is None
+        vol = evaluate_stump_volume_stratum(grouped)
+        assert vol is not None
+        analytical = 40 * 30 * 20 - 20 * 20 * 8
+        assert float(vol) == pytest.approx(float(analytical), rel=0.001)
+
+    @pytest.mark.filterwarnings("ignore:.*has no cylindrical faces.*:UserWarning")
+    def test_l_bracket_clipped_box_precision(self) -> None:
+        """l_bracket: clipped-box analytical gives exact volume."""
+        shape = read_step(FIXTURES / "l_bracket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        vol = evaluate_stump_volume_stratum(grouped)
+        assert vol is not None
+        analytical = (40 * 10 * 20) + (10 * 20 * 20)
+        assert float(vol) == pytest.approx(float(analytical), rel=0.001)

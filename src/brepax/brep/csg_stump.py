@@ -114,65 +114,101 @@ def evaluate_stump_volume_stratum(
     *,
     resolution: int = 64,
 ) -> Float[Array, ""] | None:
-    """Evaluate volume using stratum dispatch for analytical exact gradients.
+    """Evaluate volume using analytical methods where possible.
 
-    Only works when **all** primitives in the stump are bounded (have
-    finite ``volume()``).  Returns ``None`` if any primitive is unbounded,
-    in which case the caller should fall back to grid-based
-    :func:`evaluate_stump_volume`.
+    Supports two analytical paths:
 
-    For a single intersection term ``T = [[s1, s2, ..., sn]]``, this
-    decomposes the CSG into a chain of pairwise Boolean operations that
-    the Phase 0/1 stratum dispatch can handle.
+    1. **Stratum dispatch** (single-term, all bounded primitives):
+       Decomposes into pairwise Boolean operations with Phase 0/1
+       stratum dispatch for analytical exact gradients.
+
+    2. **Clipped-box** (Box + axis-aligned Planes):
+       Each term is a Box clipped by axis-aligned half-spaces,
+       producing a smaller Box whose volume is analytically computable.
+       PMC cells are disjoint, so term volumes sum correctly.
+
+    Returns ``None`` if neither path applies.
 
     Args:
-        stump: A CSG-Stump with bounded (grouped) primitives.
+        stump: A CSG-Stump (typically after :func:`group_stump_primitives`).
         resolution: Grid resolution for the intersecting stratum.
 
     Returns:
-        Scalar volume, or ``None`` if stratum dispatch is not applicable.
+        Scalar volume, or ``None`` if analytical evaluation is not applicable.
     """
-    from brepax.boolean import intersect_volume
+    from brepax.primitives import Box as BoxPrim
+    from brepax.primitives import Plane as PlanePrim
 
-    for p in stump.primitives:
-        if not jnp.isfinite(p.volume()):
-            return None
-
+    all_bounded = all(jnp.isfinite(p.volume()) for p in stump.primitives)
     t_mat = np.asarray(stump.intersection_matrix)
     m = t_mat.shape[0]
 
-    term_volumes: list[Float[Array, ""]] = []
+    # Path 1: single-term + all bounded → stratum dispatch
+    if all_bounded:
+        from brepax.boolean import intersect_volume
+
+        term_volumes: list[Float[Array, ""]] = []
+        for k in range(m):
+            if float(stump.union_mask[k]) < 0.5:
+                continue
+            row = t_mat[k]
+            inside = [stump.primitives[j] for j in range(len(row)) if row[j] > 0.5]
+            outside = [stump.primitives[j] for j in range(len(row)) if row[j] < -0.5]
+            if not inside:
+                continue
+            vol = inside[0].volume()
+            base = inside[0]
+            for p in inside[1:]:
+                vol = intersect_volume(base, p, resolution=resolution)
+                base = p
+            for p in outside:
+                vol = vol - intersect_volume(base, p, resolution=resolution)
+            term_volumes.append(vol)
+
+        if len(term_volumes) == 1:
+            return term_volumes[0]
+
+    # Path 2: Box + axis-aligned Planes → clipped-box analytical
+    boxes = [(j, p) for j, p in enumerate(stump.primitives) if isinstance(p, BoxPrim)]
+    if len(boxes) != 1:
+        return None
+    box_idx, box = boxes[0]
+    non_box_are_planes = all(
+        isinstance(p, PlanePrim) for j, p in enumerate(stump.primitives) if j != box_idx
+    )
+    if not non_box_are_planes:
+        return None
+
+    box_lo = np.asarray(box.center - box.half_extents)
+    box_hi = np.asarray(box.center + box.half_extents)
+
+    total = jnp.array(0.0)
     for k in range(m):
         if float(stump.union_mask[k]) < 0.5:
             continue
-        row = t_mat[k]
-        inside_prims = [stump.primitives[j] for j in range(len(row)) if row[j] > 0.5]
-        outside_prims = [stump.primitives[j] for j in range(len(row)) if row[j] < -0.5]
-
-        if not inside_prims:
+        if t_mat[k, box_idx] < 0.5:
             continue
+        lo = box_lo.copy()
+        hi = box_hi.copy()
+        for j in range(len(stump.primitives)):
+            if j == box_idx or t_mat[k, j] == 0:
+                continue
+            p = stump.primitives[j]
+            if not isinstance(p, PlanePrim):
+                continue
+            n = np.asarray(p.normal)
+            d = float(p.offset)
+            axis = int(np.argmax(np.abs(n)))
+            sign_n = float(np.sign(n[axis]))
+            plane_pos = d / sign_n
+            if t_mat[k, j] * sign_n > 0:
+                hi[axis] = min(hi[axis], plane_pos)
+            else:
+                lo[axis] = max(lo[axis], plane_pos)
+        cell_vol = float(np.prod(np.maximum(hi - lo, 0)))
+        total = total + cell_vol
 
-        # Start with the first inside primitive's volume
-        vol = inside_prims[0].volume()
-
-        # Intersect with remaining inside primitives
-        base = inside_prims[0]
-        for p in inside_prims[1:]:
-            vol = intersect_volume(base, p, resolution=resolution)
-            base = p
-
-        # Subtract each outside primitive
-        for p in outside_prims:
-            vol = vol - intersect_volume(base, p, resolution=resolution)
-
-        term_volumes.append(vol)
-
-    if len(term_volumes) != 1:
-        # Multi-term union requires inclusion-exclusion with compound
-        # region intersections, which is not yet supported.
-        return None
-
-    return term_volumes[0]
+    return total if float(total) > 0 else None
 
 
 class DifferentiableCSGStump(eqx.Module):
