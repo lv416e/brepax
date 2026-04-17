@@ -21,8 +21,6 @@ from jaxtyping import Array, Float
 
 from brepax.brep.csg_eval import make_grid_3d
 
-_FD_EPS = 1e-4
-
 
 def _grid_normals(
     sdf: Float[Array, "R R R"],
@@ -30,19 +28,15 @@ def _grid_normals(
     hi: Float[Array, 3],
     resolution: int,
 ) -> Float[Array, "R R R 3"]:
-    """Central finite-difference gradient of SDF on a structured grid.
+    """Numerical gradient of SDF on a structured grid.
 
-    Avoids NaN from jax.grad at degenerate SDF points (cylinder axis,
-    box center) by using numerical differentiation.
+    Uses ``jnp.gradient`` which handles domain boundaries with
+    forward/backward differences, avoiding wrap-around artifacts
+    from ``jnp.roll`` on non-periodic domains.
     """
     dx = (hi - lo) / resolution
-    components = []
-    for axis in range(3):
-        # Shift the SDF grid by +/- 1 cell in the given axis
-        fwd = jnp.roll(sdf, -1, axis=axis)
-        bwd = jnp.roll(sdf, 1, axis=axis)
-        components.append((fwd - bwd) / (2.0 * dx[axis]))
-    return jnp.stack(components, axis=-1)
+    grads = jnp.gradient(sdf, dx[0], dx[1], dx[2])
+    return jnp.stack(grads, axis=-1)
 
 
 def integrate_sdf_draft_angle_violation(
@@ -103,7 +97,8 @@ def integrate_sdf_draft_angle_violation(
 
     # draft_angle = arcsin(|n.d|): violation when |n.d| < sin(min_angle)
     sin_threshold = jnp.sin(min_angle)
-    violation = jax.nn.sigmoid((sin_threshold - cos_angle) / (cell_width * 0.1))
+    # Dimensionless epsilon: sin_threshold and cos_angle are both unitless
+    violation = jax.nn.sigmoid((sin_threshold - cos_angle) / 0.01)
 
     return jnp.sum(surface_delta * violation) * cell_vol
 
