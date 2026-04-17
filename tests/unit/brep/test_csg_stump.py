@@ -15,6 +15,7 @@ from brepax.brep.csg_eval import evaluate_csg_sdf, evaluate_csg_volume
 from brepax.brep.csg_stump import (
     CSGStump,
     DifferentiableCSGStump,
+    compact_stump,
     csg_tree_to_stump,
     evaluate_stump_sdf,
     evaluate_stump_volume,
@@ -349,3 +350,50 @@ class TestPmcFixtureValidation:
         stump = reconstruct_csg_stump(shape)
         assert stump is not None
         assert stump.intersection_matrix.shape[0] > 1
+
+
+class TestCompactStump:
+    """Don't-care merge compaction of CSG-Stump."""
+
+    def test_slot_reduces_cells(self) -> None:
+        """Slot's 17 cells should compact significantly."""
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        compacted = compact_stump(raw)
+        assert compacted.intersection_matrix.shape[0] < raw.intersection_matrix.shape[0]
+
+    def test_box_with_holes_unchanged(self) -> None:
+        """Single-cell stump should not change."""
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        compacted = compact_stump(raw)
+        assert compacted.intersection_matrix.shape[0] == 1
+
+    def test_compact_preserves_volume(self) -> None:
+        """Volume should not change significantly after compaction."""
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        compacted = compact_stump(raw)
+        vol_raw = float(evaluate_stump_volume(raw, resolution=32))
+        vol_compact = float(evaluate_stump_volume(compacted, resolution=32))
+        assert vol_compact == pytest.approx(vol_raw, rel=0.10)
+
+    def test_compact_preserves_sdf_signs(self) -> None:
+        """SDF signs must be preserved after compaction."""
+        shape = read_step(FIXTURES / "l_bracket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        compacted = compact_stump(raw)
+        pts = jnp.array(
+            [
+                [5.0, 5.0, 10.0],
+                [30.0, 5.0, 10.0],
+                [30.0, 20.0, 10.0],
+            ]
+        )
+        raw_sdf = evaluate_stump_sdf(raw, pts)
+        compact_sdf = evaluate_stump_sdf(compacted, pts)
+        assert jnp.all(jnp.sign(raw_sdf) == jnp.sign(compact_sdf))

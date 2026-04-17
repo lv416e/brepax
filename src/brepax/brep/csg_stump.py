@@ -225,6 +225,65 @@ def stump_to_differentiable(stump: CSGStump) -> DifferentiableCSGStump:
         )
 
 
+def compact_stump(stump: CSGStump) -> CSGStump:
+    """Compact a CSG-Stump by merging redundant intersection terms.
+
+    Applies don't-care elimination: two rows that differ in exactly one
+    column are merged by setting that column to 0 (don't-care).  This is
+    the basic step of the Quine-McCluskey algorithm.  Duplicate rows are
+    also removed.
+
+    The result is a semantically equivalent CSG-Stump with fewer
+    intersection terms, improving evaluation speed and volume accuracy.
+
+    Args:
+        stump: A CSG-Stump (typically from :func:`reconstruct_csg_stump`).
+
+    Returns:
+        A compact CSG-Stump with reduced intersection terms.
+    """
+    t_mat = np.asarray(stump.intersection_matrix)
+
+    # Iterative don't-care merge
+    changed = True
+    while changed:
+        changed = False
+        new_rows: list[np.ndarray] = []
+        used: set[int] = set()
+        for i in range(len(t_mat)):
+            if i in used:
+                continue
+            merged = False
+            for j in range(i + 1, len(t_mat)):
+                if j in used:
+                    continue
+                diff_mask = t_mat[i] != t_mat[j]
+                if diff_mask.sum() == 1:
+                    merged_row = t_mat[i].copy()
+                    merged_row[diff_mask] = 0.0
+                    new_rows.append(merged_row)
+                    used.add(i)
+                    used.add(j)
+                    merged = True
+                    changed = True
+                    break
+            if not merged and i not in used:
+                new_rows.append(t_mat[i])
+        t_mat = np.array(new_rows) if new_rows else t_mat
+
+    # Remove duplicate rows
+    t_mat = np.unique(t_mat, axis=0)
+
+    return CSGStump(
+        primitives=stump.primitives,
+        intersection_matrix=jnp.array(t_mat),
+        union_mask=jnp.ones(len(t_mat)),
+        face_ids=stump.face_ids,
+        bbox_lo=stump.bbox_lo,
+        bbox_hi=stump.bbox_hi,
+    )
+
+
 # --- Bounds utilities ---
 
 
@@ -399,6 +458,7 @@ def reconstruct_csg_stump(
 __all__ = [
     "CSGStump",
     "DifferentiableCSGStump",
+    "compact_stump",
     "csg_tree_to_stump",
     "evaluate_stump_sdf",
     "evaluate_stump_volume",
