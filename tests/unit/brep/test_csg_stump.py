@@ -18,6 +18,7 @@ from brepax.brep.csg_stump import (
     csg_tree_to_stump,
     evaluate_stump_sdf,
     evaluate_stump_volume,
+    reconstruct_csg_stump,
     stump_to_differentiable,
 )
 from brepax.io.step import read_step
@@ -230,3 +231,60 @@ class TestDifferentiableCSGStump:
         dstump = stump_to_differentiable(stump)
         assert len(dstump.primitives) == 3
         assert dstump.intersection_matrix.shape == (1, 3)
+
+
+class TestReconstructCsgStump:
+    """PMC-based CSG-Stump reconstruction from B-Rep shapes."""
+
+    def test_box_with_holes_returns_stump(self) -> None:
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        assert len(stump.primitives) == 8
+
+    def test_box_with_holes_single_inside_cell(self) -> None:
+        """Only one cell is inside the solid."""
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        assert stump.intersection_matrix.shape[0] == 1
+
+    def test_box_with_holes_sdf_correctness(self) -> None:
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        inside = jnp.array([5.0, 5.0, 10.0])
+        hole = jnp.array([10.0, 15.0, 10.0])
+        outside = jnp.array([50.0, 50.0, 50.0])
+        assert float(evaluate_stump_sdf(stump, inside)) < 0
+        assert float(evaluate_stump_sdf(stump, hole)) > 0
+        assert float(evaluate_stump_sdf(stump, outside)) > 0
+
+    def test_box_with_holes_volume(self) -> None:
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        vol = float(evaluate_stump_volume(stump, resolution=64))
+        analytical = 40 * 30 * 20 - jnp.pi * 16 * 20 - jnp.pi * 9 * 20
+        assert vol == pytest.approx(float(analytical), rel=0.05)
+
+    def test_plain_box(self) -> None:
+        shape = read_step(FIXTURES / "sample_box.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        vol = float(evaluate_stump_volume(stump, resolution=64))
+        assert vol == pytest.approx(6000.0, rel=0.05)
+
+    def test_sphere_returns_stump(self) -> None:
+        """Sphere has 1 face → 1 primitive → should reconstruct."""
+        shape = read_step(FIXTURES / "sample_sphere.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        assert len(stump.primitives) == 1
+
+    def test_bbox_is_set(self) -> None:
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        stump = reconstruct_csg_stump(shape)
+        assert stump is not None
+        assert stump.bbox_lo is not None
+        assert stump.bbox_hi is not None

@@ -24,6 +24,7 @@ from brepax.brep.csg_stump import (
     csg_tree_to_stump,
     evaluate_stump_sdf,
     evaluate_stump_volume,
+    reconstruct_csg_stump,
     stump_to_differentiable,
 )
 from brepax.brep.topology import (
@@ -54,6 +55,7 @@ __all__ = [
     "face_to_primitive",
     "faces_to_primitives",
     "neighbors",
+    "reconstruct_csg_stump",
     "reconstruct_stock_minus_features",
     "shape_metadata",
     "shared_edges",

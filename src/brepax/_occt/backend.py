@@ -9,6 +9,7 @@ from OCP.Bnd import Bnd_Box
 from OCP.BRep import BRep_Tool
 from OCP.BRepAdaptor import BRepAdaptor_Surface
 from OCP.BRepBndLib import BRepBndLib
+from OCP.BRepClass3d import BRepClass3d_SolidClassifier
 from OCP.BRepMesh import BRepMesh_IncrementalMesh
 from OCP.GeomAbs import (
     GeomAbs_BezierSurface,
@@ -20,9 +21,10 @@ from OCP.GeomAbs import (
     GeomAbs_Sphere,
     GeomAbs_Torus,
 )
+from OCP.gp import gp_Pnt
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.STEPControl import STEPControl_Reader
-from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_VERTEX
+from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_IN, TopAbs_VERTEX
 from OCP.TopExp import TopExp, TopExp_Explorer
 from OCP.TopLoc import TopLoc_Location
 from OCP.TopoDS import TopoDS
@@ -34,6 +36,7 @@ from OCP.TopTools import (
 __all__ = [
     "BRepAdaptor_Surface",
     "BRepBndLib",
+    "BRepClass3d_SolidClassifier",
     "BRepMesh_IncrementalMesh",
     "BRep_Tool",
     "Bnd_Box",
@@ -49,6 +52,7 @@ __all__ = [
     "STEPControl_Reader",
     "TopAbs_EDGE",
     "TopAbs_FACE",
+    "TopAbs_IN",
     "TopAbs_VERTEX",
     "TopExp",
     "TopExp_Explorer",
@@ -56,4 +60,5 @@ __all__ = [
     "TopTools_IndexedDataMapOfShapeListOfShape",
     "TopTools_IndexedMapOfShape",
     "TopoDS",
+    "gp_Pnt",
 ]
