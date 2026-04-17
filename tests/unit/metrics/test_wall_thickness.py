@@ -132,7 +132,7 @@ class TestMinWallThickness:
         lo, hi = jnp.array([-5.0] * 3), jnp.array([5.0] * 3)
         thickness = min_wall_thickness(box.sdf, lo=lo, hi=hi, resolution=64)
         # Thin dimension = 2.0 (2 * 1.0)
-        assert jnp.isclose(thickness, 2.0, rtol=0.25), (
+        assert jnp.isclose(thickness, 2.0, rtol=0.05), (
             f"thickness={float(thickness):.4f}, expected ~2.0"
         )
 
@@ -145,7 +145,7 @@ class TestMinWallThickness:
         lo, hi = jnp.array([-4.0] * 3), jnp.array([4.0] * 3)
         thickness = min_wall_thickness(box.sdf, lo=lo, hi=hi, resolution=64)
         # Smallest dimension = 2*1.0 = 2.0
-        assert jnp.isclose(thickness, 2.0, rtol=0.25), (
+        assert jnp.isclose(thickness, 2.0, rtol=0.05), (
             f"thickness={float(thickness):.4f}, expected ~2.0"
         )
 
@@ -154,7 +154,7 @@ class TestMinWallThickness:
         sphere = Sphere(center=jnp.zeros(3), radius=jnp.array(1.0))
         lo, hi = jnp.array([-3.0] * 3), jnp.array([3.0] * 3)
         thickness = min_wall_thickness(sphere.sdf, lo=lo, hi=hi, resolution=64)
-        assert jnp.isclose(thickness, 2.0, rtol=0.25), (
+        assert jnp.isclose(thickness, 2.0, rtol=0.05), (
             f"thickness={float(thickness):.4f}, expected ~2.0"
         )
 
