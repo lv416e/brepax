@@ -50,6 +50,7 @@ class BSplineSurface(Primitive):
     knots_v: Array = eqx.field()
     degree_u: int = eqx.field(static=True)
     degree_v: int = eqx.field(static=True)
+    weights: Array | None = eqx.field(default=None)
 
     def sdf(self, x: Float[Array, "... 3"]) -> Float[Array, "..."]:
         """Signed distance from query points to the B-spline surface.
@@ -68,6 +69,7 @@ class BSplineSurface(Primitive):
                 self.knots_v,
                 self.degree_u,
                 self.degree_v,
+                weights=self.weights,
             )
 
         result = jax.vmap(_single_sdf)(flat)

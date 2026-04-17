@@ -24,6 +24,7 @@ def bspline_sdf(
     degree_v: int,
     u0: Float[Array, ""] | float = 0.5,
     v0: Float[Array, ""] | float = 0.5,
+    weights: Float[Array, "nu nv"] | None = None,
 ) -> Float[Array, ""]:
     """Signed distance from a query point to a B-spline surface.
 
@@ -33,7 +34,8 @@ def bspline_sdf(
     points outward).
 
     The result is differentiable w.r.t. ``control_points`` through
-    the unrolled Newton iteration.
+    the unrolled Newton iteration.  Supports both non-rational and
+    rational (NURBS) surfaces via optional weights.
 
     Args:
         query: Query point, shape ``(3,)``.
@@ -44,6 +46,7 @@ def bspline_sdf(
         degree_v: Polynomial degree in v.
         u0: Initial u parameter guess for projection.
         v0: Initial v parameter guess for projection.
+        weights: Optional weight grid for rational surfaces.
 
     Returns:
         Signed distance (scalar).  Positive when the query lies on
@@ -68,6 +71,7 @@ def bspline_sdf(
         degree_v,
         u0,
         v0,
+        weights,
     )
 
     point, du, dv = evaluate_surface_derivs(
@@ -78,6 +82,7 @@ def bspline_sdf(
         degree_v,
         u_opt,
         v_opt,
+        weights,
     )
 
     diff = query - point

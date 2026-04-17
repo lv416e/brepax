@@ -3,6 +3,7 @@
 import equinox as eqx
 import jax
 import jax.numpy as jnp
+import pytest
 
 from brepax.primitives import BSplineSurface
 
@@ -46,6 +47,7 @@ def _dome_patch():
     )
 
 
+@pytest.mark.slow
 class TestBSplineSurfacePrimitive:
     """Tests for BSplineSurface as a Primitive."""
 

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import equinox as eqx
 import jax.numpy as jnp
+import pytest
 
 from brepax.brep.convert import faces_to_primitives
 from brepax.brep.csg_stump import (
@@ -17,6 +18,7 @@ from brepax.primitives import BSplineSurface
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
 
+@pytest.mark.slow
 class TestNurbsCsgReconstruction:
     """Tests for CSG-Stump reconstruction on NURBS shapes."""
 

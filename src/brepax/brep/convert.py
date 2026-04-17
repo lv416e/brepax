@@ -207,17 +207,11 @@ def _convert_bspline_face(adaptor: Any) -> BSplinePrim | None:
     """Convert an OCCT B-spline surface to a BSplineSurface primitive.
 
     Extracts control points, knot vectors, and degree from the OCCT
-    Geom_BSplineSurface handle.  Rational (weighted) B-splines are
-    not yet supported and return None with a warning.
+    Geom_BSplineSurface handle.  Supports both non-rational and
+    rational (weighted NURBS) surfaces.
     """
     bspl = adaptor.BSpline()
-
-    if bspl.IsURational() or bspl.IsVRational():
-        warnings.warn(
-            "Rational B-spline surfaces not yet supported, skipping face",
-            stacklevel=3,
-        )
-        return None
+    is_rational = bspl.IsURational() or bspl.IsVRational()
 
     n_u = bspl.NbUPoles()
     n_v = bspl.NbVPoles()
@@ -251,12 +245,22 @@ def _convert_bspline_face(adaptor: Any) -> BSplinePrim | None:
     knots_u = _expand_knots(u_knots_unique, u_mults)
     knots_v = _expand_knots(v_knots_unique, v_mults)
 
+    # Extract weights for rational B-splines
+    weights = None
+    if is_rational:
+        w = np.zeros((n_u, n_v))
+        for i in range(1, n_u + 1):
+            for j in range(1, n_v + 1):
+                w[i - 1, j - 1] = bspl.Weight(i, j)
+        weights = jnp.array(w)
+
     return BSplinePrim(
         control_points=jnp.array(poles),
         knots_u=knots_u,
         knots_v=knots_v,
         degree_u=deg_u,
         degree_v=deg_v,
+        weights=weights,
     )
 
 
