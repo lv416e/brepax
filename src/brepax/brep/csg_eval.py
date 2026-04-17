@@ -7,6 +7,8 @@ primitive parameters.
 
 from __future__ import annotations
 
+import warnings
+
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -85,12 +87,8 @@ def evaluate_csg_volume(
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
 
-    grid, cell_vol = _make_grid_3d(lo, hi, resolution)
-    sdf = evaluate_csg_sdf(node, grid)
-
-    cell_width = jnp.mean((hi - lo) / (resolution - 1))
-    indicator = jax.nn.sigmoid(-sdf / cell_width)
-    return jnp.sum(indicator) * cell_vol
+    sdf = evaluate_csg_sdf(node, _make_grid_3d(lo, hi, resolution)[0])
+    return _integrate_sdf_volume(sdf, lo, hi, resolution)
 
 
 class DifferentiableCSG(eqx.Module):
@@ -154,12 +152,8 @@ class DifferentiableCSG(eqx.Module):
         lo = jax.lax.stop_gradient(lo)
         hi = jax.lax.stop_gradient(hi)
 
-        grid, cell_vol = _make_grid_3d(lo, hi, resolution)
-        sdf = self.sdf(grid)
-
-        cell_width = jnp.mean((hi - lo) / (resolution - 1))
-        indicator = jax.nn.sigmoid(-sdf / cell_width)
-        return jnp.sum(indicator) * cell_vol
+        sdf = self.sdf(_make_grid_3d(lo, hi, resolution)[0])
+        return _integrate_sdf_volume(sdf, lo, hi, resolution)
 
 
 def csg_to_differentiable(node: CSGNode) -> DifferentiableCSG:
@@ -192,7 +186,27 @@ def csg_to_differentiable(node: CSGNode) -> DifferentiableCSG:
     return DifferentiableCSG(stock=current.primitive, features=tuple(features))
 
 
-# --- Grid utilities (local to avoid coupling with boolean module) ---
+# --- Shared integration helper ---
+
+
+def _integrate_sdf_volume(
+    sdf: Float[Array, ...],
+    lo: Float[Array, 3],
+    hi: Float[Array, 3],
+    resolution: int,
+) -> Float[Array, ""]:
+    """Integrate SDF values on a grid to compute volume.
+
+    Uses sigmoid indicator with sharpness = 1 / cell_width,
+    where cell_width is the geometric mean of axis spacings.
+    """
+    cell_vol = jnp.prod((hi - lo) / resolution)
+    cell_width = jnp.power(cell_vol, 1.0 / 3.0)
+    indicator = jax.nn.sigmoid(-sdf / cell_width)
+    return jnp.sum(indicator) * cell_vol
+
+
+# --- Grid utilities ---
 
 
 def _make_grid_3d(
@@ -200,11 +214,15 @@ def _make_grid_3d(
     hi: Float[Array, 3],
     resolution: int,
 ) -> tuple[Float[Array, "R R R 3"], Float[Array, ""]]:
-    """Create a 3D grid over the given domain."""
-    axes = [jnp.linspace(lo[i], hi[i], resolution) for i in range(3)]
+    """Create a cell-centered 3D grid over the given domain."""
+    dx = (hi - lo) / resolution
+    axes = [
+        jnp.linspace(lo[i] + dx[i] / 2.0, hi[i] - dx[i] / 2.0, resolution)
+        for i in range(3)
+    ]
     mesh = jnp.meshgrid(*axes, indexing="ij")
     grid = jnp.stack(mesh, axis=-1)
-    cell_vol = jnp.prod((hi - lo) / (resolution - 1))
+    cell_vol = jnp.prod(dx)
     return grid, cell_vol
 
 
@@ -224,6 +242,10 @@ def _primitive_bounds(p: Primitive) -> tuple[Array, Array]:
         pt = params["point"]
         r = params["radius"]
         return pt - r - 2.0, pt + r + 2.0
+    warnings.warn(
+        f"Cannot determine bounds for {type(p).__name__}, using default",
+        stacklevel=2,
+    )
     return -jnp.ones(3) * 10.0, jnp.ones(3) * 10.0
 
 
