@@ -225,6 +225,117 @@ def stump_to_differentiable(stump: CSGStump) -> DifferentiableCSGStump:
         )
 
 
+def group_stump_primitives(
+    stump: CSGStump,
+    shape: TopoDS_Shape,
+) -> CSGStump:
+    """Group face-level primitives into bounded primitives (Box, FiniteCylinder).
+
+    Uses the same face classification logic as
+    :func:`~brepax.brep.csg.reconstruct_stock_minus_features` to
+    identify which faces form a Box (3 pairs of antiparallel planes)
+    and which cylindrical faces form FiniteCylinders.
+
+    The T matrix is re-indexed so that grouped primitives replace
+    their constituent face-level columns.  This enables stratum
+    dispatch (which requires bounded primitives with finite volume).
+
+    Args:
+        stump: A CSG-Stump with face-level primitives.
+        shape: The OCCT shape (needed for face parametric bounds).
+
+    Returns:
+        A CSG-Stump with grouped (bounded) primitives.
+    """
+    from brepax.brep.csg import (
+        _classify_faces_and_build_box,
+        _extract_indexed_faces,
+        _group_connected_faces,
+        _reconstruct_cylinder_feature,
+    )
+    from brepax.brep.topology import build_adjacency_graph
+
+    prims_nullable: list[Primitive | None] = list(stump.primitives)
+    result = _classify_faces_and_build_box(prims_nullable)
+    if result is None:
+        return stump
+
+    box, box_face_ids, feature_face_ids = result
+
+    # Group cylinder features via adjacency
+    faces = _extract_indexed_faces(shape)
+    graph = build_adjacency_graph(shape)
+    feature_groups = _group_connected_faces(feature_face_ids, graph)
+
+    grouped_primitives: list[Primitive] = [box]
+    # Mapping: old face index → new primitive index
+    face_to_group: dict[int, int] = {}
+    for fid in box_face_ids:
+        face_to_group[fid] = 0
+
+    for group in feature_groups:
+        cyl_leaf = _reconstruct_cylinder_feature(group, faces, prims_nullable)
+        if cyl_leaf is not None:
+            gid = len(grouped_primitives)
+            grouped_primitives.append(cyl_leaf.primitive)
+            for fid in group:
+                face_to_group[fid] = gid
+        else:
+            # Ungrouped faces stay as face-level primitives
+            for fid in group:
+                gid = len(grouped_primitives)
+                grouped_primitives.append(stump.primitives[fid])
+                face_to_group[fid] = gid
+
+    n_old = len(stump.primitives)
+    n_new = len(grouped_primitives)
+    t_old = np.asarray(stump.intersection_matrix)
+    m = t_old.shape[0]
+
+    # Compute the T-value pattern for "inside the Box" by evaluating
+    # each constituent face's SDF at the box center.
+    box_inside_t: dict[int, float] = {}
+    for fid in box_face_ids:
+        sdf_val = float(np.asarray(stump.primitives[fid].sdf(box.center)))
+        box_inside_t[fid] = -float(np.sign(sdf_val))
+
+    t_new = np.zeros((m, n_new))
+    for k in range(m):
+        # Box group: check if all face T-values match the "inside Box" pattern
+        box_match = True
+        for fid in box_face_ids:
+            actual = t_old[k, fid]
+            if actual != 0 and actual != box_inside_t[fid]:
+                box_match = False
+                break
+        t_new[k, 0] = 1.0 if box_match else -1.0
+
+        # Other grouped primitives: direct mapping
+        for j_old in range(n_old):
+            j_new = face_to_group.get(j_old)
+            if j_new is None or j_new == 0:
+                continue
+            t_new[k, j_new] = t_old[k, j_old]
+
+    # Remove duplicate rows and all-zero rows
+    nonzero_mask = np.any(t_new != 0, axis=1)
+    t_new = t_new[nonzero_mask]
+    if len(t_new) > 0:
+        t_new = np.unique(t_new, axis=0)
+
+    if len(t_new) == 0:
+        return stump
+
+    return CSGStump(
+        primitives=grouped_primitives,
+        intersection_matrix=jnp.array(t_new),
+        union_mask=jnp.ones(len(t_new)),
+        face_ids=stump.face_ids,
+        bbox_lo=stump.bbox_lo,
+        bbox_hi=stump.bbox_hi,
+    )
+
+
 def compact_stump(stump: CSGStump) -> CSGStump:
     """Compact a CSG-Stump by merging redundant intersection terms.
 
@@ -462,6 +573,7 @@ __all__ = [
     "csg_tree_to_stump",
     "evaluate_stump_sdf",
     "evaluate_stump_volume",
+    "group_stump_primitives",
     "reconstruct_csg_stump",
     "stump_to_differentiable",
 ]
