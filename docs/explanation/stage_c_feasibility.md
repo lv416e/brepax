@@ -5,9 +5,10 @@
 This document assesses the feasibility of extending BRepAX from analytical
 primitives to general NURBS surfaces while preserving topology-aware
 (stratum-dispatched) gradients through Boolean operations. A literature survey
-of 21 papers across five research communities -- differentiable NURBS, CAD
-kernel AD, differentiable CSG, neural B-Rep generation, and isogeometric
-analysis -- confirms that no existing system simultaneously satisfies three
+of 23 papers across seven research communities -- differentiable NURBS, CAD
+kernel AD, differentiable CSG, neural B-Rep generation, isogeometric
+analysis, differentiable physics, and topology-aware methods -- confirms
+that no existing system simultaneously satisfies three
 criteria: (1) NURBS parametric structure preservation with control points as
 design variables, (2) topology-aware transition handling at Boolean boundaries,
 and (3) end-to-end differentiable B-Rep kernel semantics.
@@ -178,8 +179,9 @@ sensitivities for shell structures where patch intersections shift during
 optimization. This is the closest IGA work to criterion (2): the intersection
 geometry changes, though the patch topology itself (number of patches, which
 patches intersect) remains fixed. The moving intersection is handled within
-the FEM context, not as a general Boolean operation. Partially satisfies
-criteria (1) and (2); does not satisfy criterion (3) in the B-Rep kernel sense.
+the FEM context, not as a general Boolean operation. Satisfies criterion (1)
+and partially satisfies criterion (2); does not satisfy criterion (3) in the
+B-Rep kernel sense.
 
 ### Differentiable Physics and Contact Dynamics
 
