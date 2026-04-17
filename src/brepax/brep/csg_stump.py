@@ -347,7 +347,6 @@ def group_stump_primitives(
             for fid in group:
                 face_to_group[fid] = gid
         else:
-            # Ungrouped faces stay as face-level primitives
             for fid in group:
                 gid = len(grouped_primitives)
                 grouped_primitives.append(stump.primitives[fid])
