@@ -19,6 +19,7 @@ from brepax.brep.csg_stump import (
     csg_tree_to_stump,
     evaluate_stump_sdf,
     evaluate_stump_volume,
+    group_stump_primitives,
     reconstruct_csg_stump,
     stump_to_differentiable,
 )
@@ -397,3 +398,62 @@ class TestCompactStump:
         raw_sdf = evaluate_stump_sdf(raw, pts)
         compact_sdf = evaluate_stump_sdf(compacted, pts)
         assert jnp.all(jnp.sign(raw_sdf) == jnp.sign(compact_sdf))
+
+
+class TestGroupStumpPrimitives:
+    """Primitive grouping: face-level → bounded primitives."""
+
+    def test_holes_grouped_to_bounded(self) -> None:
+        """box_with_holes: 8 face prims → Box + 2 FiniteCylinder."""
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        types = [type(p).__name__ for p in grouped.primitives]
+        assert "Box" in types
+        assert types.count("FiniteCylinder") == 2
+        assert len(grouped.primitives) == 3
+
+    def test_pocket_grouped_to_bounded(self) -> None:
+        """box_with_pocket: 8 face prims → Box + FiniteCylinder."""
+        shape = read_step(FIXTURES / "box_with_pocket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        types = [type(p).__name__ for p in grouped.primitives]
+        assert "Box" in types
+        assert "FiniteCylinder" in types
+        assert len(grouped.primitives) == 2
+
+    def test_pocket_grouping_improves_precision(self) -> None:
+        """Grouped + compacted pocket should have <3% volume error."""
+        shape = read_step(FIXTURES / "box_with_pocket.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        compacted = compact_stump(grouped)
+        vol = float(evaluate_stump_volume(compacted, resolution=64))
+        analytical = 40 * 30 * 20 - jnp.pi * 25 * 10
+        assert vol == pytest.approx(float(analytical), rel=0.03)
+
+    def test_grouping_preserves_sdf_correctness(self) -> None:
+        """SDF signs must be correct after grouping."""
+        shape = read_step(FIXTURES / "box_with_holes.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        compacted = compact_stump(grouped)
+        assert float(evaluate_stump_sdf(compacted, jnp.array([5.0, 5.0, 5.0]))) < 0
+        assert float(evaluate_stump_sdf(compacted, jnp.array([10.0, 15.0, 10.0]))) > 0
+        assert float(evaluate_stump_sdf(compacted, jnp.array([50.0, 50.0, 50.0]))) > 0
+
+    @pytest.mark.filterwarnings("ignore:.*has no cylindrical faces.*:UserWarning")
+    def test_slot_partial_grouping(self) -> None:
+        """Slot: outer box grouped, planar features remain ungrouped."""
+        shape = read_step(FIXTURES / "box_with_slot.step")
+        raw = reconstruct_csg_stump(shape)
+        assert raw is not None
+        grouped = group_stump_primitives(raw, shape)
+        types = [type(p).__name__ for p in grouped.primitives]
+        assert "Box" in types
+        assert len(grouped.primitives) < len(raw.primitives)
