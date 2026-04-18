@@ -143,3 +143,16 @@ class TestFaceToPrimitive:
         dist = surf.sdf(jnp.array([0.5, 0.5, 1.0]))
         assert jnp.isfinite(dist)
         assert jnp.isclose(jnp.abs(dist), 1.0, rtol=0.05)
+
+    def test_bspline_trim_polygon_extracted(self) -> None:
+        """BSpline faces from NIST CTC-05 have trim polygons."""
+        shape = read_step(FIXTURES / "nist" / "nist_ctc_05_asme1_rd.stp")
+        prims = faces_to_primitives(shape)
+        bsplines = [p for p in prims if isinstance(p, BSplineSurface)]
+        assert len(bsplines) > 0
+        for surf in bsplines:
+            assert surf.trim_polygon is not None
+            assert surf.trim_mask is not None
+            assert surf.trim_polygon.shape[1] == 2
+            assert surf.trim_polygon.shape[0] == surf.trim_mask.shape[0]
+            assert surf.trim_polygon.shape[0] >= 3

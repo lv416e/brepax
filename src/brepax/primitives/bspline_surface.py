@@ -55,6 +55,8 @@ class BSplineSurface(Primitive):
     weights: Array | None = eqx.field(default=None)
     param_u_range: tuple[float, float] | None = eqx.field(default=None, static=True)
     param_v_range: tuple[float, float] | None = eqx.field(default=None, static=True)
+    trim_polygon: Array | None = eqx.field(default=None)
+    trim_mask: Array | None = eqx.field(default=None)
 
     def sdf(self, x: Float[Array, "... 3"]) -> Float[Array, "..."]:
         """Signed distance from query points to the B-spline surface.

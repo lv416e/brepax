@@ -7,10 +7,11 @@ only this module.
 
 from OCP.Bnd import Bnd_Box
 from OCP.BRep import BRep_Tool
-from OCP.BRepAdaptor import BRepAdaptor_Surface
+from OCP.BRepAdaptor import BRepAdaptor_Curve2d, BRepAdaptor_Surface
 from OCP.BRepBndLib import BRepBndLib
 from OCP.BRepClass3d import BRepClass3d_SolidClassifier
 from OCP.BRepMesh import BRepMesh_IncrementalMesh
+from OCP.BRepTools import BRepTools_WireExplorer
 from OCP.GeomAbs import (
     GeomAbs_BezierSurface,
     GeomAbs_BSplineSurface,
@@ -24,7 +25,14 @@ from OCP.GeomAbs import (
 from OCP.gp import gp_Pnt
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.STEPControl import STEPControl_Reader
-from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_IN, TopAbs_VERTEX
+from OCP.TopAbs import (
+    TopAbs_EDGE,
+    TopAbs_FACE,
+    TopAbs_FORWARD,
+    TopAbs_IN,
+    TopAbs_VERTEX,
+    TopAbs_WIRE,
+)
 from OCP.TopExp import TopExp, TopExp_Explorer
 from OCP.TopLoc import TopLoc_Location
 from OCP.TopoDS import TopoDS
@@ -34,10 +42,12 @@ from OCP.TopTools import (
 )
 
 __all__ = [
+    "BRepAdaptor_Curve2d",
     "BRepAdaptor_Surface",
     "BRepBndLib",
     "BRepClass3d_SolidClassifier",
     "BRepMesh_IncrementalMesh",
+    "BRepTools_WireExplorer",
     "BRep_Tool",
     "Bnd_Box",
     "GeomAbs_BSplineSurface",
@@ -52,8 +62,10 @@ __all__ = [
     "STEPControl_Reader",
     "TopAbs_EDGE",
     "TopAbs_FACE",
+    "TopAbs_FORWARD",
     "TopAbs_IN",
     "TopAbs_VERTEX",
+    "TopAbs_WIRE",
     "TopExp",
     "TopExp_Explorer",
     "TopLoc_Location",

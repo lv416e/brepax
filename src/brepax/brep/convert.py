@@ -11,8 +11,10 @@ import numpy as np
 
 from brepax._occt.backend import (
     Bnd_Box,
+    BRepAdaptor_Curve2d,
     BRepAdaptor_Surface,
     BRepBndLib,
+    BRepTools_WireExplorer,
     GeomAbs_BezierSurface,
     GeomAbs_BSplineSurface,
     GeomAbs_Cone,
@@ -23,7 +25,9 @@ from brepax._occt.backend import (
     GeomAbs_Torus,
     TopAbs_EDGE,
     TopAbs_FACE,
+    TopAbs_FORWARD,
     TopAbs_VERTEX,
+    TopAbs_WIRE,
     TopExp_Explorer,
     TopoDS,
 )
@@ -181,7 +185,7 @@ def face_to_primitive(face: TopoDS_Face) -> Primitive | None:
         )
 
     if stype == GeomAbs_BSplineSurface:
-        return _convert_bspline_face(adaptor)
+        return _convert_bspline_face(adaptor, face)
 
     type_name = _SURFACE_TYPE_NAMES.get(stype, "unknown")
     warnings.warn(
@@ -203,7 +207,53 @@ def _expand_knots(unique_knots: list[float], multiplicities: list[int]) -> jnp.n
     return jnp.array(repeated)
 
 
-def _convert_bspline_face(adaptor: Any) -> BSplinePrim | None:
+_TRIM_SAMPLES_PER_EDGE = 8
+
+
+def _extract_trim_polygon(
+    face: TopoDS_Face,
+) -> np.ndarray | None:
+    """Extract the outer wire of a face as a polyline in 2D parameter space.
+
+    Traverses the wire edges in topological order using
+    ``BRepTools_WireExplorer``, sampling each edge's pcurve at
+    regular intervals.  Returns ``None`` for faces with fewer than
+    3 edges (degenerate) or no outer wire.
+
+    Returns:
+        Array of shape ``(n_vertices, 2)`` with (u, v) coordinates,
+        or ``None`` if the wire cannot be extracted.
+    """
+    wire_exp = TopExp_Explorer(face, TopAbs_WIRE)
+    if not wire_exp.More():
+        return None
+    wire = TopoDS.Wire_s(wire_exp.Current())
+
+    vertices: list[list[float]] = []
+    we = BRepTools_WireExplorer(wire, face)
+    while we.More():
+        edge = we.Current()
+        curve2d = BRepAdaptor_Curve2d(edge, face)
+        t0 = curve2d.FirstParameter()
+        t1 = curve2d.LastParameter()
+        is_forward = edge.Orientation() == TopAbs_FORWARD
+
+        for i in range(_TRIM_SAMPLES_PER_EDGE):
+            frac = i / _TRIM_SAMPLES_PER_EDGE
+            t = t0 + (t1 - t0) * frac if is_forward else t1 - (t1 - t0) * frac
+            pt = curve2d.Value(t)
+            vertices.append([pt.X(), pt.Y()])
+
+        we.Next()
+
+    if len(vertices) < 3:
+        return None
+    return np.array(vertices)
+
+
+def _convert_bspline_face(
+    adaptor: Any, face: TopoDS_Face | None = None
+) -> BSplinePrim | None:
     """Convert an OCCT B-spline surface to a BSplineSurface primitive.
 
     Extracts control points, knot vectors, and degree from the OCCT
@@ -270,6 +320,15 @@ def _convert_bspline_face(adaptor: Any) -> BSplinePrim | None:
     if abs(v_face_lo - v_full_lo) > eps_param or abs(v_face_hi - v_full_hi) > eps_param:
         param_v_range = (v_face_lo, v_face_hi)
 
+    # Extract 2D trim polygon for non-rectangular face boundaries
+    trim_polygon = None
+    trim_mask = None
+    if face is not None:
+        poly_np = _extract_trim_polygon(face)
+        if poly_np is not None:
+            trim_polygon = jnp.array(poly_np)
+            trim_mask = jnp.ones(len(poly_np))
+
     return BSplinePrim(
         control_points=jnp.array(poles),
         knots_u=knots_u,
@@ -279,6 +338,8 @@ def _convert_bspline_face(adaptor: Any) -> BSplinePrim | None:
         weights=weights,
         param_u_range=param_u_range,
         param_v_range=param_v_range,
+        trim_polygon=trim_polygon,
+        trim_mask=trim_mask,
     )
 
 
