@@ -28,26 +28,32 @@ from jaxtyping import Array, Float
 from brepax.brep.csg_eval import make_grid_3d
 
 
-def _laplacian(
-    sdf: Float[Array, "R R R"],
-    dx: Float[Array, 3],
+def _ad_laplacian(
+    sdf_fn: Callable[..., Float[Array, ...]],
+    grid: Float[Array, "R R R 3"],
 ) -> Float[Array, "R R R"]:
-    """Laplacian of SDF via second-order finite differences.
+    """Laplacian of SDF via AD Hessian: trace(H) at each grid point.
 
-    Computes d2f/dx2 + d2f/dy2 + d2f/dz2 using ``jnp.gradient`` applied
-    twice along each axis.
+    Uses forward-over-reverse AD (``jax.jacfwd(jax.grad(f))``) for
+    efficient computation of the 3x3 Hessian of a scalar-valued SDF.
     """
-    g0 = jnp.asarray(jnp.gradient(sdf, dx[0], axis=0))
-    g1 = jnp.asarray(jnp.gradient(sdf, dx[1], axis=1))
-    g2 = jnp.asarray(jnp.gradient(sdf, dx[2], axis=2))
-    d2x = jnp.asarray(jnp.gradient(g0, dx[0], axis=0))
-    d2y = jnp.asarray(jnp.gradient(g1, dx[1], axis=1))
-    d2z = jnp.asarray(jnp.gradient(g2, dx[2], axis=2))
-    return d2x + d2y + d2z
+    spatial_shape = grid.shape[:-1]
+    flat = grid.reshape(-1, 3)
+
+    def _single_laplacian(x: Float[Array, 3]) -> Float[Array, ""]:
+        hessian = jax.jacfwd(jax.grad(sdf_fn))(x)
+        return jnp.trace(hessian)
+
+    lap_flat = jax.vmap(_single_laplacian)(flat)
+    # SDF singularities (e.g. sphere center) produce non-finite Hessian values;
+    # these occur far from the surface and are irrelevant to curvature integration.
+    lap_flat = jnp.where(jnp.isfinite(lap_flat), lap_flat, 0.0)
+    return lap_flat.reshape(spatial_shape)
 
 
 def integrate_sdf_mean_curvature(
     sdf: Float[Array, ...],
+    laplacian: Float[Array, ...],
     lo: Float[Array, 3],
     hi: Float[Array, 3],
     resolution: int,
@@ -66,6 +72,8 @@ def integrate_sdf_mean_curvature(
     Args:
         sdf: Pre-evaluated SDF values on a cell-centered grid
             with shape ``(R, R, R)`` from :func:`make_grid_3d`.
+        laplacian: Pre-computed Laplacian values on the same grid,
+            with shape ``(R, R, R)``.
         lo: Grid lower bound ``(3,)``.
         hi: Grid upper bound ``(3,)``.
         resolution: Number of grid points per axis.
@@ -81,7 +89,9 @@ def integrate_sdf_mean_curvature(
         >>> grid, _ = make_grid_3d(lo, hi, 64)
         >>> sphere = Sphere(center=jnp.zeros(3), radius=jnp.array(1.0))
         >>> sdf = sphere.sdf(grid)
-        >>> kappa = integrate_sdf_mean_curvature(sdf, lo, hi, 64)
+        >>> from brepax.metrics.curvature import _ad_laplacian
+        >>> lap = _ad_laplacian(sphere.sdf, grid)
+        >>> kappa = integrate_sdf_mean_curvature(sdf, lap, lo, hi, 64)
     """
     dx = (hi - lo) / resolution
     cell_vol = jnp.prod(dx)
@@ -89,8 +99,6 @@ def integrate_sdf_mean_curvature(
 
     indicator = jax.nn.sigmoid(-sdf / cell_width)
     delta = indicator * (1.0 - indicator) / cell_width
-
-    laplacian = _laplacian(sdf, dx)
 
     delta_sum = jnp.sum(delta) * cell_vol
     weighted_curvature = jnp.sum(laplacian * delta) * cell_vol
@@ -137,11 +145,13 @@ def mean_curvature(
     hi = jax.lax.stop_gradient(hi)
     grid, _ = make_grid_3d(lo, hi, resolution)
     sdf_vals = sdf_fn(grid)
-    return integrate_sdf_mean_curvature(sdf_vals, lo, hi, resolution)
+    laplacian = _ad_laplacian(sdf_fn, grid)
+    return integrate_sdf_mean_curvature(sdf_vals, laplacian, lo, hi, resolution)
 
 
 def integrate_sdf_max_curvature(
     sdf: Float[Array, ...],
+    laplacian: Float[Array, ...],
     lo: Float[Array, 3],
     hi: Float[Array, 3],
     resolution: int,
@@ -156,6 +166,8 @@ def integrate_sdf_max_curvature(
     Args:
         sdf: Pre-evaluated SDF values on a cell-centered grid
             with shape ``(R, R, R)`` from :func:`make_grid_3d`.
+        laplacian: Pre-computed Laplacian values on the same grid,
+            with shape ``(R, R, R)``.
         lo: Grid lower bound ``(3,)``.
         hi: Grid upper bound ``(3,)``.
         resolution: Number of grid points per axis.
@@ -172,18 +184,19 @@ def integrate_sdf_max_curvature(
     indicator = jax.nn.sigmoid(-sdf / cell_width)
     delta = indicator * (1.0 - indicator) / cell_width
 
-    laplacian = _laplacian(sdf, dx)
     abs_curvature = jnp.abs(laplacian)
 
-    # Restrict to near-surface region to avoid Laplacian noise
-    surface_mask = delta > (jnp.max(delta) * 0.01)
-    safe_curv = jnp.where(surface_mask, abs_curvature, 0.0)
+    # Restrict to within one cell width of the surface; this suppresses
+    # off-surface Laplacian singularities (e.g. 2/||x|| at sphere center)
+    # while retaining differentiability through the sigmoid boundary.
+    near_surface = jnp.abs(sdf) < cell_width
+    safe_curv = jnp.where(near_surface, abs_curvature, 0.0)
 
     flat_curv = safe_curv.ravel()
     flat_delta = delta.ravel()
 
-    # Softmax weighted by curvature magnitude + surface proximity
-    log_w = flat_curv / temperature + jnp.log(flat_delta + 1e-20)
+    # Softmax weighted by curvature magnitude and surface proximity
+    log_w = flat_curv / temperature + jnp.log(flat_delta + 1e-30)
     softmax_w = jax.nn.softmax(log_w)
     return jnp.sum(flat_curv * softmax_w)
 
@@ -229,7 +242,10 @@ def max_curvature(
     hi = jax.lax.stop_gradient(hi)
     grid, _ = make_grid_3d(lo, hi, resolution)
     sdf_vals = sdf_fn(grid)
-    return integrate_sdf_max_curvature(sdf_vals, lo, hi, resolution, temperature)
+    laplacian = _ad_laplacian(sdf_fn, grid)
+    return integrate_sdf_max_curvature(
+        sdf_vals, laplacian, lo, hi, resolution, temperature
+    )
 
 
 __all__ = [
