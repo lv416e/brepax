@@ -25,6 +25,8 @@ def bspline_sdf(
     u0: Float[Array, ""] | float = 0.5,
     v0: Float[Array, ""] | float = 0.5,
     weights: Float[Array, "nu nv"] | None = None,
+    param_u_range: tuple[float, float] | None = None,
+    param_v_range: tuple[float, float] | None = None,
 ) -> Float[Array, ""]:
     """Signed distance from a query point to a B-spline surface.
 
@@ -72,6 +74,8 @@ def bspline_sdf(
         u0,
         v0,
         weights,
+        param_u_range,
+        param_v_range,
     )
 
     point, du, dv = evaluate_surface_derivs(
