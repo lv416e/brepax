@@ -71,7 +71,7 @@ natural integration point with other manifold optimization libraries.
 - BRepAX has a concrete "what can you do with this?" answer for launch.
 - The experimental API surface grows, but all new code is under
   `experimental/applications/` with clear "subject to change" labeling.
-- Future Phase 2 work (full mold direction optimizer, inverse design)
+- Future work on the full mold direction optimizer and inverse design
   can extend this skeleton rather than starting from scratch.
 - The softplus metric design and finite-difference normal pattern are
   reusable for other SDF-based analysis tools.

@@ -1,10 +1,10 @@
-# Phase 1 Gate Evaluation Report
+# 3D Extension Evaluation Report
 
 ## Summary
 
 **Overall verdict: PASS**
 
-Phase 1 extends the concept proof to 3D with 8 primitive types, 3 Boolean operations,
+The 3D extension extends the concept proof to 3D with 8 primitive types, 3 Boolean operations,
 and a unified stratum dispatch architecture. The core design principle (stratum-aware
 gradient computation) is fully generalized to arbitrary primitive pairs.
 
@@ -101,18 +101,18 @@ Cylinder+Plane) covering union, subtract, intersect, and gradient computation.
 
 ## Gate 5: Design Principle 3D Inheritance
 
-**Criterion**: Phase 0 Method (C) design principles are maintained in 3D.
+**Criterion**: Concept proof Method (C) design principles are maintained in 3D.
 
 **Result: PASS**
 
-Phase 0 established: stratum label dispatch in custom_vjp backward pass.
-Phase 1 preserves this in `_boolean_measure_with_dispatch`:
+The concept proof established: stratum label dispatch in custom_vjp backward pass.
+The 3D extension preserves this in `_boolean_measure_with_dispatch`:
 - Forward: exact SDF Boolean + heaviside indicator on grid
 - Backward: stratum label from `_detect_stratum_generic`, per-stratum gradient dispatch
 - Disjoint/contained: analytical `volume()` via `jax.grad`
 - Intersecting: straight-through estimator with grid-adaptive beta
 
-Key findings during Phase 1:
+Key findings during the 3D extension:
 - Thin sigmoid applied uniformly is a Method (A) variant (discovered and corrected)
 - Heterogeneous PyTree pairs need independent `jax.tree.map` calls
 - Drilling operations (penetrating cylinders) are structurally always in the intersecting stratum
@@ -132,7 +132,7 @@ at 6x the accuracy of smoothing methods.
 
 ## Recommendation
 
-**Proceed to public launch preparation.** Phase 1 validates the complete
+**Proceed to public launch preparation.** The 3D extension validates the complete
 3D architecture with 8 primitives, 3 Boolean operations, and stratum-aware
 gradient computation achieving analytical exactness in 3 of 4 strata for
 bounded primitive pairs.
