@@ -1699,7 +1699,7 @@
 <li><strong>Design verification</strong>: Does <code>jax.custom_vjp</code> (Method C) compose correctly with <code>vmap</code>?</li>
 <li><strong>Performance verification</strong>: Does throughput scale linearly with batch size on GPU?</li>
 </ol>
-<p>Phase 0 was conducted on CPU (Apple Silicon). The custom_vjp + vmap integration works correctly (shape tests pass, gradients are accurate across batches), but throughput scaling shows typical CPU memory bandwidth saturation starting at batch size 64.</p>
+<p>The concept proof was conducted on CPU (Apple Silicon). The custom_vjp + vmap integration works correctly (shape tests pass, gradients are accurate across batches), but throughput scaling shows typical CPU memory bandwidth saturation starting at batch size 64.</p>
 <p>CPU scaling results:</p>
 <table>
 <thead>
@@ -1747,12 +1747,12 @@
 <p>Split Gate 3 into two sub-criteria:</p>
 <ul>
 <li><strong>Gate 3a (design verification)</strong>: custom_vjp + vmap integration works correctly. <strong>PASS.</strong></li>
-<li><strong>Gate 3b (performance verification)</strong>: GPU throughput scaling meets 70% efficiency. <strong>DEFERRED to Phase 1.</strong></li>
+<li><strong>Gate 3b (performance verification)</strong>: GPU throughput scaling meets 70% efficiency. <strong>DEFERRED to the 3D extension.</strong></li>
 </ul>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Phase 0 gate evaluation proceeds with Gate 3a PASS</li>
-<li>Phase 1 will include GPU benchmark as part of the 3D primitive test suite</li>
+<li>Concept proof gate evaluation proceeds with Gate 3a PASS</li>
+<li>The 3D extension will include GPU benchmark as part of the primitive test suite</li>
 <li>CPU flattening data serves as a baseline for GPU comparison</li>
 <li>The 70% efficiency threshold remains unchanged for the GPU evaluation</li>
 </ul>

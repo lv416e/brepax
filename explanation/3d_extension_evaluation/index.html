@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#phase-1-gate-evaluation-report" class="md-skip">
+        <a href="#3d-extension-evaluation-report" class="md-skip">
           Skip to content
         </a>
       
@@ -1800,10 +1800,10 @@
   
 
 
-<h1 id="phase-1-gate-evaluation-report">Phase 1 Gate Evaluation Report<a class="headerlink" href="#phase-1-gate-evaluation-report" title="Permanent link">&para;</a></h1>
+<h1 id="3d-extension-evaluation-report">3D Extension Evaluation Report<a class="headerlink" href="#3d-extension-evaluation-report" title="Permanent link">&para;</a></h1>
 <h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
 <p><strong>Overall verdict: PASS</strong></p>
-<p>Phase 1 extends the concept proof to 3D with 8 primitive types, 3 Boolean operations,
+<p>The 3D extension extends the concept proof to 3D with 8 primitive types, 3 Boolean operations,
 and a unified stratum dispatch architecture. The core design principle (stratum-aware
 gradient computation) is fully generalized to arbitrary primitive pairs.</p>
 <table>
@@ -2020,15 +2020,15 @@ stratum dispatch automatically.</p>
 <p>Validated with 6 heterogeneous pair tests (Sphere+Cylinder, Sphere+Plane,
 Cylinder+Plane) covering union, subtract, intersect, and gradient computation.</p>
 <h2 id="gate-5-design-principle-3d-inheritance">Gate 5: Design Principle 3D Inheritance<a class="headerlink" href="#gate-5-design-principle-3d-inheritance" title="Permanent link">&para;</a></h2>
-<p><strong>Criterion</strong>: Phase 0 Method (C) design principles are maintained in 3D.</p>
+<p><strong>Criterion</strong>: Concept proof Method (C) design principles are maintained in 3D.</p>
 <p><strong>Result: PASS</strong></p>
-<p>Phase 0 established: stratum label dispatch in custom_vjp backward pass.
-Phase 1 preserves this in <code>_boolean_measure_with_dispatch</code>:
+<p>The concept proof established: stratum label dispatch in custom_vjp backward pass.
+The 3D extension preserves this in <code>_boolean_measure_with_dispatch</code>:
 - Forward: exact SDF Boolean + heaviside indicator on grid
 - Backward: stratum label from <code>_detect_stratum_generic</code>, per-stratum gradient dispatch
 - Disjoint/contained: analytical <code>volume()</code> via <code>jax.grad</code>
 - Intersecting: straight-through estimator with grid-adaptive beta</p>
-<p>Key findings during Phase 1:
+<p>Key findings during the 3D extension:
 - Thin sigmoid applied uniformly is a Method (A) variant (discovered and corrected)
 - Heterogeneous PyTree pairs need independent <code>jax.tree.map</code> calls
 - Drilling operations (penetrating cylinders) are structurally always in the intersecting stratum</p>
@@ -2059,7 +2059,7 @@ Phase 1 preserves this in <code>_boolean_measure_with_dispatch</code>:
 penetrates sphere), so analytical exact does not apply. Grid-based precision
 at 6x the accuracy of smoothing methods.</p>
 <h2 id="recommendation">Recommendation<a class="headerlink" href="#recommendation" title="Permanent link">&para;</a></h2>
-<p><strong>Proceed to public launch preparation.</strong> Phase 1 validates the complete
+<p><strong>Proceed to public launch preparation.</strong> The 3D extension validates the complete
 3D architecture with 8 primitives, 3 Boolean operations, and stratum-aware
 gradient computation achieving analytical exactness in 3 of 4 strata for
 bounded primitive pairs.</p>

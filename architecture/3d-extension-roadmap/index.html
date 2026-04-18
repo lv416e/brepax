@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#phase-1-roadmap" class="md-skip">
+        <a href="#3d-extension-roadmap" class="md-skip">
           Skip to content
         </a>
       
@@ -1746,7 +1746,7 @@
   
 
 
-<h1 id="phase-1-roadmap">Phase 1 Roadmap<a class="headerlink" href="#phase-1-roadmap" title="Permanent link">&para;</a></h1>
+<h1 id="3d-extension-roadmap">3D Extension Roadmap<a class="headerlink" href="#3d-extension-roadmap" title="Permanent link">&para;</a></h1>
 <p>Informed by concept proof findings: stratum-aware gradient exactness (Gate 1),
 method complementarity (ADR-0011), and the hybrid optimization requirement.</p>
 <h2 id="3d-primitive-implementation-order">3D Primitive Implementation Order<a class="headerlink" href="#3d-primitive-implementation-order" title="Permanent link">&para;</a></h2>
@@ -1772,7 +1772,7 @@ method complementarity (ADR-0011), and the hybrid optimization requirement.</p>
 <tr>
 <td>3</td>
 <td>Plane</td>
-<td>Trivial SDF (signed distance to half-space). Enables <strong>Cylinder + Plane = drilling</strong> demo, the Phase 1 midpoint milestone.</td>
+<td>Trivial SDF (signed distance to half-space). Enables <strong>Cylinder + Plane = drilling</strong> demo, the 3D extension midpoint milestone.</td>
 </tr>
 <tr>
 <td>4</td>
@@ -1799,18 +1799,20 @@ industrial CAD operation and serves as the first 3D demo with external visibilit
 <p>Union, intersection, and subtract for all primitive pairs. Method (C) stratum-aware
 is the primary method; Method (A) smoothing is retained for cross-stratum exploration.</p>
 <h2 id="method-b-toi-correction">Method (B) TOI Correction<a class="headerlink" href="#method-b-toi-correction" title="Permanent link">&para;</a></h2>
-<p>Deferred to Phase 2 (ADR-0009). Implementation will occur alongside the hybrid
-optimizer where cross-stratum gradient transfer has a concrete use case.
-The mathematical derivation is complete (docs/explanation/toi_derivation.md).</p>
+<p>Deferred to the STEP pipeline milestone (ADR-0009). Implementation will occur
+alongside the hybrid optimizer where cross-stratum gradient transfer has a
+concrete use case. The mathematical derivation is complete
+(docs/explanation/toi_derivation.md).</p>
 <h2 id="hybrid-optimizer">Hybrid Optimizer<a class="headerlink" href="#hybrid-optimizer" title="Permanent link">&para;</a></h2>
-<p>Phase 1 delivers the API skeleton in <code>brepax/experimental/optimizers/</code>:</p>
+<p>The 3D extension delivers the API skeleton in <code>brepax/experimental/optimizers/</code>:</p>
 <ul>
 <li><code>HybridSchedule</code>: switch criteria (step count, boundary distance, loss plateau)</li>
 <li><code>HybridResult</code>: trajectory, method log, stratum transitions, convergence status</li>
 <li><code>hybrid_optimize()</code>: function signature fixed, implementation raises NotImplementedError</li>
 </ul>
-<p>Phase 1 example notebook demonstrates manual Method (A) → Method (C) switching
-on the disk-disk problem. Phase 2 implements the automatic scheduler.</p>
+<p>An example notebook demonstrates manual Method (A) to Method (C) switching
+on the disk-disk problem. The automatic scheduler is deferred to the STEP
+pipeline milestone.</p>
 <h2 id="completion-criteria">Completion Criteria<a class="headerlink" href="#completion-criteria" title="Permanent link">&para;</a></h2>
 <ul>
 <li>[ ] 6 primitives with SDF, jit/vmap/grad compatible, property tests</li>
