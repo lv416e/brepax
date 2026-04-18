@@ -14,6 +14,7 @@ from brepax._occt.backend import (
     BRepAdaptor_Curve2d,
     BRepAdaptor_Surface,
     BRepBndLib,
+    BRepTools,
     BRepTools_WireExplorer,
     GeomAbs_BezierSurface,
     GeomAbs_BSplineSurface,
@@ -27,7 +28,6 @@ from brepax._occt.backend import (
     TopAbs_FACE,
     TopAbs_FORWARD,
     TopAbs_VERTEX,
-    TopAbs_WIRE,
     TopExp_Explorer,
     TopoDS,
 )
@@ -224,10 +224,9 @@ def _extract_trim_polygon(
         Array of shape ``(n_vertices, 2)`` with (u, v) coordinates,
         or ``None`` if the wire cannot be extracted.
     """
-    wire_exp = TopExp_Explorer(face, TopAbs_WIRE)
-    if not wire_exp.More():
+    wire = BRepTools.OuterWire_s(face)
+    if wire.IsNull():
         return None
-    wire = TopoDS.Wire_s(wire_exp.Current())
 
     vertices: list[list[float]] = []
     we = BRepTools_WireExplorer(wire, face)

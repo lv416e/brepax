@@ -11,7 +11,7 @@ from OCP.BRepAdaptor import BRepAdaptor_Curve2d, BRepAdaptor_Surface
 from OCP.BRepBndLib import BRepBndLib
 from OCP.BRepClass3d import BRepClass3d_SolidClassifier
 from OCP.BRepMesh import BRepMesh_IncrementalMesh
-from OCP.BRepTools import BRepTools_WireExplorer
+from OCP.BRepTools import BRepTools, BRepTools_WireExplorer
 from OCP.GeomAbs import (
     GeomAbs_BezierSurface,
     GeomAbs_BSplineSurface,
@@ -47,6 +47,7 @@ __all__ = [
     "BRepBndLib",
     "BRepClass3d_SolidClassifier",
     "BRepMesh_IncrementalMesh",
+    "BRepTools",
     "BRepTools_WireExplorer",
     "BRep_Tool",
     "Bnd_Box",

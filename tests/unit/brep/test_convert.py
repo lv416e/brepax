@@ -146,7 +146,10 @@ class TestFaceToPrimitive:
 
     def test_bspline_trim_polygon_extracted(self) -> None:
         """BSpline faces from NIST CTC-05 have trim polygons."""
-        shape = read_step(FIXTURES / "nist" / "nist_ctc_05_asme1_rd.stp")
+        nist_file = FIXTURES / "nist" / "nist_ctc_05_asme1_rd.stp"
+        if not nist_file.exists():
+            pytest.skip("NIST fixture not available")
+        shape = read_step(nist_file)
         prims = faces_to_primitives(shape)
         bsplines = [p for p in prims if isinstance(p, BSplineSurface)]
         assert len(bsplines) > 0

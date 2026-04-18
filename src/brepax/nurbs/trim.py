@@ -45,8 +45,13 @@ def signed_distance_polygon(
         >>> d = signed_distance_polygon(jnp.array([0.2, 0.2]), tri, m)
     """
     # Edge endpoints: v1[i] -> v2[i]
+    # Connect last valid vertex back to first to close the polygon loop
+    # when padding is present (jnp.roll alone would connect to padding).
     v1 = vertices
     v2 = jnp.roll(vertices, -1, axis=0)
+    num_valid = jnp.sum(mask).astype(jnp.int32)
+    last_valid_idx = jnp.maximum(0, num_valid - 1)
+    v2 = v2.at[last_valid_idx].set(vertices[0])
 
     edge = v2 - v1
     w = point - v1
