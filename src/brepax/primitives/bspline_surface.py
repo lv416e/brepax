@@ -13,8 +13,10 @@ grid-based evaluation, matching the pattern used by
 
 import equinox as eqx
 import jax
+import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from brepax.nurbs.evaluate import evaluate_surface
 from brepax.nurbs.sdf import bspline_sdf
 from brepax.primitives._base import Primitive
 
@@ -61,7 +63,39 @@ class BSplineSurface(Primitive):
         shape = x.shape[:-1]
         flat = x.reshape(-1, 3)
 
+        # Coarse grid sampling: compute once, reuse for all query points
+        from brepax.nurbs.projection import _COARSE_GRID
+
+        u_lo = self.knots_u[self.degree_u]
+        u_hi = self.knots_u[-self.degree_u - 1]
+        v_lo = self.knots_v[self.degree_v]
+        v_hi = self.knots_v[-self.degree_v - 1]
+        us = jnp.linspace(u_lo, u_hi, _COARSE_GRID)
+        vs = jnp.linspace(v_lo, v_hi, _COARSE_GRID)
+        u_grid, v_grid = jnp.meshgrid(us, vs, indexing="ij")
+        u_flat_g = u_grid.ravel()
+        v_flat_g = v_grid.ravel()
+
+        def _eval_sample(u: Array, v: Array) -> Array:
+            return evaluate_surface(
+                self.control_points,
+                self.knots_u,
+                self.knots_v,
+                self.degree_u,
+                self.degree_v,
+                u,
+                v,
+                self.weights,
+            )
+
+        samples = jax.vmap(_eval_sample)(u_flat_g, v_flat_g)
+
         def _single_sdf(q: Array) -> Array:
+            # Find closest coarse sample (stop_gradient: argmin is non-diff)
+            dists = jnp.sum((samples - q) ** 2, axis=-1)
+            best = jnp.argmin(dists)
+            u0 = jax.lax.stop_gradient(u_flat_g[best])
+            v0 = jax.lax.stop_gradient(v_flat_g[best])
             return bspline_sdf(
                 q,
                 self.control_points,
@@ -69,6 +103,8 @@ class BSplineSurface(Primitive):
                 self.knots_v,
                 self.degree_u,
                 self.degree_v,
+                u0=u0,
+                v0=v0,
                 weights=self.weights,
             )
 
