@@ -2,9 +2,10 @@
 
 ## Context
 
-BRepAX Stage B.1 converts STEP faces to analytical primitives (Plane, Cylinder,
-Sphere, Cone, Torus). Stage B.2 builds a face adjacency graph. The question is
-whether BRepAX can reconstruct a CSG tree from these ingredients, and if so, how.
+The BRepAX STEP pipeline converts STEP faces to analytical primitives (Plane,
+Cylinder, Sphere, Cone, Torus) and builds a face adjacency graph. The question
+is whether BRepAX can reconstruct a CSG tree from these ingredients, and if so,
+how.
 
 ## BRepAX Starting Point
 
@@ -87,24 +88,23 @@ Implement a differentiable CSG-Stump layer where:
 - **Shapiro-Vossler PMC** provides warm-start initialization
 - **BRepAX stratum-aware Booleans** enable gradient flow through the tree
 
-### Implementation Phases
+### Implementation Steps
 
-**Phase 1: Minimum Viable Reconstruction.** Handle "stock minus features"
-patterns: a base primitive (Box) with holes/pockets subtracted (Cylinders).
-This covers a large fraction of machined parts. Use adjacency graph to identify
-connected groups of subtractive features.
+**Minimum viable reconstruction.** Handle "stock minus features" patterns: a
+base primitive (Box) with holes/pockets subtracted (Cylinders). This covers a
+large fraction of machined parts. Use adjacency graph to identify connected
+groups of subtractive features.
 
 Estimated effort: 1-2 weeks. Expected success rate for simple machined parts:
 60-70%.
 
-**Phase 2: DNF Reconstruction.** Implement full CSG-Stump with adjacency-based
-pruning and PMC warm-start. Flat DNF output (union of intersections of
-half-spaces).
+**DNF reconstruction.** Implement full CSG-Stump with adjacency-based pruning
+and PMC warm-start. Flat DNF output (union of intersections of half-spaces).
 
 Estimated effort: 2-4 weeks. Handles arbitrary analytical-surface parts.
 
-**Phase 3: Tree Compaction.** Convert flat DNF to compact binary CSG tree via
-Boolean expression minimization (Quine-McCluskey or greedy factoring).
+**Tree compaction.** Convert flat DNF to compact binary CSG tree via Boolean
+expression minimization (Quine-McCluskey or greedy factoring).
 
 Estimated effort: 1-2 weeks. Produces human-readable CSG.
 
@@ -133,14 +133,14 @@ non-trivial.
 
 ## Recommendation
 
-**Start with Phase 1 (minimum viable reconstruction)** targeting "stock minus
-features" patterns. This delivers practical value quickly and validates the
-CSG-Stump + adjacency pruning approach on real parts. If Phase 1 succeeds,
-proceed to Phase 2 (full DNF). If Phase 1 reveals fundamental obstacles, pivot
-to the face-level trimmed SDF alternative.
+**Start with minimum viable reconstruction** targeting "stock minus features"
+patterns. This delivers practical value quickly and validates the CSG-Stump +
+adjacency pruning approach on real parts. If that succeeds, proceed to full DNF
+reconstruction. If it reveals fundamental obstacles, pivot to the face-level
+trimmed SDF alternative.
 
 The face-level alternative is always available as a fallback, so there is
-limited downside risk to attempting Phase 1 first.
+limited downside risk to attempting minimum viable reconstruction first.
 
 ## Academic Positioning
 
@@ -149,4 +149,4 @@ adjacency-based pruning would be, to our knowledge, the first system bridging
 classical Shapiro-Vossler theory with modern differentiable programming. This
 positions BRepAX at the intersection of computational geometry and
 differentiable programming — a novel contribution regardless of whether full
-tree compaction (Phase 3) is achieved.
+tree compaction is achieved.

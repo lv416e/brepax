@@ -1,4 +1,4 @@
-# Phase 1 Roadmap
+# 3D Extension Roadmap
 
 Informed by concept proof findings: stratum-aware gradient exactness (Gate 1),
 method complementarity (ADR-0011), and the hybrid optimization requirement.
@@ -9,7 +9,7 @@ method complementarity (ADR-0011), and the hybrid optimization requirement.
 |----------|-----------|-----------|
 | 1 | Sphere | Natural 3D extension of disk-disk. Same stratum structure (disjoint/intersecting/contained), same boundary function form (g = d - r1 - r2). Concept proof patterns reuse directly. |
 | 2 | Cylinder | Axis-symmetric, industrially critical. SDF is distance to infinite cylinder minus radius. Stratum structure adds axis-parallel complexity. |
-| 3 | Plane | Trivial SDF (signed distance to half-space). Enables **Cylinder + Plane = drilling** demo, the Phase 1 midpoint milestone. |
+| 3 | Plane | Trivial SDF (signed distance to half-space). Enables **Cylinder + Plane = drilling** demo, the 3D extension midpoint milestone. |
 | 4 | Cone | Natural extension of Cylinder (linear radius profile). Reuses Cylinder implementation patterns. |
 | 5 | Torus | Non-convex SDF. Most complex parametric surface in the set. |
 | 6 | Box | Axis-aligned. Edge and corner singularities create complex stratum structure. |
@@ -27,20 +27,22 @@ is the primary method; Method (A) smoothing is retained for cross-stratum explor
 
 ## Method (B) TOI Correction
 
-Deferred to Phase 2 (ADR-0009). Implementation will occur alongside the hybrid
-optimizer where cross-stratum gradient transfer has a concrete use case.
-The mathematical derivation is complete (docs/explanation/toi_derivation.md).
+Deferred to the STEP pipeline milestone (ADR-0009). Implementation will occur
+alongside the hybrid optimizer where cross-stratum gradient transfer has a
+concrete use case. The mathematical derivation is complete
+(docs/explanation/toi_derivation.md).
 
 ## Hybrid Optimizer
 
-Phase 1 delivers the API skeleton in `brepax/experimental/optimizers/`:
+The 3D extension delivers the API skeleton in `brepax/experimental/optimizers/`:
 
 - `HybridSchedule`: switch criteria (step count, boundary distance, loss plateau)
 - `HybridResult`: trajectory, method log, stratum transitions, convergence status
 - `hybrid_optimize()`: function signature fixed, implementation raises NotImplementedError
 
-Phase 1 example notebook demonstrates manual Method (A) → Method (C) switching
-on the disk-disk problem. Phase 2 implements the automatic scheduler.
+An example notebook demonstrates manual Method (A) to Method (C) switching
+on the disk-disk problem. The automatic scheduler is deferred to the STEP
+pipeline milestone.
 
 ## Completion Criteria
 
