@@ -3,40 +3,31 @@
 import jax
 import jax.numpy as jnp
 
-from brepax.brep.csg_eval import make_grid_3d
 from brepax.metrics.curvature import (
-    integrate_sdf_max_curvature,
-    integrate_sdf_mean_curvature,
     max_curvature,
     mean_curvature,
 )
 from brepax.primitives import Box, Plane, Sphere
 
 
-class TestIntegrateSdfMeanCurvature:
-    """Tests for the low-level mean curvature integration."""
+class TestMeanCurvature:
+    """Tests for the high-level mean_curvature function."""
 
-    def test_sphere_r1_curvature(self) -> None:
+    def test_sphere_r1_matches_analytical(self) -> None:
         """Sphere r=1: mean curvature = 2/R = 2.0."""
         sphere = Sphere(center=jnp.zeros(3), radius=jnp.array(1.0))
         lo, hi = jnp.array([-2.0] * 3), jnp.array([2.0] * 3)
-        res = 32
-        grid, _ = make_grid_3d(lo, hi, res)
-        sdf = sphere.sdf(grid)
-        kappa = integrate_sdf_mean_curvature(sphere.sdf, sdf, grid)
+        kappa = mean_curvature(sphere.sdf, lo=lo, hi=hi, resolution=32)
         expected = 2.0
         assert jnp.isclose(kappa, expected, rtol=0.10), (
             f"kappa={float(kappa):.4f}, expected={expected:.4f}"
         )
 
-    def test_sphere_r2_curvature(self) -> None:
+    def test_sphere_r2_matches_analytical(self) -> None:
         """Sphere r=2: mean curvature = 2/R = 1.0."""
         sphere = Sphere(center=jnp.zeros(3), radius=jnp.array(2.0))
         lo, hi = jnp.array([-4.0] * 3), jnp.array([4.0] * 3)
-        res = 32
-        grid, _ = make_grid_3d(lo, hi, res)
-        sdf = sphere.sdf(grid)
-        kappa = integrate_sdf_mean_curvature(sphere.sdf, sdf, grid)
+        kappa = mean_curvature(sphere.sdf, lo=lo, hi=hi, resolution=32)
         expected = 1.0
         assert jnp.isclose(kappa, expected, rtol=0.10), (
             f"kappa={float(kappa):.4f}, expected={expected:.4f}"
@@ -49,26 +40,9 @@ class TestIntegrateSdfMeanCurvature:
             offset=jnp.array(0.0),
         )
         lo, hi = jnp.array([-2.0] * 3), jnp.array([2.0] * 3)
-        res = 32
-        grid, _ = make_grid_3d(lo, hi, res)
-        sdf = plane.sdf(grid)
-        kappa = integrate_sdf_mean_curvature(plane.sdf, sdf, grid)
+        kappa = mean_curvature(plane.sdf, lo=lo, hi=hi, resolution=32)
         assert jnp.isclose(kappa, 0.0, atol=0.1), (
             f"kappa={float(kappa):.4f}, expected ~0.0"
-        )
-
-
-class TestMeanCurvature:
-    """Tests for the high-level mean_curvature function."""
-
-    def test_sphere_matches_analytical(self) -> None:
-        """mean_curvature(sphere.sdf) approximates 2/R."""
-        sphere = Sphere(center=jnp.zeros(3), radius=jnp.array(1.0))
-        lo, hi = jnp.array([-2.0] * 3), jnp.array([2.0] * 3)
-        kappa = mean_curvature(sphere.sdf, lo=lo, hi=hi, resolution=32)
-        expected = 2.0
-        assert jnp.isclose(kappa, expected, rtol=0.10), (
-            f"kappa={float(kappa):.4f}, expected={expected:.4f}"
         )
 
     def test_box_curvature_finite(self) -> None:
@@ -104,23 +78,6 @@ class TestMeanCurvature:
 
         kappa = compute(lo, hi)
         assert jnp.isfinite(kappa)
-
-
-class TestIntegrateSdfMaxCurvature:
-    """Tests for the low-level max curvature integration."""
-
-    def test_sphere_r1_max_curvature(self) -> None:
-        """Sphere r=1: max curvature ~ 2/R = 2.0 (uniform curvature)."""
-        sphere = Sphere(center=jnp.zeros(3), radius=jnp.array(1.0))
-        lo, hi = jnp.array([-2.0] * 3), jnp.array([2.0] * 3)
-        res = 32
-        grid, _ = make_grid_3d(lo, hi, res)
-        sdf = sphere.sdf(grid)
-        kappa_max = integrate_sdf_max_curvature(sphere.sdf, sdf, grid)
-        expected = 2.0
-        assert jnp.isclose(kappa_max, expected, rtol=0.10), (
-            f"kappa_max={float(kappa_max):.4f}, expected={expected:.4f}"
-        )
 
 
 class TestMaxCurvature:

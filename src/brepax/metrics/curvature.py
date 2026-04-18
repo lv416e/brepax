@@ -1,4 +1,4 @@
-"""Differentiable curvature metrics via AD Hessian at SDF zero-crossings.
+"""Differentiable curvature metrics via sigmoid framework + Newton refinement.
 
 For a proper signed distance field where ``||grad(f)|| = 1``, the mean
 curvature at the zero level-set equals the Laplacian of the SDF:
@@ -8,15 +8,16 @@ curvature at the zero level-set equals the Laplacian of the SDF:
 This equals the sum of principal curvatures (kappa_1 + kappa_2).  This
 module provides two metrics built on this property:
 
-- :func:`mean_curvature` computes the average of the Laplacian over
-  detected surface points, useful as a shape descriptor.
+- :func:`mean_curvature` computes the delta-weighted average of the
+  Laplacian over the surface, useful as a shape descriptor.
 - :func:`max_curvature` estimates the maximum curvature over the surface
   via soft-max, useful as a DFM constraint.
 
-Surface points are found by zero-crossing detection on a grid: for each
-pair of adjacent grid points where the SDF changes sign, linear
-interpolation finds the approximate crossing location. The AD Hessian
-is then evaluated only at these surface points rather than the full grid.
+Surface contributions are weighted by a sigmoid-derivative delta function
+(consistent with :func:`~brepax.metrics.surface_area.surface_area`).
+Grid points are Newton-refined toward the SDF=0 surface before evaluating
+the AD Hessian, improving accuracy without requiring zero-crossing
+detection or boolean masks.
 """
 
 from __future__ import annotations
@@ -25,165 +26,44 @@ from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Bool, Float
+from jaxtyping import Array, Float
 
 from brepax.brep.csg_eval import make_grid_3d
 
 
-def _find_surface_points(
-    sdf_vals: Float[Array, "R R R"],
-    grid: Float[Array, "R R R 3"],
-) -> tuple[Float[Array, "N 3"], Bool[Array, " N"]]:
-    """Find approximate surface points via zero-crossing detection.
-
-    For each of the three spatial axes, compares adjacent grid points
-    and identifies sign changes in the SDF. At each sign change, linear
-    interpolation estimates the zero-crossing location.
-
-    The output has a fixed size of ``3 * (R-1) * R * R`` for JIT
-    compatibility; a boolean mask indicates which entries are valid
-    surface points.
-
-    Args:
-        sdf_vals: Pre-evaluated SDF values with shape ``(R, R, R)``.
-        grid: Grid coordinates with shape ``(R, R, R, 3)``.
-
-    Returns:
-        Tuple of ``(points, mask)`` where ``points`` has shape
-        ``(N, 3)`` and ``mask`` has shape ``(N,)``.
-    """
-    all_points = []
-    all_masks = []
-
-    for axis in range(3):
-        sdf_lo = jnp.take(
-            sdf_vals, indices=jnp.arange(sdf_vals.shape[axis] - 1), axis=axis
-        )
-        sdf_hi = jnp.take(
-            sdf_vals, indices=jnp.arange(1, sdf_vals.shape[axis]), axis=axis
-        )
-
-        sign_change = (sdf_lo * sdf_hi) < 0
-
-        t = sdf_lo / (sdf_lo - sdf_hi + 1e-20)
-        t = jnp.clip(t, 0.0, 1.0)
-
-        grid_lo = jnp.take(grid, indices=jnp.arange(grid.shape[axis] - 1), axis=axis)
-        grid_hi = jnp.take(grid, indices=jnp.arange(1, grid.shape[axis]), axis=axis)
-        interp_pts = grid_lo * (1 - t[..., None]) + grid_hi * t[..., None]
-
-        flat_pts = interp_pts.reshape(-1, 3)
-        flat_mask = sign_change.ravel()
-        all_points.append(flat_pts)
-        all_masks.append(flat_mask)
-
-    points = jnp.concatenate(all_points, axis=0)
-    mask = jnp.concatenate(all_masks, axis=0)
-    return points, mask
-
-
-def _newton_refine_surface(
+def _newton_refine(
     sdf_fn: Callable[..., Float[Array, ...]],
     points: Float[Array, "N 3"],
     n_steps: int = 2,
 ) -> Float[Array, "N 3"]:
-    """Project points onto the SDF=0 surface via Newton steps.
+    """Project points toward the SDF=0 surface via Newton steps.
 
-    After linear interpolation provides an initial estimate of zero-crossing
-    locations, Newton refinement moves each point along the SDF gradient to
-    reduce residual SDF value to near-zero.
+    Each step moves a point along the SDF gradient direction to reduce
+    the residual SDF value.  Points far from the surface will not
+    converge in a few steps, but their sigmoid delta weight is
+    negligible so they do not affect the result.
 
     Args:
         sdf_fn: Signed distance function ``(3,) -> ()``.
-        points: Initial surface point estimates of shape ``(N, 3)``.
+        points: Initial points of shape ``(N, 3)``.
         n_steps: Number of Newton iterations (default 2).
 
     Returns:
         Refined points of shape ``(N, 3)``.
     """
 
-    def _single_newton_step(point: Float[Array, " 3"]) -> Float[Array, " 3"]:
-        grad = jax.grad(sdf_fn)(point)
-        grad_norm_sq = jnp.sum(grad**2) + 1e-10
-        refined: Float[Array, " 3"] = point - sdf_fn(point) * grad / grad_norm_sq
+    def _step(x: Float[Array, " 3"]) -> Float[Array, " 3"]:
+        f = sdf_fn(x)
+        g = jax.grad(sdf_fn)(x)
+        g_norm_sq = jnp.sum(g**2) + 1e-10
+        refined: Float[Array, " 3"] = x - f * g / g_norm_sq
         return refined
 
-    step_vmapped = jax.vmap(_single_newton_step)
-
+    step_vmapped = jax.vmap(_step)
+    result = points
     for _ in range(n_steps):
-        points = step_vmapped(points)
-
-    return points
-
-
-def _evaluate_curvature_at_points(
-    sdf_fn: Callable[..., Float[Array, ...]],
-    points: Float[Array, "N 3"],
-    mask: Bool[Array, " N"],
-) -> Float[Array, " N"]:
-    """Evaluate Laplacian (sum of principal curvatures) at surface points.
-
-    Computes ``trace(jacfwd(grad(sdf_fn))(x))`` at each point via vmap.
-    Non-finite values and masked-out points are replaced with zero.
-
-    Args:
-        sdf_fn: Signed distance function ``(3,) -> ()``.
-        points: Candidate surface points of shape ``(N, 3)``.
-        mask: Boolean mask indicating valid surface points.
-
-    Returns:
-        Curvature values of shape ``(N,)``, zeroed for invalid entries.
-    """
-
-    def _single_laplacian(x: Float[Array, " 3"]) -> Float[Array, ""]:
-        hessian = jax.jacfwd(jax.grad(sdf_fn))(x)
-        return jnp.trace(hessian)
-
-    all_curvatures = jax.vmap(_single_laplacian)(points)
-    safe = jnp.where(mask & jnp.isfinite(all_curvatures), all_curvatures, 0.0)
-    return safe
-
-
-def integrate_sdf_mean_curvature(
-    sdf_fn: Callable[..., Float[Array, ...]],
-    sdf_vals: Float[Array, "R R R"],
-    grid: Float[Array, "R R R 3"],
-) -> Float[Array, ""]:
-    """Compute mean curvature via zero-crossing surface points.
-
-    Detects surface points where the SDF changes sign between adjacent
-    grid cells, then evaluates the AD Hessian Laplacian at each surface
-    point.  Returns the average curvature over all detected surface
-    points.
-
-    For a sphere of radius R, the result approaches 2/R (sum of principal
-    curvatures 1/R + 1/R).  For a plane, it approaches 0.
-
-    Args:
-        sdf_fn: Signed distance function accepting points of shape
-            ``(3,)`` and returning a scalar SDF value.
-        sdf_vals: Pre-evaluated SDF values on a cell-centered grid
-            with shape ``(R, R, R)`` from :func:`make_grid_3d`.
-        grid: Grid coordinates with shape ``(R, R, R, 3)``.
-
-    Returns:
-        Scalar mean curvature over surface points.
-
-    Examples:
-        >>> import jax.numpy as jnp
-        >>> from brepax.brep.csg_eval import make_grid_3d
-        >>> from brepax.primitives import Sphere
-        >>> lo, hi = jnp.array([-2.0]*3), jnp.array([2.0]*3)
-        >>> grid, _ = make_grid_3d(lo, hi, 64)
-        >>> sphere = Sphere(center=jnp.zeros(3), radius=jnp.array(1.0))
-        >>> sdf = sphere.sdf(grid)
-        >>> kappa = integrate_sdf_mean_curvature(sphere.sdf, sdf, grid)
-    """
-    points, mask = _find_surface_points(sdf_vals, grid)
-    points = _newton_refine_surface(sdf_fn, points, n_steps=2)
-    curvatures = _evaluate_curvature_at_points(sdf_fn, points, mask)
-    n_valid = jnp.sum(mask)
-    return jnp.sum(curvatures) / (n_valid + 1e-10)
+        result = step_vmapped(result)
+    return result
 
 
 def mean_curvature(
@@ -193,11 +73,12 @@ def mean_curvature(
     hi: Float[Array, 3],
     resolution: int = 64,
 ) -> Float[Array, ""]:
-    """Compute differentiable mean curvature via zero-crossing detection.
+    """Compute differentiable mean curvature via sigmoid-weighted Laplacian.
 
-    Finds surface points where the SDF changes sign between adjacent
-    grid cells, evaluates the AD Hessian Laplacian at each point, and
-    returns the average.
+    Evaluates the SDF on a cell-centered grid, computes a sigmoid-derivative
+    delta to identify the surface, Newton-refines grid points toward the
+    zero level-set, and returns the delta-weighted average of the AD Hessian
+    Laplacian at the refined points.
 
     For a sphere of radius R, returns approximately 2/R.
     For a plane, returns approximately 0.
@@ -224,41 +105,23 @@ def mean_curvature(
     hi = jax.lax.stop_gradient(hi)
     grid, _ = make_grid_3d(lo, hi, resolution)
     sdf_vals = sdf_fn(grid)
-    return integrate_sdf_mean_curvature(sdf_fn, sdf_vals, grid)
 
+    cell_vol = jnp.prod((hi - lo) / resolution)
+    cell_width = jnp.power(cell_vol, 1.0 / 3.0)
 
-def integrate_sdf_max_curvature(
-    sdf_fn: Callable[..., Float[Array, ...]],
-    sdf_vals: Float[Array, "R R R"],
-    grid: Float[Array, "R R R 3"],
-    temperature: float = 0.01,
-) -> Float[Array, ""]:
-    """Estimate maximum surface curvature via zero-crossing surface points.
+    indicator = jax.nn.sigmoid(-sdf_vals / cell_width)
+    delta = indicator * (1.0 - indicator) / cell_width
 
-    Detects surface points where the SDF changes sign, evaluates the AD
-    Hessian Laplacian at each, and returns a soft-max estimate of the
-    maximum absolute curvature.
+    flat_grid = grid.reshape(-1, 3)
+    refined = _newton_refine(sdf_fn, flat_grid, n_steps=2)
 
-    Args:
-        sdf_fn: Signed distance function accepting points of shape
-            ``(3,)`` and returning a scalar SDF value.
-        sdf_vals: Pre-evaluated SDF values on a cell-centered grid
-            with shape ``(R, R, R)`` from :func:`make_grid_3d`.
-        grid: Grid coordinates with shape ``(R, R, R, 3)``.
-        temperature: Soft-max temperature; lower values approximate
-            the true maximum more closely.
+    curvatures = jax.vmap(lambda x: jnp.trace(jax.jacfwd(jax.grad(sdf_fn))(x)))(refined)
+    curvatures = jnp.where(jnp.isfinite(curvatures), curvatures, 0.0)
+    curvatures = curvatures.reshape(grid.shape[:-1])
 
-    Returns:
-        Scalar estimate of maximum curvature over the surface.
-    """
-    points, mask = _find_surface_points(sdf_vals, grid)
-    points = _newton_refine_surface(sdf_fn, points, n_steps=2)
-    curvatures = _evaluate_curvature_at_points(sdf_fn, points, mask)
-    abs_curv = jnp.abs(curvatures)
-
-    log_w = abs_curv / temperature + jnp.log(mask.astype(float) + 1e-30)
-    softmax_w = jax.nn.softmax(log_w)
-    return jnp.sum(abs_curv * softmax_w)
+    delta_sum = jnp.sum(delta) * cell_vol
+    weighted = jnp.sum(curvatures * delta) * cell_vol
+    return weighted / (delta_sum + 1e-20)
 
 
 def max_curvature(
@@ -271,9 +134,9 @@ def max_curvature(
 ) -> Float[Array, ""]:
     """Differentiable estimate of maximum surface curvature.
 
-    Finds surface points via zero-crossing detection, evaluates the AD
-    Hessian Laplacian, and returns a soft-max estimate of the maximum
-    absolute curvature.
+    Uses the same sigmoid delta framework as :func:`mean_curvature` but
+    returns a soft-max estimate of the maximum absolute curvature over
+    the surface, weighted by the delta function.
 
     For a sphere of radius R, returns approximately 2/R.
 
@@ -301,12 +164,31 @@ def max_curvature(
     hi = jax.lax.stop_gradient(hi)
     grid, _ = make_grid_3d(lo, hi, resolution)
     sdf_vals = sdf_fn(grid)
-    return integrate_sdf_max_curvature(sdf_fn, sdf_vals, grid, temperature)
+
+    cell_vol = jnp.prod((hi - lo) / resolution)
+    cell_width = jnp.power(cell_vol, 1.0 / 3.0)
+
+    indicator = jax.nn.sigmoid(-sdf_vals / cell_width)
+    delta = indicator * (1.0 - indicator) / cell_width
+
+    flat_grid = grid.reshape(-1, 3)
+    refined = _newton_refine(sdf_fn, flat_grid, n_steps=2)
+
+    curvatures = jax.vmap(lambda x: jnp.trace(jax.jacfwd(jax.grad(sdf_fn))(x)))(refined)
+    curvatures = jnp.where(jnp.isfinite(curvatures), curvatures, 0.0)
+    curvatures = curvatures.reshape(grid.shape[:-1])
+
+    abs_curv = jnp.abs(curvatures)
+    flat_delta = delta.ravel()
+    flat_abs_curv = abs_curv.ravel()
+
+    # Delta-weighted soft-max: use log(delta) to focus on surface points
+    log_w = flat_abs_curv / temperature + jnp.log(flat_delta + 1e-30)
+    softmax_w = jax.nn.softmax(log_w)
+    return jnp.sum(flat_abs_curv * softmax_w)
 
 
 __all__ = [
-    "integrate_sdf_max_curvature",
-    "integrate_sdf_mean_curvature",
     "max_curvature",
     "mean_curvature",
 ]
