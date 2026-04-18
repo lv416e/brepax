@@ -168,9 +168,6 @@ class TestBSplineSurfaceTrim:
         assert float(jnp.abs(dist_trim)) > float(jnp.abs(dist_full))
 
 
-# -- Level 2: 2D signed distance to polygon + trim indicator --
-
-
 def _unit_square() -> tuple[jnp.ndarray, jnp.ndarray]:
     """Unit square polygon with vertices at (0,0), (1,0), (1,1), (0,1)."""
     verts = jnp.array([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]])

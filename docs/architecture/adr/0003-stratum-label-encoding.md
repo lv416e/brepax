@@ -8,7 +8,7 @@ Accepted
 
 The stratification module needs to classify and track which topological stratum a configuration belongs to. For two disks, there are 3 strata (disjoint, intersecting, contained). For N primitives with Boolean operations, the number of strata grows combinatorially. Labels must be JAX-traceable for use inside jit-compiled functions, vmap-compatible for batched configurations, and usable as `jax.custom_vjp` residuals.
 
-Stage 1 confirmed that `from __future__ import annotations` is incompatible with jaxtyping runtime checks, and that all traced values must be plain JAX arrays (not Python objects) to work with `eqx.filter_jit` and `eqx.filter_vmap`.
+Early prototyping confirmed that `from __future__ import annotations` is incompatible with jaxtyping runtime checks, and that all traced values must be plain JAX arrays (not Python objects) to work with `eqx.filter_jit` and `eqx.filter_vmap`.
 
 ## Candidates Evaluated
 
