@@ -254,6 +254,22 @@ def _convert_bspline_face(adaptor: Any) -> BSplinePrim | None:
                 w[i - 1, j - 1] = bspl.Weight(i, j)
         weights = jnp.array(w)
 
+    # Extract parametric trim bounds from the face adaptor
+    eps_param = 1e-6
+    u_full_lo, u_full_hi = float(knots_u[0]), float(knots_u[-1])
+    v_full_lo, v_full_hi = float(knots_v[0]), float(knots_v[-1])
+    u_face_lo = adaptor.FirstUParameter()
+    u_face_hi = adaptor.LastUParameter()
+    v_face_lo = adaptor.FirstVParameter()
+    v_face_hi = adaptor.LastVParameter()
+
+    param_u_range = None
+    param_v_range = None
+    if abs(u_face_lo - u_full_lo) > eps_param or abs(u_face_hi - u_full_hi) > eps_param:
+        param_u_range = (u_face_lo, u_face_hi)
+    if abs(v_face_lo - v_full_lo) > eps_param or abs(v_face_hi - v_full_hi) > eps_param:
+        param_v_range = (v_face_lo, v_face_hi)
+
     return BSplinePrim(
         control_points=jnp.array(poles),
         knots_u=knots_u,
@@ -261,6 +277,8 @@ def _convert_bspline_face(adaptor: Any) -> BSplinePrim | None:
         degree_u=deg_u,
         degree_v=deg_v,
         weights=weights,
+        param_u_range=param_u_range,
+        param_v_range=param_v_range,
     )
 
 

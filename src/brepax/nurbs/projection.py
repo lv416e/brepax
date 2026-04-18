@@ -29,6 +29,8 @@ def closest_point(
     u0: Float[Array, ""] | float = 0.5,
     v0: Float[Array, ""] | float = 0.5,
     weights: Float[Array, "nu nv"] | None = None,
+    param_u_range: tuple[float, float] | None = None,
+    param_v_range: tuple[float, float] | None = None,
 ) -> tuple[Float[Array, ""], Float[Array, ""]]:
     """Find the closest point on a B-spline surface to a query point.
 
@@ -45,6 +47,8 @@ def closest_point(
         u0: Initial guess for u parameter.
         v0: Initial guess for v parameter.
         weights: Optional weight grid for rational surfaces.
+        param_u_range: Trimmed parameter range in u. Overrides knot domain.
+        param_v_range: Trimmed parameter range in v. Overrides knot domain.
 
     Returns:
         Optimal parameters ``(u*, v*)``, each a scalar.
@@ -73,8 +77,16 @@ def closest_point(
         ]
     )
 
-    u_lo, u_hi = knots_u[degree_u], knots_u[-degree_u - 1]
-    v_lo, v_hi = knots_v[degree_v], knots_v[-degree_v - 1]
+    if param_u_range is not None:
+        u_lo = jnp.asarray(param_u_range[0])
+        u_hi = jnp.asarray(param_u_range[1])
+    else:
+        u_lo, u_hi = knots_u[degree_u], knots_u[-degree_u - 1]
+    if param_v_range is not None:
+        v_lo = jnp.asarray(param_v_range[0])
+        v_hi = jnp.asarray(param_v_range[1])
+    else:
+        v_lo, v_hi = knots_v[degree_v], knots_v[-degree_v - 1]
 
     def _step(uv: Float[Array, 2]) -> Float[Array, 2]:
         g = grad_fn(uv)
