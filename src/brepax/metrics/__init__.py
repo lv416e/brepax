@@ -1,5 +1,9 @@
 """Differentiable geometric metrics computed from SDF grid integration."""
 
+from brepax.metrics.curvature import (
+    max_curvature,
+    mean_curvature,
+)
 from brepax.metrics.draft_angle import (
     draft_angle_violation,
     integrate_sdf_draft_angle_violation,
@@ -27,6 +31,8 @@ __all__ = [
     "integrate_sdf_moment_of_inertia",
     "integrate_sdf_surface_area",
     "integrate_sdf_thin_wall_volume",
+    "max_curvature",
+    "mean_curvature",
     "min_wall_thickness",
     "moment_of_inertia",
     "surface_area",
