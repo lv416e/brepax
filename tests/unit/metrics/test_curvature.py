@@ -118,7 +118,7 @@ class TestIntegrateSdfMaxCurvature:
         sdf = sphere.sdf(grid)
         kappa_max = integrate_sdf_max_curvature(sphere.sdf, sdf, grid)
         expected = 2.0
-        assert jnp.isclose(kappa_max, expected, rtol=0.15), (
+        assert jnp.isclose(kappa_max, expected, rtol=0.10), (
             f"kappa_max={float(kappa_max):.4f}, expected={expected:.4f}"
         )
 
@@ -132,7 +132,7 @@ class TestMaxCurvature:
         lo, hi = jnp.array([-2.0] * 3), jnp.array([2.0] * 3)
         kappa_max = max_curvature(sphere.sdf, lo=lo, hi=hi, resolution=32)
         expected = 2.0
-        assert jnp.isclose(kappa_max, expected, rtol=0.15), (
+        assert jnp.isclose(kappa_max, expected, rtol=0.10), (
             f"kappa_max={float(kappa_max):.4f}, expected={expected:.4f}"
         )
 

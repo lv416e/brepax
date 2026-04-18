@@ -82,6 +82,40 @@ def _find_surface_points(
     return points, mask
 
 
+def _newton_refine_surface(
+    sdf_fn: Callable[..., Float[Array, ...]],
+    points: Float[Array, "N 3"],
+    n_steps: int = 2,
+) -> Float[Array, "N 3"]:
+    """Project points onto the SDF=0 surface via Newton steps.
+
+    After linear interpolation provides an initial estimate of zero-crossing
+    locations, Newton refinement moves each point along the SDF gradient to
+    reduce residual SDF value to near-zero.
+
+    Args:
+        sdf_fn: Signed distance function ``(3,) -> ()``.
+        points: Initial surface point estimates of shape ``(N, 3)``.
+        n_steps: Number of Newton iterations (default 2).
+
+    Returns:
+        Refined points of shape ``(N, 3)``.
+    """
+
+    def _single_newton_step(point: Float[Array, " 3"]) -> Float[Array, " 3"]:
+        grad = jax.grad(sdf_fn)(point)
+        grad_norm_sq = jnp.sum(grad**2) + 1e-10
+        refined: Float[Array, " 3"] = point - sdf_fn(point) * grad / grad_norm_sq
+        return refined
+
+    step_vmapped = jax.vmap(_single_newton_step)
+
+    for _ in range(n_steps):
+        points = step_vmapped(points)
+
+    return points
+
+
 def _evaluate_curvature_at_points(
     sdf_fn: Callable[..., Float[Array, ...]],
     points: Float[Array, "N 3"],
@@ -146,6 +180,7 @@ def integrate_sdf_mean_curvature(
         >>> kappa = integrate_sdf_mean_curvature(sphere.sdf, sdf, grid)
     """
     points, mask = _find_surface_points(sdf_vals, grid)
+    points = _newton_refine_surface(sdf_fn, points, n_steps=2)
     curvatures = _evaluate_curvature_at_points(sdf_fn, points, mask)
     n_valid = jnp.sum(mask)
     return jnp.sum(curvatures) / (n_valid + 1e-10)
@@ -217,6 +252,7 @@ def integrate_sdf_max_curvature(
         Scalar estimate of maximum curvature over the surface.
     """
     points, mask = _find_surface_points(sdf_vals, grid)
+    points = _newton_refine_surface(sdf_fn, points, n_steps=2)
     curvatures = _evaluate_curvature_at_points(sdf_fn, points, mask)
     abs_curv = jnp.abs(curvatures)
 
