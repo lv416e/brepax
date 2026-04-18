@@ -8,7 +8,7 @@ Accepted
 
 At stratum boundaries (e.g., two disks at tangency, d = r1 + r2), the union area formula has a gradient discontinuity. The `_intersection_area` function uses `jnp.where` for branchless evaluation, but `jnp.where` evaluates both branches and the gradient of the "wrong" branch leaks through at the boundary. The core thesis (contact dynamics analogy) requires correct gradients at these topology changes.
 
-Stage 1 confirmed that `eqx.filter_jit`, `eqx.filter_vmap`, and `eqx.filter_grad` are required for Equinox modules, and that all traced control flow must use array operations rather than Python conditionals.
+Early prototyping confirmed that `eqx.filter_jit`, `eqx.filter_vmap`, and `eqx.filter_grad` are required for Equinox modules, and that all traced control flow must use array operations rather than Python conditionals.
 
 ## Candidates Evaluated
 
