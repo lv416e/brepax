@@ -77,16 +77,20 @@ def closest_point(
         ]
     )
 
+    u_knot_lo, u_knot_hi = knots_u[degree_u], knots_u[-degree_u - 1]
+    v_knot_lo, v_knot_hi = knots_v[degree_v], knots_v[-degree_v - 1]
+
     if param_u_range is not None:
-        u_lo = jnp.asarray(param_u_range[0])
-        u_hi = jnp.asarray(param_u_range[1])
+        # Intersect with knot domain to prevent out-of-bounds evaluation
+        u_lo = jnp.clip(jnp.asarray(param_u_range[0]), u_knot_lo, u_knot_hi)
+        u_hi = jnp.clip(jnp.asarray(param_u_range[1]), u_knot_lo, u_knot_hi)
     else:
-        u_lo, u_hi = knots_u[degree_u], knots_u[-degree_u - 1]
+        u_lo, u_hi = u_knot_lo, u_knot_hi
     if param_v_range is not None:
-        v_lo = jnp.asarray(param_v_range[0])
-        v_hi = jnp.asarray(param_v_range[1])
+        v_lo = jnp.clip(jnp.asarray(param_v_range[0]), v_knot_lo, v_knot_hi)
+        v_hi = jnp.clip(jnp.asarray(param_v_range[1]), v_knot_lo, v_knot_hi)
     else:
-        v_lo, v_hi = knots_v[degree_v], knots_v[-degree_v - 1]
+        v_lo, v_hi = v_knot_lo, v_knot_hi
 
     def _step(uv: Float[Array, 2]) -> Float[Array, 2]:
         g = grad_fn(uv)

@@ -256,8 +256,8 @@ def _convert_bspline_face(adaptor: Any) -> BSplinePrim | None:
 
     # Extract parametric trim bounds from the face adaptor
     eps_param = 1e-6
-    u_full_lo, u_full_hi = float(knots_u[0]), float(knots_u[-1])
-    v_full_lo, v_full_hi = float(knots_v[0]), float(knots_v[-1])
+    u_full_lo, u_full_hi = float(knots_u[deg_u]), float(knots_u[-deg_u - 1])
+    v_full_lo, v_full_hi = float(knots_v[deg_v]), float(knots_v[-deg_v - 1])
     u_face_lo = adaptor.FirstUParameter()
     u_face_hi = adaptor.LastUParameter()
     v_face_lo = adaptor.FirstVParameter()
