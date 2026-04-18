@@ -40,6 +40,14 @@ site/
 .env.*
 credentials.*
 
+# Claude Code
+.claude/
+
+# STEP test fixtures (large binary, not in git)
+tests/fixtures/nist/
+tests/fixtures/freecad/
+tests/fixtures/misc/
+
 # OS
 .DS_Store
 Thumbs.db

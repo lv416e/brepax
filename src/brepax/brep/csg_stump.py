@@ -40,52 +40,32 @@ def _fast_sign_sdf(
 ) -> jnp.ndarray:
     """Sign-only SDF for PMC cell enumeration.
 
-    For BSplineSurface, uses surface center normal dot product
-    with bounding box pruning instead of full Newton projection.
-    Other primitives use exact SDF (already fast).
+    Analytical primitives use their exact SDF (O(1) per point).
+    BSplineSurface uses precomputed coarse grid samples: finds the
+    nearest surface sample and returns the dot product with its
+    orientation-corrected normal.  This avoids full Newton projection
+    while correctly classifying half-space membership at arbitrary
+    distance from the surface.
     """
-    # Lazy import to avoid circular dependency at module level
     from brepax.primitives.bspline_surface import BSplineSurface
 
     if not isinstance(prim, BSplineSurface):
         return prim.sdf(pts_jax)
 
-    # Bounding box pruning: points outside control polygon are outside
-    cp = np.asarray(prim.control_points)
-    lo = cp.reshape(-1, 3).min(axis=0) - 0.1
-    hi = cp.reshape(-1, 3).max(axis=0) + 0.1
-    inside_bbox = np.all((pts_np >= lo) & (pts_np <= hi), axis=1)
+    positions = prim.coarse_positions
+    normals = prim.coarse_normals
+    if positions is None or normals is None:
+        return prim.sdf(pts_jax)
 
-    # Default: outside (+1)
-    result = np.ones(len(pts_np))
+    # For each query, find nearest coarse sample and use its normal
+    diffs = pts_jax[:, None, :] - positions[None, :, :]
+    dists_sq = jnp.sum(diffs**2, axis=-1)
+    best = jnp.argmin(dists_sq, axis=-1)
 
-    if not np.any(inside_bbox):
-        return jnp.array(result)
-
-    # For points inside bbox: evaluate surface center + normal dot product
-    from brepax.nurbs.evaluate import evaluate_surface_derivs
-
-    u_mid = jnp.array(0.5)
-    v_mid = jnp.array(0.5)
-    center, du, dv = evaluate_surface_derivs(
-        prim.control_points,
-        prim.knots_u,
-        prim.knots_v,
-        prim.degree_u,
-        prim.degree_v,
-        u_mid,
-        v_mid,
-        prim.weights,
-    )
-    normal = jnp.cross(du, dv)
-    normal = normal / (jnp.linalg.norm(normal) + 1e-10)
-
-    bbox_pts = jnp.array(pts_np[inside_bbox])
-    diff = bbox_pts - center
-    dots = jnp.sum(diff * normal, axis=-1)
-    result[inside_bbox] = np.asarray(dots)
-
-    return jnp.array(result)
+    nearest_pos = positions[best]
+    nearest_nrm = normals[best]
+    dots = jnp.sum((pts_jax - nearest_pos) * nearest_nrm, axis=-1)
+    return dots
 
 
 @dataclass

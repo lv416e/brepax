@@ -53,8 +53,11 @@ class BSplineSurface(Primitive):
     degree_u: int = eqx.field(static=True)
     degree_v: int = eqx.field(static=True)
     weights: Array | None = eqx.field(default=None)
+    sign_flip: float = eqx.field(default=1.0, static=True)
     param_u_range: tuple[float, float] | None = eqx.field(default=None, static=True)
     param_v_range: tuple[float, float] | None = eqx.field(default=None, static=True)
+    coarse_positions: Array | None = eqx.field(default=None)
+    coarse_normals: Array | None = eqx.field(default=None)
     trim_polygon: Array | None = eqx.field(default=None)
     trim_mask: Array | None = eqx.field(default=None)
 
@@ -112,6 +115,9 @@ class BSplineSurface(Primitive):
                 weights=self.weights,
                 param_u_range=self.param_u_range,
                 param_v_range=self.param_v_range,
+                sign_flip=self.sign_flip,
+                coarse_positions=self.coarse_positions,
+                coarse_normals=self.coarse_normals,
             )
 
         result = jax.vmap(_single_sdf)(flat)
