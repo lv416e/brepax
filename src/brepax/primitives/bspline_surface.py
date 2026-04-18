@@ -15,6 +15,7 @@ import equinox as eqx
 import jax
 from jaxtyping import Array, Float
 
+from brepax.nurbs.projection import coarse_initial_guess
 from brepax.nurbs.sdf import bspline_sdf
 from brepax.primitives._base import Primitive
 
@@ -62,6 +63,15 @@ class BSplineSurface(Primitive):
         flat = x.reshape(-1, 3)
 
         def _single_sdf(q: Array) -> Array:
+            u0, v0 = coarse_initial_guess(
+                q,
+                self.control_points,
+                self.knots_u,
+                self.knots_v,
+                self.degree_u,
+                self.degree_v,
+                self.weights,
+            )
             return bspline_sdf(
                 q,
                 self.control_points,
@@ -69,6 +79,8 @@ class BSplineSurface(Primitive):
                 self.knots_v,
                 self.degree_u,
                 self.degree_v,
+                u0=u0,
+                v0=v0,
                 weights=self.weights,
             )
 

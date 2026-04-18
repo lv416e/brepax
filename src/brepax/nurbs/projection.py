@@ -15,8 +15,50 @@ from jaxtyping import Array, Float
 
 from brepax.nurbs.evaluate import evaluate_surface
 
-_MAX_ITER = 20
+_MAX_ITER = 10
 _TOL_SQ = 1e-16
+_COARSE_GRID = 8
+
+
+def coarse_initial_guess(
+    query: Float[Array, 3],
+    control_points: Float[Array, "nu nv 3"],
+    knots_u: Float[Array, ...],
+    knots_v: Float[Array, ...],
+    degree_u: int,
+    degree_v: int,
+    weights: Float[Array, "nu nv"] | None = None,
+) -> tuple[Float[Array, ""], Float[Array, ""]]:
+    """Find a coarse initial guess by sampling the surface on a grid.
+
+    Evaluates the surface at ``_COARSE_GRID x _COARSE_GRID`` parameter
+    samples and returns the (u, v) of the closest sample to the query
+    point.  The result is stop-gradiented since argmin is not
+    differentiable; gradients flow only through Newton iterations.
+    """
+    u_lo, u_hi = knots_u[degree_u], knots_u[-degree_u - 1]
+    v_lo, v_hi = knots_v[degree_v], knots_v[-degree_v - 1]
+    us = jnp.linspace(u_lo, u_hi, _COARSE_GRID)
+    vs = jnp.linspace(v_lo, v_hi, _COARSE_GRID)
+
+    # Evaluate surface at coarse grid
+    def _eval(u: Float[Array, ""], v: Float[Array, ""]) -> Float[Array, 3]:
+        return evaluate_surface(
+            control_points, knots_u, knots_v, degree_u, degree_v, u, v, weights
+        )
+
+    # Build (G*G, 3) surface samples
+    u_grid, v_grid = jnp.meshgrid(us, vs, indexing="ij")
+    u_flat = u_grid.ravel()
+    v_flat = v_grid.ravel()
+    samples = jax.vmap(_eval)(u_flat, v_flat)
+
+    # Find closest sample
+    dists = jnp.sum((samples - query) ** 2, axis=-1)
+    best = jnp.argmin(dists)
+    u0 = jax.lax.stop_gradient(u_flat[best])
+    v0 = jax.lax.stop_gradient(v_flat[best])
+    return u0, v0
 
 
 def closest_point(
