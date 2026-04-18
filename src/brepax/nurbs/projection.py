@@ -139,12 +139,14 @@ def closest_point(
         h = hess_fn(uv)
         delta = jnp.linalg.solve(h + 1e-6 * jnp.eye(2), g)
         uv_new = uv - delta
-        return jnp.array(
+        uv_clipped = jnp.array(
             [
                 jnp.clip(uv_new[0], u_lo, u_hi),
                 jnp.clip(uv_new[1], v_lo, v_hi),
             ]
         )
+        # Fall back to current value if Newton produces non-finite result
+        return jnp.where(jnp.all(jnp.isfinite(uv_clipped)), uv_clipped, uv)
 
     for _ in range(_MAX_ITER):
         uv_next = _step(uv)

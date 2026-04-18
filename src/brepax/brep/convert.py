@@ -207,7 +207,48 @@ def _expand_knots(unique_knots: list[float], multiplicities: list[int]) -> jnp.n
     return jnp.array(repeated)
 
 
+_COARSE_GRID = 8
 _TRIM_SAMPLES_PER_EDGE = 8
+
+
+def _precompute_coarse_grid(
+    control_points: jnp.ndarray,
+    knots_u: jnp.ndarray,
+    knots_v: jnp.ndarray,
+    degree_u: int,
+    degree_v: int,
+    weights: jnp.ndarray | None,
+    sign_flip: float,
+) -> tuple[jnp.ndarray, jnp.ndarray]:
+    """Precompute surface samples and normals for fast sign estimation.
+
+    Returns positions ``(G*G, 3)`` and orientation-corrected normals
+    ``(G*G, 3)`` on a uniform parametric grid, where ``G`` is
+    :data:`_COARSE_GRID`.
+    """
+    import jax
+
+    from brepax.nurbs.evaluate import evaluate_surface_derivs
+
+    u_lo, u_hi = knots_u[degree_u], knots_u[-degree_u - 1]
+    v_lo, v_hi = knots_v[degree_v], knots_v[-degree_v - 1]
+    us = jnp.linspace(u_lo, u_hi, _COARSE_GRID)
+    vs = jnp.linspace(v_lo, v_hi, _COARSE_GRID)
+    u_grid, v_grid = jnp.meshgrid(us, vs, indexing="ij")
+    u_flat = u_grid.ravel()
+    v_flat = v_grid.ravel()
+
+    def _eval_derivs(u: jnp.ndarray, v: jnp.ndarray) -> tuple[jnp.ndarray, ...]:
+        return evaluate_surface_derivs(
+            control_points, knots_u, knots_v, degree_u, degree_v, u, v, weights
+        )
+
+    points, dus, dvs = jax.vmap(_eval_derivs)(u_flat, v_flat)
+    normals = jnp.cross(dus, dvs)
+    norms = jnp.linalg.norm(normals, axis=-1, keepdims=True) + 1e-10
+    normals = normals / norms * sign_flip
+
+    return points, normals
 
 
 def _extract_trim_polygon(
@@ -319,6 +360,19 @@ def _convert_bspline_face(
     if abs(v_face_lo - v_full_lo) > eps_param or abs(v_face_hi - v_full_hi) > eps_param:
         param_v_range = (v_face_lo, v_face_hi)
 
+    # OCCT face orientation determines inside/outside convention.
+    # BRepAdaptor reflects orientation for analytical surfaces but
+    # returns the underlying parametrization unchanged for BSpline.
+    sign_flip = 1.0
+    if face is not None and face.Orientation() != TopAbs_FORWARD:
+        sign_flip = -1.0
+
+    # Precompute coarse grid samples for fast sign estimation in PMC
+    cp_arr = jnp.array(poles)
+    coarse_positions, coarse_normals = _precompute_coarse_grid(
+        cp_arr, knots_u, knots_v, deg_u, deg_v, weights, sign_flip
+    )
+
     # Extract 2D trim polygon for non-rectangular face boundaries
     trim_polygon = None
     trim_mask = None
@@ -329,14 +383,17 @@ def _convert_bspline_face(
             trim_mask = jnp.ones(len(poly_np))
 
     return BSplinePrim(
-        control_points=jnp.array(poles),
+        control_points=cp_arr,
         knots_u=knots_u,
         knots_v=knots_v,
         degree_u=deg_u,
         degree_v=deg_v,
         weights=weights,
+        sign_flip=sign_flip,
         param_u_range=param_u_range,
         param_v_range=param_v_range,
+        coarse_positions=coarse_positions,
+        coarse_normals=coarse_normals,
         trim_polygon=trim_polygon,
         trim_mask=trim_mask,
     )
