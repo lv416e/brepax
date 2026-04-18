@@ -1817,7 +1817,7 @@
 <p>Accepted</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>The stratification module needs to classify and track which topological stratum a configuration belongs to. For two disks, there are 3 strata (disjoint, intersecting, contained). For N primitives with Boolean operations, the number of strata grows combinatorially. Labels must be JAX-traceable for use inside jit-compiled functions, vmap-compatible for batched configurations, and usable as <code>jax.custom_vjp</code> residuals.</p>
-<p>Stage 1 confirmed that <code>from __future__ import annotations</code> is incompatible with jaxtyping runtime checks, and that all traced values must be plain JAX arrays (not Python objects) to work with <code>eqx.filter_jit</code> and <code>eqx.filter_vmap</code>.</p>
+<p>Early prototyping confirmed that <code>from __future__ import annotations</code> is incompatible with jaxtyping runtime checks, and that all traced values must be plain JAX arrays (not Python objects) to work with <code>eqx.filter_jit</code> and <code>eqx.filter_vmap</code>.</p>
 <h2 id="candidates-evaluated">Candidates Evaluated<a class="headerlink" href="#candidates-evaluated" title="Permanent link">&para;</a></h2>
 <h3 id="a-fixed-length-integerarray-n_pairs">(a) Fixed-length <code>Integer[Array, "n_pairs"]</code><a class="headerlink" href="#a-fixed-length-integerarray-n_pairs" title="Permanent link">&para;</a></h3>
 <p>Each element independently encodes one pairwise relationship sign. Equality check via <code>jnp.array_equal</code>. Works with jit, vmap, and as custom_vjp residual. For N primitives, <code>n_pairs = N*(N-1)//2</code> with static shape. O(n_pairs) equality check.</p>

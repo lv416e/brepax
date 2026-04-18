@@ -1973,7 +1973,7 @@
 <p>Accepted</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>At stratum boundaries (e.g., two disks at tangency, d = r1 + r2), the union area formula has a gradient discontinuity. The <code>_intersection_area</code> function uses <code>jnp.where</code> for branchless evaluation, but <code>jnp.where</code> evaluates both branches and the gradient of the "wrong" branch leaks through at the boundary. The core thesis (contact dynamics analogy) requires correct gradients at these topology changes.</p>
-<p>Stage 1 confirmed that <code>eqx.filter_jit</code>, <code>eqx.filter_vmap</code>, and <code>eqx.filter_grad</code> are required for Equinox modules, and that all traced control flow must use array operations rather than Python conditionals.</p>
+<p>Early prototyping confirmed that <code>eqx.filter_jit</code>, <code>eqx.filter_vmap</code>, and <code>eqx.filter_grad</code> are required for Equinox modules, and that all traced control flow must use array operations rather than Python conditionals.</p>
 <h2 id="candidates-evaluated">Candidates Evaluated<a class="headerlink" href="#candidates-evaluated" title="Permanent link">&para;</a></h2>
 <h3 id="a-jaxlaxcond-with-pure-autodiff-per-branch">(a) <code>jax.lax.cond</code> with pure autodiff per branch<a class="headerlink" href="#a-jaxlaxcond-with-pure-autodiff-per-branch" title="Permanent link">&para;</a></h3>
 <p>Simplest implementation. Each branch has well-defined gradient. However, <code>lax.cond</code> cannot vectorize different branches for different batch elements under vmap -- a known JAX limitation. Also, the boolean predicate itself depends on differentiable parameters, and its own gradient is lost.</p>
