@@ -5,7 +5,6 @@ import jax.numpy as jnp
 
 from brepax.brep.csg_eval import make_grid_3d
 from brepax.metrics.curvature import (
-    _ad_laplacian,
     integrate_sdf_max_curvature,
     integrate_sdf_mean_curvature,
     max_curvature,
@@ -24,8 +23,7 @@ class TestIntegrateSdfMeanCurvature:
         res = 32
         grid, _ = make_grid_3d(lo, hi, res)
         sdf = sphere.sdf(grid)
-        lap = _ad_laplacian(sphere.sdf, grid)
-        kappa = integrate_sdf_mean_curvature(sdf, lap, lo, hi, res)
+        kappa = integrate_sdf_mean_curvature(sphere.sdf, sdf, grid)
         expected = 2.0
         assert jnp.isclose(kappa, expected, rtol=0.10), (
             f"kappa={float(kappa):.4f}, expected={expected:.4f}"
@@ -38,8 +36,7 @@ class TestIntegrateSdfMeanCurvature:
         res = 32
         grid, _ = make_grid_3d(lo, hi, res)
         sdf = sphere.sdf(grid)
-        lap = _ad_laplacian(sphere.sdf, grid)
-        kappa = integrate_sdf_mean_curvature(sdf, lap, lo, hi, res)
+        kappa = integrate_sdf_mean_curvature(sphere.sdf, sdf, grid)
         expected = 1.0
         assert jnp.isclose(kappa, expected, rtol=0.10), (
             f"kappa={float(kappa):.4f}, expected={expected:.4f}"
@@ -55,8 +52,7 @@ class TestIntegrateSdfMeanCurvature:
         res = 32
         grid, _ = make_grid_3d(lo, hi, res)
         sdf = plane.sdf(grid)
-        lap = _ad_laplacian(plane.sdf, grid)
-        kappa = integrate_sdf_mean_curvature(sdf, lap, lo, hi, res)
+        kappa = integrate_sdf_mean_curvature(plane.sdf, sdf, grid)
         assert jnp.isclose(kappa, 0.0, atol=0.1), (
             f"kappa={float(kappa):.4f}, expected ~0.0"
         )
@@ -75,16 +71,14 @@ class TestMeanCurvature:
             f"kappa={float(kappa):.4f}, expected={expected:.4f}"
         )
 
-    def test_box_curvature_small(self) -> None:
-        """Box: curvature is 0 on faces, grid-smoothed at edges."""
+    def test_box_curvature_finite(self) -> None:
+        """Box: curvature is finite (zero on faces, finite at edges)."""
         box = Box(
             center=jnp.zeros(3),
             half_extents=jnp.array([1.0, 1.0, 1.0]),
         )
         lo, hi = jnp.array([-2.0] * 3), jnp.array([2.0] * 3)
         kappa = mean_curvature(box.sdf, lo=lo, hi=hi, resolution=32)
-        # Flat faces dominate, edges contribute finite curvature;
-        # overall weighted mean should be moderate
         assert jnp.isfinite(kappa)
 
     def test_differentiable_wrt_radius(self) -> None:
@@ -97,7 +91,6 @@ class TestMeanCurvature:
 
         r = jnp.array(1.0)
         grad_r = jax.grad(kappa_of_radius)(r)
-        # d/dr(2/r) = -2/r^2 = -2 at r=1
         assert jnp.isfinite(grad_r), f"Non-finite gradient: {grad_r}"
 
     def test_jit_compatible(self) -> None:
@@ -123,8 +116,7 @@ class TestIntegrateSdfMaxCurvature:
         res = 32
         grid, _ = make_grid_3d(lo, hi, res)
         sdf = sphere.sdf(grid)
-        lap = _ad_laplacian(sphere.sdf, grid)
-        kappa_max = integrate_sdf_max_curvature(sdf, lap, lo, hi, res)
+        kappa_max = integrate_sdf_max_curvature(sphere.sdf, sdf, grid)
         expected = 2.0
         assert jnp.isclose(kappa_max, expected, rtol=0.15), (
             f"kappa_max={float(kappa_max):.4f}, expected={expected:.4f}"
