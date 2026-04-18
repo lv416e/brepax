@@ -207,7 +207,6 @@ def _expand_knots(unique_knots: list[float], multiplicities: list[int]) -> jnp.n
     return jnp.array(repeated)
 
 
-_COARSE_GRID = 8
 _TRIM_SAMPLES_PER_EDGE = 8
 
 
@@ -224,11 +223,12 @@ def _precompute_coarse_grid(
 
     Returns positions ``(G*G, 3)`` and orientation-corrected normals
     ``(G*G, 3)`` on a uniform parametric grid, where ``G`` is
-    :data:`_COARSE_GRID`.
+    :data:`~brepax.nurbs.projection._COARSE_GRID`.
     """
     import jax
 
     from brepax.nurbs.evaluate import evaluate_surface_derivs
+    from brepax.nurbs.projection import _COARSE_GRID
 
     u_lo, u_hi = knots_u[degree_u], knots_u[-degree_u - 1]
     v_lo, v_hi = knots_v[degree_v], knots_v[-degree_v - 1]
