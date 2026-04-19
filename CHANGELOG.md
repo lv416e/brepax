@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.2](https://github.com/lv416e/brepax/compare/v0.4.1...v0.4.2) (2026-04-19)
+
+
+### Features
+
+* **experimental:** add differentiable PDE solvers on SDF domains ([#47](https://github.com/lv416e/brepax/issues/47)) ([204987e](https://github.com/lv416e/brepax/commit/204987e69aeb330ff70c05f9ce5c3b4f72539c62))
+
+
+### Documentation
+
+* update release process for auto-publish via release-please ([#45](https://github.com/lv416e/brepax/issues/45)) ([904caa9](https://github.com/lv416e/brepax/commit/904caa9319d5e8906672c3d2b329d6e933350851))
+
 ## [0.4.1](https://github.com/lv416e/brepax/compare/v0.4.0...v0.4.1) (2026-04-19)
 
 
