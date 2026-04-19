@@ -36,6 +36,10 @@ from brepax.brep.topology import (
     neighbors,
     shared_edges,
 )
+from brepax.brep.triangulate import (
+    divergence_volume,
+    triangulate_shape,
+)
 
 __all__ = [
     "CSGLeaf",
@@ -50,6 +54,7 @@ __all__ = [
     "compact_stump",
     "csg_to_differentiable",
     "csg_tree_to_stump",
+    "divergence_volume",
     "evaluate_csg_sdf",
     "evaluate_csg_volume",
     "evaluate_stump_sdf",
@@ -64,4 +69,5 @@ __all__ = [
     "shape_metadata",
     "shared_edges",
     "stump_to_differentiable",
+    "triangulate_shape",
 ]

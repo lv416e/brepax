@@ -364,6 +364,34 @@ def triangulate_shape(
     return jnp.concatenate(all_tris, axis=0), all_params
 
 
+def divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
+    """Compute volume of a closed triangle mesh via the divergence theorem.
+
+    Uses the signed-tetrahedra formula: each triangle and the origin
+    form a tetrahedron whose signed volume is ``v0 . (v1 x v2) / 6``.
+    The sum over all triangles gives the enclosed volume for a
+    watertight mesh with outward-facing normals.
+
+    The result is a polynomial function of vertex positions, so
+    ``jax.grad`` gives exact gradients with no singularities.
+
+    Args:
+        triangles: Triangle vertices, shape ``(n, 3, 3)``.
+
+    Returns:
+        Enclosed volume (scalar).
+
+    Examples:
+        >>> shape = read_step("model.step")
+        >>> tris, params = triangulate_shape(shape)
+        >>> vol = divergence_volume(tris)
+        >>> grad = jax.grad(divergence_volume)(tris)
+    """
+    v0, v1, v2 = triangles[:, 0], triangles[:, 1], triangles[:, 2]
+    return jnp.sum(v0 * jnp.cross(v1, v2)) / 6.0
+
+
 __all__ = [
+    "divergence_volume",
     "triangulate_shape",
 ]
