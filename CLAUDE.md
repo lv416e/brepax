@@ -141,10 +141,11 @@ Releases are managed by release-please. The workflow:
    set to **only** the git trailer: `Release-As: 0.2.0` (no prose -- squash merge
    replaces the body, so prose destroys the trailer)
 3. Maintainer merges the release-please PR
-4. release-please creates a GitHub Release and tag via the API
-5. The API-created tag does **not** trigger `on: push: tags` workflows. Run the
-   publish workflow manually: `gh workflow run publish.yaml -f tag=v0.2.0`
-6. Verify on PyPI that the new version is available
+4. release-please creates a GitHub Release and tag, then the `publish` job in the
+   same workflow automatically publishes to PyPI (no manual step needed)
+5. Verify on PyPI that the new version is available
+6. If auto-publish fails, use the manual fallback:
+   `gh workflow run publish.yaml -f tag=v0.2.0`
 
 ## Imports
 
