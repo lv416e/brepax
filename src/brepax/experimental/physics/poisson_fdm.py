@@ -1,9 +1,9 @@
 """Grid-based Poisson solver on SDF-defined domains.
 
-Solves -nabla^2 u = f on {x : sdf(x) < 0} with u = 0 on the
-boundary via Jacobi iteration with sigmoid domain masking.  The
-full solve is differentiable w.r.t. geometry parameters via JAX AD
-through ``jax.lax.scan``.
+Solves -div(alpha * grad u) = f on {x : sdf(x) < 0} with u = 0
+on the boundary via conjugate gradient with ersatz material
+interpolation.  The full solve is differentiable w.r.t. geometry
+parameters via JAX AD through ``custom_linear_solve``.
 """
 
 from __future__ import annotations
@@ -50,15 +50,15 @@ def solve_poisson_2d(
     exterior_penalty = (1.0 / h**2) * (1.0 - indicator)
 
     alpha_pad = jnp.pad(alpha, 1, constant_values=alpha_min)
+    # Face-averaged conductivities are constant during the solve
+    a_r = (alpha + alpha_pad[1:-1, 2:]) / 2.0
+    a_l = (alpha + alpha_pad[1:-1, :-2]) / 2.0
+    a_u = (alpha + alpha_pad[2:, 1:-1]) / 2.0
+    a_d = (alpha + alpha_pad[:-2, 1:-1]) / 2.0
 
     def _matvec(u_flat: Float[Array, " m"]) -> Float[Array, " m"]:
         u = u_flat.reshape(n, n)
         u_pad = jnp.pad(u, 1)
-        # Face-averaged conductivities (arithmetic mean)
-        a_r = (alpha + alpha_pad[1:-1, 2:]) / 2.0
-        a_l = (alpha + alpha_pad[1:-1, :-2]) / 2.0
-        a_u = (alpha + alpha_pad[2:, 1:-1]) / 2.0
-        a_d = (alpha + alpha_pad[:-2, 1:-1]) / 2.0
         # -div(alpha * grad u) + penalty * (1-H) * u
         diffusion = (
             -(
