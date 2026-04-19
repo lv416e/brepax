@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/lv416e/brepax/compare/v0.4.0...v0.4.1) (2026-04-19)
+
+
+### Features
+
+* **brep:** add mesh-based SDF for BSpline-heavy DFM metrics ([#43](https://github.com/lv416e/brepax/issues/43)) ([802a47f](https://github.com/lv416e/brepax/commit/802a47f72ca207e3bf197d7ce3352851743fb1f9))
+
 ## [0.4.0](https://github.com/lv416e/brepax/compare/v0.3.0...v0.4.0) (2026-04-19)
 
 
