@@ -27,6 +27,7 @@ from brepax._occt.backend import (
     TopAbs_EDGE,
     TopAbs_FACE,
     TopAbs_FORWARD,
+    TopAbs_SOLID,
     TopAbs_VERTEX,
     TopExp_Explorer,
     TopoDS,
@@ -402,9 +403,10 @@ def _convert_bspline_face(
 def faces_to_primitives(shape: TopoDS_Shape) -> list[Primitive | None]:
     """Convert all faces in a shape to BRepAX Primitives.
 
-    Iterates over the topological faces of the shape and converts each
-    to the corresponding BRepAX primitive.  Unsupported face types
-    produce ``None`` entries in the returned list.
+    Iterates over the topological faces reachable from Solids in the
+    shape.  Orphan faces not belonging to any Solid are excluded
+    because they break volume computation (divergence theorem and
+    CSG-Stump both require closed surfaces).
 
     Args:
         shape: An OCCT topological shape.
@@ -413,11 +415,20 @@ def faces_to_primitives(shape: TopoDS_Shape) -> list[Primitive | None]:
         A list with one entry per face.  Unsupported faces are ``None``.
     """
     primitives: list[Primitive | None] = []
-    explorer = TopExp_Explorer(shape, TopAbs_FACE)
-    while explorer.More():
-        face = TopoDS.Face_s(explorer.Current())
-        primitives.append(face_to_primitive(face))
-        explorer.Next()
+    face_sources: list[TopoDS_Shape] = []
+    exp_solid = TopExp_Explorer(shape, TopAbs_SOLID)
+    while exp_solid.More():
+        face_sources.append(TopoDS.Solid_s(exp_solid.Current()))
+        exp_solid.Next()
+    if not face_sources:
+        face_sources.append(shape)
+
+    for source in face_sources:
+        explorer = TopExp_Explorer(source, TopAbs_FACE)
+        while explorer.More():
+            face = TopoDS.Face_s(explorer.Current())
+            primitives.append(face_to_primitive(face))
+            explorer.Next()
     return primitives
 
 
