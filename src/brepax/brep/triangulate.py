@@ -388,7 +388,7 @@ def divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
         >>> grad = jax.grad(divergence_volume)(tris)
     """
     v0, v1, v2 = triangles[:, 0], triangles[:, 1], triangles[:, 2]
-    return jnp.sum(jnp.sum(v0 * jnp.cross(v1, v2), axis=-1)) / 6.0
+    return jnp.sum(v0 * jnp.cross(v1, v2)) / 6.0
 
 
 __all__ = [

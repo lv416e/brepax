@@ -17,7 +17,7 @@ FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 def _divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
     """Divergence theorem volume from a triangle mesh."""
     v0, v1, v2 = triangles[:, 0], triangles[:, 1], triangles[:, 2]
-    return jnp.sum(jnp.sum(v0 * jnp.cross(v1, v2), axis=-1)) / 6.0
+    return jnp.sum(v0 * jnp.cross(v1, v2)) / 6.0
 
 
 # Reference volumes from OCCT GProp (pre-computed for each fixture)
