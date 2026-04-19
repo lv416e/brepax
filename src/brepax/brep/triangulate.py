@@ -358,6 +358,9 @@ def triangulate_shape(
 
             exp.Next()
 
+    if not all_tris:
+        return jnp.zeros((0, 3, 3)), []
+
     return jnp.concatenate(all_tris, axis=0), all_params
 
 
