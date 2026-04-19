@@ -9,7 +9,6 @@ uses closed-form point-to-triangle projection.
 from __future__ import annotations
 
 from collections.abc import Callable
-from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -145,13 +144,12 @@ def mesh_sdf(
     """
     n = query_points.shape[0]
 
-    @partial(jax.jit, static_argnums=())
     def _chunk_fn(chunk: Float[Array, "c 3"]) -> Float[Array, " c"]:
         return jax.vmap(lambda p: _single_point_sdf(p, triangles))(chunk)
 
     # Pad to multiple of chunk_size for static shapes
     remainder = n % chunk_size
-    pad_size = jnp.where(remainder == 0, 0, chunk_size - remainder)
+    pad_size = 0 if remainder == 0 else chunk_size - remainder
     padded = jnp.pad(query_points, ((0, pad_size), (0, 0)))
     n_padded = padded.shape[0]
     chunks = padded.reshape(n_padded // chunk_size, chunk_size, 3)

@@ -186,7 +186,7 @@ class TestMeshSdf:
         """Center of [-1,1]^3 box: distance to nearest face = 1.0."""
         pts = jnp.array([[0.0, 0.0, 0.0]])
         sdf = mesh_sdf(pts, box_mesh)
-        assert jnp.allclose(jnp.abs(sdf[0]), 1.0, atol=0.05)
+        assert jnp.allclose(jnp.abs(sdf[0]), 1.0, atol=1e-5)
 
     def test_outside_positive(self, box_mesh):
         """Point outside box should have positive SDF."""
@@ -198,7 +198,7 @@ class TestMeshSdf:
         """Point 2 units from +x face: SDF = 2.0."""
         pts = jnp.array([[3.0, 0.0, 0.0]])
         sdf = mesh_sdf(pts, box_mesh)
-        assert jnp.allclose(sdf[0], 2.0, atol=0.05)
+        assert jnp.allclose(sdf[0], 2.0, atol=1e-5)
 
     def test_batch_points(self, box_mesh):
         """Multiple points: signs and distances."""
