@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.4.0](https://github.com/lv416e/brepax/compare/v0.3.0...v0.4.0) (2026-04-19)
+
+
+### Features
+
+* **brep:** add divergence theorem volume with OCCT mesh hybrid triangulation ([#36](https://github.com/lv416e/brepax/issues/36)) ([38d1e95](https://github.com/lv416e/brepax/commit/38d1e9543473132ae63a0517b68f03b4efd2f150))
+* **brep:** add divergence_volume API, remove GWN volume, add ADR-0016 ([#37](https://github.com/lv416e/brepax/issues/37)) ([e521a44](https://github.com/lv416e/brepax/commit/e521a44fd550986d335a016cd9a5820bd86e32d6))
+* **brep:** add parametric mesh evaluation for design optimization ([#39](https://github.com/lv416e/brepax/issues/39)) ([b18a222](https://github.com/lv416e/brepax/commit/b18a22272a7a4fb4d9b1332726c7ec893bf925e8))
+* **metrics:** add differentiable curvature field metric ([#30](https://github.com/lv416e/brepax/issues/30)) ([4fc649e](https://github.com/lv416e/brepax/commit/4fc649e19c87e7f669165e10ef1d65fbddb12b1a))
+* **nurbs:** add 2D trim polygon extraction and differentiable trim indicator ([#34](https://github.com/lv416e/brepax/issues/34)) ([b8043a3](https://github.com/lv416e/brepax/commit/b8043a3925c30ce1af9a712f7e7f642b7d3c855d))
+* **nurbs:** add parametric trim bounds for BSplineSurface ([#33](https://github.com/lv416e/brepax/issues/33)) ([7982cbb](https://github.com/lv416e/brepax/commit/7982cbbc804c4d711f5a046135f73ba00f1096a2))
+
+
+### Bug Fixes
+
+* **nurbs:** correct BSpline SDF sign and prevent Newton divergence ([#35](https://github.com/lv416e/brepax/issues/35)) ([18cf05b](https://github.com/lv416e/brepax/commit/18cf05b3994e0942efeb69e8b20e0e8ed65b7963))
+
+
+### Performance Improvements
+
+* **nurbs:** coarse initial guess and reduced Newton iterations ([#32](https://github.com/lv416e/brepax/issues/32)) ([36d27d2](https://github.com/lv416e/brepax/commit/36d27d28384247bfd9f3fa77a52adc07a4f5c515))
+
+
+### Documentation
+
+* update README and index for v0.4.0 divergence theorem features ([#40](https://github.com/lv416e/brepax/issues/40)) ([8ab7917](https://github.com/lv416e/brepax/commit/8ab791749dc4e967437aeac1199262c50e53143b))
+
+
+### Miscellaneous Chores
+
+* release 0.4.0 ([#41](https://github.com/lv416e/brepax/issues/41)) ([136cba9](https://github.com/lv416e/brepax/commit/136cba964c8c0393e4c3e25cdb47f6823e73ff7a))
+
 ## [0.3.0](https://github.com/lv416e/brepax/compare/v0.2.0...v0.3.0) (2026-04-17)
 
 
