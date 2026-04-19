@@ -30,6 +30,7 @@ from OCP.TopAbs import (
     TopAbs_FACE,
     TopAbs_FORWARD,
     TopAbs_IN,
+    TopAbs_SOLID,
     TopAbs_VERTEX,
     TopAbs_WIRE,
 )
@@ -65,6 +66,7 @@ __all__ = [
     "TopAbs_FACE",
     "TopAbs_FORWARD",
     "TopAbs_IN",
+    "TopAbs_SOLID",
     "TopAbs_VERTEX",
     "TopAbs_WIRE",
     "TopExp",
