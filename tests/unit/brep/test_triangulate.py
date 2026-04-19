@@ -16,6 +16,9 @@ from brepax.brep.triangulate import (
     divergence_volume,
     evaluate_mesh,
     extract_mesh_topology,
+    mesh_center_of_mass,
+    mesh_inertia_tensor,
+    mesh_surface_area,
     triangulate_shape,
 )
 from brepax.io.step import read_step
@@ -87,6 +90,65 @@ class TestTriangulateShape:
         tris, params = triangulate_shape(compound)
         assert tris.shape == (0, 3, 3)
         assert params == []
+
+
+class TestMeshMetrics:
+    """Tests for mesh-based surface area, center of mass, and inertia tensor."""
+
+    def test_box_surface_area_exact(self) -> None:
+        """Box surface area is exact (flat faces)."""
+        shape = read_step(FIXTURES / "sample_box.step")
+        tris, _ = triangulate_shape(shape)
+        assert float(mesh_surface_area(tris)) == pytest.approx(2200.0, rel=1e-6)
+
+    def test_sphere_surface_area(self) -> None:
+        """Sphere surface area within 0.5% of analytical."""
+        shape = read_step(FIXTURES / "sample_sphere.step")
+        tris, _ = triangulate_shape(shape)
+        # sample_sphere radius from GProp: area ≈ 113.10
+        assert float(mesh_surface_area(tris)) == pytest.approx(113.10, rel=5e-3)
+
+    def test_box_center_of_mass_exact(self) -> None:
+        """Box CoM is exact (10x20x30 at origin → CoM = (5, 10, 15))."""
+        shape = read_step(FIXTURES / "sample_box.step")
+        tris, _ = triangulate_shape(shape)
+        com = mesh_center_of_mass(tris)
+        assert float(com[0]) == pytest.approx(5.0, abs=1e-4)
+        assert float(com[1]) == pytest.approx(10.0, abs=1e-4)
+        assert float(com[2]) == pytest.approx(15.0, abs=1e-4)
+
+    def test_sphere_center_of_mass_at_origin(self) -> None:
+        """Sphere at origin has CoM = (0, 0, 0)."""
+        shape = read_step(FIXTURES / "sample_sphere.step")
+        tris, _ = triangulate_shape(shape)
+        com = mesh_center_of_mass(tris)
+        assert jnp.max(jnp.abs(com)) < 0.01
+
+    def test_box_inertia_exact(self) -> None:
+        """Box inertia about CoM matches analytical formula."""
+        shape = read_step(FIXTURES / "sample_box.step")
+        tris, _ = triangulate_shape(shape)
+        inertia = mesh_inertia_tensor(tris)
+        # M=6000, I_xx = M/12*(b^2+c^2) = 500*(400+900) = 650000
+        assert float(inertia[0, 0]) == pytest.approx(650000.0, rel=1e-4)
+        assert float(inertia[1, 1]) == pytest.approx(500000.0, rel=1e-4)
+        assert float(inertia[2, 2]) == pytest.approx(250000.0, rel=1e-4)
+
+    def test_inertia_symmetric(self) -> None:
+        """Inertia tensor is symmetric."""
+        shape = read_step(FIXTURES / "sample_box.step")
+        tris, _ = triangulate_shape(shape)
+        inertia = mesh_inertia_tensor(tris)
+        assert float(inertia[0, 1]) == pytest.approx(float(inertia[1, 0]), abs=1e-4)
+        assert float(inertia[0, 2]) == pytest.approx(float(inertia[2, 0]), abs=1e-4)
+        assert float(inertia[1, 2]) == pytest.approx(float(inertia[2, 1]), abs=1e-4)
+
+    def test_surface_area_gradient_finite(self) -> None:
+        """Gradient of surface area is finite."""
+        shape = read_step(FIXTURES / "sample_box.step")
+        tris, _ = triangulate_shape(shape)
+        grad = jax.grad(mesh_surface_area)(tris)
+        assert jnp.all(jnp.isfinite(grad))
 
 
 class TestEvaluateMesh:

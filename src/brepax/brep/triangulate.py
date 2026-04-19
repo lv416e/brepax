@@ -397,6 +397,144 @@ def divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
     return jnp.sum(v0 * jnp.cross(v1, v2)) / 6.0
 
 
+def mesh_surface_area(triangles: jnp.ndarray) -> jnp.ndarray:
+    """Compute surface area of a triangle mesh.
+
+    Sums the area of each triangle: ``(1/2) ||cross(e1, e2)||``.
+    Differentiable via ``jax.grad``.
+
+    Args:
+        triangles: Triangle vertices, shape ``(n, 3, 3)``.
+
+    Returns:
+        Total surface area (scalar).
+
+    Examples:
+        >>> tris, _ = triangulate_shape(shape)
+        >>> area = mesh_surface_area(tris)
+    """
+    e1 = triangles[:, 1] - triangles[:, 0]
+    e2 = triangles[:, 2] - triangles[:, 0]
+    cross = jnp.cross(e1, e2)
+    return jnp.sum(jnp.sqrt(jnp.sum(cross**2, axis=-1) + 1e-20)) / 2.0
+
+
+def mesh_center_of_mass(triangles: jnp.ndarray) -> jnp.ndarray:
+    """Compute center of mass of a closed triangle mesh.
+
+    Uses the divergence theorem with ``F = (x^2/2, 0, 0)`` etc.
+    to compute first moments, then divides by volume.  Polynomial
+    in vertex positions (degree 4 ratio).
+
+    Args:
+        triangles: Triangle vertices, shape ``(n, 3, 3)``.
+
+    Returns:
+        Center of mass, shape ``(3,)``.
+
+    Examples:
+        >>> tris, _ = triangulate_shape(shape)
+        >>> com = mesh_center_of_mass(tris)
+    """
+    v0, v1, v2 = triangles[:, 0], triangles[:, 1], triangles[:, 2]
+    vol = jnp.sum(v0 * jnp.cross(v1, v2)) / 6.0
+    n = jnp.cross(v1 - v0, v2 - v0)
+    sq_sum = v0**2 + v1**2 + v2**2 + v0 * v1 + v0 * v2 + v1 * v2
+    moments = jnp.sum(n * sq_sum, axis=0) / 24.0
+    return moments / (vol + 1e-20)
+
+
+def mesh_inertia_tensor(triangles: jnp.ndarray) -> jnp.ndarray:
+    """Compute the inertia tensor of a closed triangle mesh about its center of mass.
+
+    Uses the divergence theorem to compute second moments via
+    surface integrals (Tonon 2004 / Eberly 2002), then applies
+    the parallel axis theorem to shift from origin to CoM.
+    Polynomial in vertex positions (degree 5).
+
+    Assumes uniform density ``rho = 1``.
+
+    Args:
+        triangles: Triangle vertices, shape ``(n, 3, 3)``.
+
+    Returns:
+        Symmetric 3x3 inertia tensor about center of mass.
+
+    Examples:
+        >>> tris, _ = triangulate_shape(shape)
+        >>> I = mesh_inertia_tensor(tris)
+    """
+    a, b, c = triangles[:, 0], triangles[:, 1], triangles[:, 2]
+    n = jnp.cross(b - a, c - a)
+
+    vol = jnp.sum(a * jnp.cross(b, c)) / 6.0
+
+    # Third-order canonical integrals per axis (Tonon 2004)
+    f3 = (
+        a**3
+        + b**3
+        + c**3
+        + a**2 * b
+        + a**2 * c
+        + b**2 * a
+        + b**2 * c
+        + c**2 * a
+        + c**2 * b
+        + a * b * c
+    )
+    # Second moments about origin: integral of x_k^2 dV
+    xx = jnp.sum(n[:, 0] * f3[:, 0]) / 60.0
+    yy = jnp.sum(n[:, 1] * f3[:, 1]) / 60.0
+    zz = jnp.sum(n[:, 2] * f3[:, 2]) / 60.0
+
+    # Cross-moment terms about origin
+    def _cross_moment(
+        ai: jnp.ndarray,
+        bi: jnp.ndarray,
+        ci: jnp.ndarray,
+        aj: jnp.ndarray,
+        bj: jnp.ndarray,
+        cj: jnp.ndarray,
+        nk: jnp.ndarray,
+    ) -> jnp.ndarray:
+        return (
+            jnp.sum(
+                nk
+                * (
+                    2 * ai * aj
+                    + 2 * bi * bj
+                    + 2 * ci * cj
+                    + ai * bj
+                    + ai * cj
+                    + bi * aj
+                    + bi * cj
+                    + ci * aj
+                    + ci * bj
+                )
+            )
+            / 120.0
+        )
+
+    xy = _cross_moment(a[:, 0], b[:, 0], c[:, 0], a[:, 1], b[:, 1], c[:, 1], n[:, 2])
+    yz = _cross_moment(a[:, 1], b[:, 1], c[:, 1], a[:, 2], b[:, 2], c[:, 2], n[:, 0])
+    xz = _cross_moment(a[:, 0], b[:, 0], c[:, 0], a[:, 2], b[:, 2], c[:, 2], n[:, 1])
+
+    # Inertia about origin
+    i_origin = jnp.array(
+        [
+            [yy + zz, -xy, -xz],
+            [-xy, xx + zz, -yz],
+            [-xz, -yz, xx + yy],
+        ]
+    )
+
+    # Parallel axis theorem: I_com = I_origin - M * (|r|^2 I - r outer r)
+    com = mesh_center_of_mass(triangles)
+    r2 = jnp.dot(com, com)
+    shift = vol * (r2 * jnp.eye(3) - jnp.outer(com, com))
+    return i_origin - shift
+
+
 _SURFACE_TYPE_NAMES = {
     GeomAbs_Plane: "plane",
     GeomAbs_Cylinder: "cylinder",
@@ -725,5 +863,8 @@ __all__ = [
     "divergence_volume",
     "evaluate_mesh",
     "extract_mesh_topology",
+    "mesh_center_of_mass",
+    "mesh_inertia_tensor",
+    "mesh_surface_area",
     "triangulate_shape",
 ]
