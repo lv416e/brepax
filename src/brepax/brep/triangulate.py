@@ -266,7 +266,13 @@ def _make_bspline_eval(
             control_points, knots_u, knots_v, deg_u, deg_v, u, v, weights
         )
 
-    params = {"control_points": control_points, "knots_u": knots_u, "knots_v": knots_v}
+    params: dict[str, Any] = {
+        "control_points": control_points,
+        "knots_u": knots_u,
+        "knots_v": knots_v,
+        "deg_u": deg_u,
+        "deg_v": deg_v,
+    }
     if weights is not None:
         params["weights"] = weights
     return eval_fn, params
@@ -391,7 +397,332 @@ def divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
     return jnp.sum(v0 * jnp.cross(v1, v2)) / 6.0
 
 
+_SURFACE_TYPE_NAMES = {
+    GeomAbs_Plane: "plane",
+    GeomAbs_Cylinder: "cylinder",
+    GeomAbs_Sphere: "sphere",
+    GeomAbs_Cone: "cone",
+    GeomAbs_Torus: "torus",
+    GeomAbs_BSplineSurface: "bspline",
+}
+
+
+def _extract_face_data(
+    adaptor: Any,
+) -> dict[str, Any] | None:
+    """Extract surface type and parameters from an OCCT face adaptor.
+
+    Returns a dict with ``surface_type`` (str) and type-specific
+    parameters as JAX arrays, or ``None`` for unsupported types.
+    """
+    stype = adaptor.GetType()
+    name = _SURFACE_TYPE_NAMES.get(stype)
+    if name is None:
+        return None
+
+    if name == "plane":
+        gp = adaptor.Plane()
+        origin, xdir, ydir, _axis = _extract_ax3(gp.Position())
+        return {"surface_type": name, "origin": origin, "xdir": xdir, "ydir": ydir}
+
+    if name == "cylinder":
+        gp = adaptor.Cylinder()
+        center, xdir, ydir, axis = _extract_ax3(gp.Position())
+        return {
+            "surface_type": name,
+            "center": center,
+            "xdir": xdir,
+            "ydir": ydir,
+            "axis": axis,
+            "radius": jnp.array(gp.Radius()),
+        }
+
+    if name == "sphere":
+        gp = adaptor.Sphere()
+        center, xdir, ydir, axis = _extract_ax3(gp.Position())
+        return {
+            "surface_type": name,
+            "center": center,
+            "xdir": xdir,
+            "ydir": ydir,
+            "axis": axis,
+            "radius": jnp.array(gp.Radius()),
+        }
+
+    if name == "cone":
+        gp = adaptor.Cone()
+        location, xdir, ydir, axis = _extract_ax3(gp.Position())
+        return {
+            "surface_type": name,
+            "location": location,
+            "xdir": xdir,
+            "ydir": ydir,
+            "axis": axis,
+            "ref_radius": jnp.array(gp.RefRadius()),
+            "semi_angle": jnp.array(gp.SemiAngle()),
+        }
+
+    if name == "torus":
+        gp = adaptor.Torus()
+        center, xdir, ydir, axis = _extract_ax3(gp.Position())
+        return {
+            "surface_type": name,
+            "center": center,
+            "xdir": xdir,
+            "ydir": ydir,
+            "axis": axis,
+            "major_radius": jnp.array(gp.MajorRadius()),
+            "minor_radius": jnp.array(gp.MinorRadius()),
+        }
+
+    if name == "bspline":
+        _, bspline_params = _make_bspline_eval(adaptor)
+        bspline_params["surface_type"] = name
+        return bspline_params
+
+    return None
+
+
+def _evaluate_face_at(
+    surface_type: str,
+    params: dict[str, Any],
+    u: jnp.ndarray,
+    v: jnp.ndarray,
+) -> jnp.ndarray:
+    """Evaluate a surface point given explicit parameters.
+
+    Unlike ``_make_face_eval`` closures, all parameters are explicit
+    arguments so that ``jax.grad`` can flow through them.
+    """
+    if surface_type == "plane":
+        return _eval_plane(params["origin"], params["xdir"], params["ydir"], u, v)
+    if surface_type == "cylinder":
+        return _eval_cylinder(
+            params["center"],
+            params["xdir"],
+            params["ydir"],
+            params["axis"],
+            params["radius"],
+            u,
+            v,
+        )
+    if surface_type == "sphere":
+        return _eval_sphere(
+            params["center"],
+            params["xdir"],
+            params["ydir"],
+            params["axis"],
+            params["radius"],
+            u,
+            v,
+        )
+    if surface_type == "cone":
+        return _eval_cone(
+            params["location"],
+            params["xdir"],
+            params["ydir"],
+            params["axis"],
+            params["ref_radius"],
+            params["semi_angle"],
+            u,
+            v,
+        )
+    if surface_type == "torus":
+        return _eval_torus(
+            params["center"],
+            params["xdir"],
+            params["ydir"],
+            params["axis"],
+            params["major_radius"],
+            params["minor_radius"],
+            u,
+            v,
+        )
+    if surface_type == "bspline":
+        return evaluate_surface(
+            params["control_points"],
+            params["knots_u"],
+            params["knots_v"],
+            params["deg_u"],
+            params["deg_v"],
+            u,
+            v,
+            params.get("weights"),
+        )
+    msg = f"Unsupported surface type: {surface_type}"
+    raise ValueError(msg)
+
+
+def extract_mesh_topology(
+    shape: TopoDS_Shape,
+    *,
+    deflection: float = _DEFAULT_DEFLECTION,
+) -> list[dict[str, Any]]:
+    """Extract watertight mesh topology from an OCCT shape.
+
+    Tessellates the shape via OCCT BRepMesh, then extracts per-face
+    UV coordinates, triangle connectivity, and surface parameters.
+    The returned data is static (not in the JAX graph) and serves
+    as input to :func:`evaluate_mesh` for differentiable vertex
+    re-evaluation.
+
+    Args:
+        shape: An OCCT topological shape.
+        deflection: Mesh deflection tolerance for OCCT tessellation.
+
+    Returns:
+        List of face dicts, each containing ``us``, ``vs`` (numpy),
+        ``conn`` (numpy int32), ``reverse`` (bool), and surface
+        parameters (JAX arrays).
+
+    Examples:
+        >>> topology = extract_mesh_topology(shape)
+        >>> triangles = evaluate_mesh(topology)
+        >>> vol = divergence_volume(triangles)
+    """
+    BRepMesh_IncrementalMesh(shape, deflection)
+    faces: list[dict[str, Any]] = []
+
+    face_sources: list[Any] = []
+    exp_solid = TopExp_Explorer(shape, TopAbs_SOLID)
+    while exp_solid.More():
+        face_sources.append(TopoDS.Solid_s(exp_solid.Current()))
+        exp_solid.Next()
+    if not face_sources:
+        face_sources.append(shape)
+
+    for source in face_sources:
+        exp = TopExp_Explorer(source, TopAbs_FACE)
+        while exp.More():
+            face = TopoDS.Face_s(exp.Current())
+            adaptor = BRepAdaptor_Surface(face)
+
+            face_data = _extract_face_data(adaptor)
+            if face_data is None:
+                exp.Next()
+                continue
+
+            loc = TopLoc_Location()
+            poly_tri = BRep_Tool.Triangulation_s(face, loc)
+            if poly_tri is None:
+                exp.Next()
+                continue
+
+            n_nodes = poly_tri.NbNodes()
+            n_tris = poly_tri.NbTriangles()
+
+            us_np = np.empty(n_nodes)
+            vs_np = np.empty(n_nodes)
+            for i in range(1, n_nodes + 1):
+                uv = poly_tri.UVNode(i)
+                us_np[i - 1] = uv.X()
+                vs_np[i - 1] = uv.Y()
+
+            conn = np.empty((n_tris, 3), dtype=np.int32)
+            for i in range(1, n_tris + 1):
+                n1, n2, n3 = poly_tri.Triangle(i).Get()
+                conn[i - 1] = [n1 - 1, n2 - 1, n3 - 1]
+
+            face_data["us"] = us_np
+            face_data["vs"] = vs_np
+            face_data["conn"] = conn
+            face_data["reverse"] = face.Orientation() != TopAbs_FORWARD
+
+            # For plane faces, store the max UV distance from origin.
+            # This is used by evaluate_mesh to scale cap vertices when
+            # a linked parameter (e.g. cylinder radius) changes.
+            if face_data["surface_type"] == "plane":
+                extent = float(np.max(np.sqrt(us_np**2 + vs_np**2)))
+                face_data["uv_scale_ref"] = extent
+
+            faces.append(face_data)
+            exp.Next()
+
+    return faces
+
+
+def evaluate_mesh(
+    topology: list[dict[str, Any]],
+    overrides: dict[str, jnp.ndarray] | None = None,
+    *,
+    uv_scale_param: str | None = None,
+) -> jnp.ndarray:
+    """Re-evaluate mesh vertices from topology with parameter overrides.
+
+    For each face, evaluates the surface function at the stored UV
+    coordinates using surface parameters.  Any parameter in
+    ``overrides`` replaces the corresponding stored value, allowing
+    ``jax.grad`` to flow from volume through vertices to the
+    overridden design parameter.
+
+    When ``uv_scale_param`` is set, plane faces scale their UV
+    coordinates by ``overrides[uv_scale_param] / uv_scale_ref`` so
+    that flat caps follow curved-surface parameter changes (e.g.
+    disk caps scale with cylinder radius).
+
+    Args:
+        topology: Face list from :func:`extract_mesh_topology`.
+        overrides: Parameter name-value pairs to override.
+        uv_scale_param: Override key used to scale plane UV
+            coordinates.  Required for multi-face optimization
+            where flat caps must track a curved-surface parameter.
+
+    Returns:
+        Triangle vertices, shape ``(n_total, 3, 3)``.
+
+    Examples:
+        >>> topology = extract_mesh_topology(cylinder_shape)
+        >>> def volume_fn(radius):
+        ...     return divergence_volume(
+        ...         evaluate_mesh(topology, {"radius": radius},
+        ...                       uv_scale_param="radius")
+        ...     )
+        >>> grad = jax.grad(volume_fn)(jnp.array(5.0))
+    """
+    if overrides is None:
+        overrides = {}
+
+    all_tris: list[jnp.ndarray] = []
+
+    for face in topology:
+        stype = face["surface_type"]
+        us = jnp.array(face["us"])
+        vs = jnp.array(face["vs"])
+        conn = face["conn"]
+        reverse = face["reverse"]
+
+        # Build effective params: stored values + overrides
+        params = {
+            k: v
+            for k, v in face.items()
+            if k not in ("surface_type", "us", "vs", "conn", "reverse", "uv_scale_ref")
+        }
+
+        if stype == "plane" and uv_scale_param and uv_scale_param in overrides:
+            ref = face.get("uv_scale_ref", 1.0)
+            if ref > 1e-10:
+                scale = overrides[uv_scale_param] / ref
+                us = us * scale
+                vs = vs * scale
+        else:
+            params.update(overrides)
+
+        positions = jax.vmap(
+            lambda u, v, _st=stype, _p=params: _evaluate_face_at(_st, _p, u, v)
+        )(us, vs)
+
+        idx = conn[:, [0, 2, 1]] if reverse else conn
+        all_tris.append(positions[idx])
+
+    if not all_tris:
+        return jnp.zeros((0, 3, 3))
+
+    return jnp.concatenate(all_tris, axis=0)
+
+
 __all__ = [
     "divergence_volume",
+    "evaluate_mesh",
+    "extract_mesh_topology",
     "triangulate_shape",
 ]

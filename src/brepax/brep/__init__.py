@@ -38,6 +38,8 @@ from brepax.brep.topology import (
 )
 from brepax.brep.triangulate import (
     divergence_volume,
+    evaluate_mesh,
+    extract_mesh_topology,
     triangulate_shape,
 )
 
@@ -57,8 +59,10 @@ __all__ = [
     "divergence_volume",
     "evaluate_csg_sdf",
     "evaluate_csg_volume",
+    "evaluate_mesh",
     "evaluate_stump_sdf",
     "evaluate_stump_volume",
+    "extract_mesh_topology",
     "face_degree",
     "face_to_primitive",
     "faces_to_primitives",
