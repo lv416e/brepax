@@ -23,6 +23,7 @@ from brepax.analytical.sphere_sphere import (
 )
 from brepax.boolean.stratum import (
     intersect_volume_stratum,
+    subtract_volume_stratum,
     union_volume_stratum,
 )
 from brepax.primitives.cylinder import Cylinder
@@ -149,12 +150,8 @@ def test_sphere_sphere_all_operations(op):
     op_fn = {
         "union": union_volume_stratum,
         "intersect": intersect_volume_stratum,
+        "subtract": subtract_volume_stratum,
     }
-
-    if op == "subtract":
-        from brepax.boolean.stratum import subtract_volume_stratum
-
-        op_fn["subtract"] = subtract_volume_stratum
 
     def vol_fn(radius):
         s1 = Sphere(center=_SPHERE_C1, radius=radius)
@@ -325,13 +322,13 @@ def test_optimization_sphere_target_volume():
     m_state = jnp.array(0.0)
     v_state = jnp.array(0.0)
 
+    def obj(radius):
+        s1 = Sphere(center=_SPHERE_C1, radius=radius)
+        return (union_volume_stratum(s1, s2, resolution=64) - v_target) ** 2
+
     for step in range(150):
         lr = 0.02 * (0.5 * (1 + jnp.cos(jnp.pi * step / 150)))
         lr = float(jnp.maximum(lr, 0.0005))
-
-        def obj(radius):
-            s1 = Sphere(center=_SPHERE_C1, radius=radius)
-            return (union_volume_stratum(s1, s2, resolution=64) - v_target) ** 2
 
         g = jax.grad(obj)(r1)
         m_state, v_state, update = _adam_step(g, m_state, v_state, step, lr)
@@ -374,15 +371,13 @@ def test_optimization_cylinder_sphere():
     m_state = jnp.array(0.0)
     v_state = jnp.array(0.0)
 
+    def obj(radius):
+        s = Sphere(center=jnp.array([0.0, 0.0, 0.0]), radius=radius)
+        return (intersect_volume_stratum(s, _CYL_BREPAX, resolution=64) - v_target) ** 2
+
     for step in range(150):
         lr = 0.02 * (0.5 * (1 + jnp.cos(jnp.pi * step / 150)))
         lr = float(jnp.maximum(lr, 0.0005))
-
-        def obj(radius):
-            s = Sphere(center=jnp.array([0.0, 0.0, 0.0]), radius=radius)
-            return (
-                intersect_volume_stratum(s, _CYL_BREPAX, resolution=64) - v_target
-            ) ** 2
 
         g = jax.grad(obj)(r)
         m_state, v_state, update = _adam_step(g, m_state, v_state, step, lr)
