@@ -29,6 +29,11 @@ from brepax.brep.csg_stump import (
     reconstruct_csg_stump,
     stump_to_differentiable,
 )
+from brepax.brep.mesh_sdf import (
+    make_mesh_sdf,
+    mesh_sdf,
+    point_triangle_distance,
+)
 from brepax.brep.topology import (
     FaceAdjacencyGraph,
     build_adjacency_graph,
@@ -70,10 +75,13 @@ __all__ = [
     "face_to_primitive",
     "faces_to_primitives",
     "group_stump_primitives",
+    "make_mesh_sdf",
     "mesh_center_of_mass",
     "mesh_inertia_tensor",
+    "mesh_sdf",
     "mesh_surface_area",
     "neighbors",
+    "point_triangle_distance",
     "reconstruct_csg_stump",
     "reconstruct_stock_minus_features",
     "shape_metadata",
