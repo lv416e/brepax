@@ -631,7 +631,7 @@ def extract_mesh_topology(
             # For plane faces, store the max UV distance from origin.
             # This is used by evaluate_mesh to scale cap vertices when
             # a linked parameter (e.g. cylinder radius) changes.
-            if face_data["surface_type"] == "plane":
+            if face_data["surface_type"] == "plane" and us_np.size > 0:
                 extent = float(np.max(np.sqrt(us_np**2 + vs_np**2)))
                 face_data["uv_scale_ref"] = extent
 
@@ -704,7 +704,8 @@ def evaluate_mesh(
                 scale = overrides[uv_scale_param] / ref
                 us = us * scale
                 vs = vs * scale
-        else:
+
+        if overrides:
             params.update(overrides)
 
         positions = jax.vmap(
