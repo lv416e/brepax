@@ -1,8 +1,6 @@
-name: Publish to PyPI
+name: Publish to PyPI (manual)
 
 on:
-  push:
-    tags: ['v*.*.*']
   workflow_dispatch:
     inputs:
       tag:
@@ -14,10 +12,6 @@ permissions:
 
 jobs:
   publish:
-    # Only publish stable releases (no pre-release tags like -rc, -beta).
-    if: >-
-      (github.event_name == 'push' && !contains(github.ref_name, '-'))
-      || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -25,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag }}
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v7
         with:
