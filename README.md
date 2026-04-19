@@ -18,25 +18,40 @@ pip install brepax
 ## Quick Start
 
 ```python
+import jax
 import jax.numpy as jnp
-import equinox as eqx
 from brepax.io.step import read_step
-from brepax.brep.csg_stump import reconstruct_csg_stump, stump_to_differentiable
-from brepax.metrics import surface_area, thin_wall_volume
+from brepax.brep.triangulate import (
+    triangulate_shape, divergence_volume,
+    mesh_surface_area, mesh_center_of_mass,
+)
 
-# Load STEP file and build differentiable representation
+# Load STEP file and compute volume via divergence theorem
 shape = read_step("part.step")
-stump = reconstruct_csg_stump(shape)
-diff = stump_to_differentiable(stump)
+tris, params = triangulate_shape(shape)
 
-# Compute metrics
-lo, hi = jnp.array([-1.0] * 3), jnp.array([41.0, 31.0, 21.0])
-vol = diff.volume(resolution=32, lo=lo, hi=hi)
-area = surface_area(diff.sdf, lo=lo, hi=hi, resolution=32)
-thin = thin_wall_volume(diff.sdf, 2.0, lo=lo, hi=hi, resolution=32)
+vol = divergence_volume(tris)           # exact for watertight mesh
+area = mesh_surface_area(tris)          # sum of triangle areas
+com = mesh_center_of_mass(tris)         # surface integral (Eberly 2002)
 
-# Gradient of volume w.r.t. all design parameters
-grad = eqx.filter_grad(lambda d: d.volume(resolution=16, lo=lo, hi=hi))(diff)
+# Gradient of volume w.r.t. all triangle vertices
+grad = jax.grad(divergence_volume)(tris)
+```
+
+### Parametric Optimization
+
+```python
+from brepax.brep.triangulate import extract_mesh_topology, evaluate_mesh
+
+# Separate topology (one-time) from evaluation (differentiable)
+topology = extract_mesh_topology(shape)
+
+def volume_fn(radius):
+    tris = evaluate_mesh(topology, {"radius": radius}, uv_scale_param="radius")
+    return divergence_volume(tris)
+
+# Gradient flows from volume through vertices to design parameter
+grad = jax.grad(volume_fn)(jnp.array(5.0))
 ```
 
 ## Features
@@ -50,22 +65,47 @@ grad = eqx.filter_grad(lambda d: d.volume(resolution=16, lo=lo, hi=hi))(diff)
 - Read STEP files via OCCT (cadquery-ocp-novtk)
 - Convert all face types to primitives (100% conversion on 4,080 faces across 28 test files)
 - PMC-based CSG-Stump reconstruction (tested up to 664 faces)
-- Differentiable volume, metrics, and gradients end-to-end
+- OCCT mesh hybrid triangulation with JAX-native vertex re-evaluation
+
+### Volume and Mass Properties (Divergence Theorem)
+
+Mesh-based computation via the divergence theorem, working for all surface
+types including freeform B-spline. Validated on 32 models (< 0.5% error
+vs OCCT GProp). All are polynomial in vertex positions, giving exact
+gradients with no grid artifacts or singularities.
+
+| Function | Formula | Degree |
+|----------|---------|--------|
+| `divergence_volume` | `(1/6) sum(v0 . (v1 x v2))` | 3 |
+| `mesh_surface_area` | `(1/2) sum(norm(cross(e1, e2)))` | -- |
+| `mesh_center_of_mass` | First moments via surface integral | 4 |
+| `mesh_inertia_tensor` | Second moments (Tonon 2004) | 5 |
 
 ### Differentiable Metrics
 
-8 metrics, all differentiable via `jax.grad`:
+10 metrics, all differentiable via `jax.grad`. 8 of 10 work for all surface
+types; wall thickness metrics require analytical surfaces via CSG-Stump.
 
-| Metric | Description |
-|--------|------------|
-| `volume` | Sigmoid indicator integral |
-| `surface_area` | Sigmoid-derivative delta function |
-| `center_of_mass` | Volume-weighted position average |
-| `moment_of_inertia` | Inertia tensor with Richardson extrapolation |
-| `thin_wall_volume` | Volume below wall thickness threshold |
-| `min_wall_thickness` | Soft-argmax with sub-grid refinement |
-| `draft_angle_violation` | Surface area with insufficient draft angle |
-| `undercut_volume` | Surface-weighted undercut severity |
+| Metric | Method | BSpline |
+|--------|--------|:-------:|
+| `divergence_volume` | Divergence theorem on mesh | Yes |
+| `mesh_surface_area` | Triangle area sum | Yes |
+| `mesh_center_of_mass` | Divergence theorem variant | Yes |
+| `mesh_inertia_tensor` | Divergence theorem variant | Yes |
+| `draft_angle_violation` | SDF gradient near surface | Yes |
+| `mean_curvature` / `max_curvature` | AD Hessian of SDF | Yes |
+| `thin_wall_volume` | Sigmoid indicator on SDF grid | Analytical only |
+| `min_wall_thickness` | Soft-argmax on SDF grid | Analytical only |
+
+### Parametric Optimization
+
+`extract_mesh_topology` + `evaluate_mesh` separate watertight mesh topology
+(from OCCT, one-time) from vertex evaluation (JAX-native, differentiable).
+Design parameters flow through surface evaluation to volume:
+
+- **Sphere radius**: Newton convergence in 4 steps
+- **Cylinder radius**: Multi-face with disk cap tracking, 4 steps
+- **BSpline control points**: Exact gradient, Newton convergence in 1 step
 
 ### Boolean Operations
 
