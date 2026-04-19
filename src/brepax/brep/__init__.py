@@ -38,6 +38,11 @@ from brepax.brep.topology import (
 )
 from brepax.brep.triangulate import (
     divergence_volume,
+    evaluate_mesh,
+    extract_mesh_topology,
+    mesh_center_of_mass,
+    mesh_inertia_tensor,
+    mesh_surface_area,
     triangulate_shape,
 )
 
@@ -57,12 +62,17 @@ __all__ = [
     "divergence_volume",
     "evaluate_csg_sdf",
     "evaluate_csg_volume",
+    "evaluate_mesh",
     "evaluate_stump_sdf",
     "evaluate_stump_volume",
+    "extract_mesh_topology",
     "face_degree",
     "face_to_primitive",
     "faces_to_primitives",
     "group_stump_primitives",
+    "mesh_center_of_mass",
+    "mesh_inertia_tensor",
+    "mesh_surface_area",
     "neighbors",
     "reconstruct_csg_stump",
     "reconstruct_stock_minus_features",
