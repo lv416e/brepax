@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
-from brepax.brep.triangulate import triangulate_shape
+from brepax.brep.triangulate import (
+    _eval_sphere,
+    _extract_ax3,
+    divergence_volume,
+    triangulate_shape,
+)
 from brepax.io.step import read_step
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
@@ -103,3 +110,71 @@ class TestDivergenceVolumeGradient:
         tris_m = tris.at[idx].add(-eps)
         fd = (_divergence_volume(tris_p) - _divergence_volume(tris_m)) / (2 * eps)
         assert float(grad[idx]) == pytest.approx(float(fd), rel=0.05)
+
+    def test_optimize_sphere_radius(self) -> None:
+        """Newton optimization converges sphere radius to target volume."""
+        from OCP.BRepPrimAPI import BRepPrimAPI_MakeSphere
+
+        from brepax._occt.backend import (
+            BRep_Tool,
+            BRepAdaptor_Surface,
+            BRepMesh_IncrementalMesh,
+            TopAbs_FACE,
+            TopAbs_FORWARD,
+            TopAbs_SOLID,
+            TopExp_Explorer,
+            TopLoc_Location,
+            TopoDS,
+        )
+
+        shape = BRepPrimAPI_MakeSphere(5.0).Shape()
+        BRepMesh_IncrementalMesh(shape, 0.01)
+
+        exp_s = TopExp_Explorer(shape, TopAbs_SOLID)
+        solid = TopoDS.Solid_s(exp_s.Current())
+        exp = TopExp_Explorer(solid, TopAbs_FACE)
+        face = TopoDS.Face_s(exp.Current())
+        adaptor = BRepAdaptor_Surface(face)
+        reverse = face.Orientation() != TopAbs_FORWARD
+
+        center, xdir, ydir, axis = _extract_ax3(adaptor.Sphere().Position())
+
+        loc = TopLoc_Location()
+        poly_tri = BRep_Tool.Triangulation_s(face, loc)
+        n_nodes = poly_tri.NbNodes()
+        us_np = np.empty(n_nodes)
+        vs_np = np.empty(n_nodes)
+        for i in range(1, n_nodes + 1):
+            uv = poly_tri.UVNode(i)
+            us_np[i - 1] = uv.X()
+            vs_np[i - 1] = uv.Y()
+
+        conn_np = np.empty((poly_tri.NbTriangles(), 3), dtype=np.int32)
+        for i in range(1, poly_tri.NbTriangles() + 1):
+            n1, n2, n3 = poly_tri.Triangle(i).Get()
+            conn_np[i - 1] = [n1 - 1, n2 - 1, n3 - 1]
+        if reverse:
+            conn_np = conn_np[:, [0, 2, 1]]
+
+        us = jnp.array(us_np)
+        vs = jnp.array(vs_np)
+        conn = conn_np
+
+        def volume_of_radius(radius: jnp.ndarray) -> jnp.ndarray:
+            positions = jax.vmap(
+                lambda u, v: _eval_sphere(center, xdir, ydir, axis, radius, u, v)
+            )(us, vs)
+            return divergence_volume(positions[conn])
+
+        target = (4 / 3) * math.pi * 7.0**3
+        radius = jnp.array(5.0)
+        dvdr_fn = jax.grad(volume_of_radius)
+
+        for _ in range(10):
+            vol = volume_of_radius(radius)
+            radius = radius - (vol - target) / dvdr_fn(radius)
+
+        # Volume converges to target (mesh discretization shifts optimal r slightly)
+        final_vol = float(volume_of_radius(radius))
+        assert final_vol == pytest.approx(target, rel=1e-3)
+        assert float(radius) == pytest.approx(7.0, abs=0.05)
