@@ -58,6 +58,7 @@ nav:
       - Stratum Tracking: tutorials/03_stratum_tracking.md
   - Explanation:
       - Design Thesis: explanation/design_thesis.md
+      - Stratification Theory: explanation/stratification_theory.md
       - Why B-Rep: explanation/why_brep.md
       - License Strategy: explanation/license_strategy.md
       - JAX Where Gradient Pitfall: explanation/jax_where_gradient_pitfall.md
@@ -65,6 +66,9 @@ nav:
       - Hybrid Optimization Strategy: explanation/hybrid_optimization_strategy.md
       - Concept Proof Evaluation: explanation/concept_proof_evaluation.md
       - 3D Extension Evaluation: explanation/3d_extension_evaluation.md
+      - NURBS B-Rep Feasibility: explanation/nurbs_brep_feasibility.md
+      - NIST Evaluation: explanation/nist_evaluation.md
+      - CSG Reconstruction Feasibility: explanation/csg_reconstruction_feasibility.md
   - Reference:
       - Overview: reference/index.md
       - Primitives: reference/primitives.md
@@ -73,7 +77,6 @@ nav:
       - Applications: reference/applications.md
   - Architecture:
       - Overview: architecture/index.md
-      - 3D Extension Roadmap: architecture/3d-extension-roadmap.md
       - ADR:
           - "ADR-0001: JAX-Native Rationale": architecture/adr/0001-jax-native-rationale.md
           - "ADR-0002: Equinox PyTree Pattern": architecture/adr/0002-equinox-pytree-pattern.md
@@ -83,10 +86,11 @@ nav:
           - "ADR-0006: License Apache 2 Rationale": architecture/adr/0006-license-apache-2-rationale.md
           - "ADR-0007: OCP Binding Choice": architecture/adr/0007-ocp-binding-choice.md
           - "ADR-0008: OCCT Abstraction Layer": architecture/adr/0008-occt-abstraction-layer.md
-          - "ADR-0009: Method B Deferred": architecture/adr/0009-method-b-deferred.md
+          - "ADR-0009: Method (B) TOI Deferred": architecture/adr/0009-method-b-deferred.md
           - "ADR-0010: Design Validation Split": architecture/adr/0010-design-validation-split.md
-          - "ADR-0011: Hybrid Strategy": architecture/adr/0011-hybrid-strategy.md
+          - "ADR-0011: Hybrid Optimization Strategy": architecture/adr/0011-hybrid-strategy.md
           - "ADR-0012: Generic Stratum Detection": architecture/adr/0012-generic-stratum-detection.md
           - "ADR-0013: Mold Direction Demonstrator": architecture/adr/0013-mold-direction-demonstrator.md
           - "ADR-0014: STEP I/O Initial": architecture/adr/0014-step-io-initial.md
           - "ADR-0015: Face-to-Primitive Conversion": architecture/adr/0015-face-to-primitive-conversion.md
+          - "ADR-0016: Divergence Theorem Volume": architecture/adr/0016-divergence-theorem-volume.md
