@@ -58,6 +58,7 @@ nav:
       - Stratum Tracking: tutorials/03_stratum_tracking.md
   - Explanation:
       - Design Thesis: explanation/design_thesis.md
+      - Stratification Theory: explanation/stratification_theory.md
       - Why B-Rep: explanation/why_brep.md
       - License Strategy: explanation/license_strategy.md
       - JAX Where Gradient Pitfall: explanation/jax_where_gradient_pitfall.md
@@ -65,6 +66,9 @@ nav:
       - Hybrid Optimization Strategy: explanation/hybrid_optimization_strategy.md
       - Concept Proof Evaluation: explanation/concept_proof_evaluation.md
       - 3D Extension Evaluation: explanation/3d_extension_evaluation.md
+      - NURBS B-Rep Feasibility: explanation/nurbs_brep_feasibility.md
+      - NIST Evaluation: explanation/nist_evaluation.md
+      - CSG Reconstruction Feasibility: explanation/csg_reconstruction_feasibility.md
   - Reference:
       - Overview: reference/index.md
       - Primitives: reference/primitives.md
@@ -73,7 +77,6 @@ nav:
       - Applications: reference/applications.md
   - Architecture:
       - Overview: architecture/index.md
-      - 3D Extension Roadmap: architecture/3d-extension-roadmap.md
       - ADR:
           - "ADR-0001: JAX-Native Rationale": architecture/adr/0001-jax-native-rationale.md
           - "ADR-0002: Equinox PyTree Pattern": architecture/adr/0002-equinox-pytree-pattern.md
@@ -90,3 +93,4 @@ nav:
           - "ADR-0013: Mold Direction Demonstrator": architecture/adr/0013-mold-direction-demonstrator.md
           - "ADR-0014: STEP I/O Initial": architecture/adr/0014-step-io-initial.md
           - "ADR-0015: Face-to-Primitive Conversion": architecture/adr/0015-face-to-primitive-conversion.md
+          - "ADR-0016: Divergence Theorem Volume": architecture/adr/0016-divergence-theorem-volume.md
