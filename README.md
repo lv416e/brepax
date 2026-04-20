@@ -54,6 +54,28 @@ def volume_fn(radius):
 grad = jax.grad(volume_fn)(jnp.array(5.0))
 ```
 
+### Speeding up cold starts
+
+BRepAX compiles one XLA artifact per surface type and per unique B-spline
+signature on the first triangulation. On busy parts (e.g. NIST CTC-02, 664
+faces) this is ~10 seconds of one-shot work per Python process. Enabling
+the persistent compilation cache lets later process starts reuse those
+compiled artifacts from disk:
+
+```python
+import brepax
+
+brepax.enable_compilation_cache()  # defaults to ~/.cache/brepax/jax-compile
+
+# First run populates the cache on disk, later runs load from it.
+shape = read_step("part.step")
+tris, _ = triangulate_shape(shape)
+```
+
+The cache directory can also be set explicitly or via the
+`BREPAX_COMPILATION_CACHE_DIR` environment variable. In-process repeat
+calls are unaffected — they already hit JAX's in-memory JIT cache.
+
 ## Features
 
 ### Primitives
