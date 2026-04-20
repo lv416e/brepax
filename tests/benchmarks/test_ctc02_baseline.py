@@ -2,9 +2,9 @@
 
 Measures the STEP -> triangulate_shape -> divergence_volume -> gradient
 pipeline on NIST CTC-02 (664 faces, 34 BSpline, ~247K triangles). The
-cold, warm, and gradient timings decompose the per-face cost so
-triangulation optimizations can be A/B compared against a stable
-reference.
+cold and warm timings for each stage (triangulation, volume, and
+gradient) decompose the total pipeline cost so triangulation
+optimizations can be A/B compared against a stable reference.
 
 Run explicitly (slow, not part of default suite):
     uv run pytest tests/benchmarks/test_ctc02_baseline.py -m slow -s
