@@ -10,31 +10,27 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0017-cold-subsequent-warm-gate/">
       
       
-        <link rel="prev" href="../reference/applications/">
-      
-      
-        <link rel="next" href="adr/0001-jax-native-rationale/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Overview - BRepAX</title>
+        <title>ADR-0017: Triangulation cold / subsequent / warm performance regions - BRepAX</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,9 +49,9 @@
       
     
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecture" class="md-skip">
+        <a href="#adr-0017-triangulation-cold-subsequent-warm-performance-regions" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +92,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -116,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Overview
+              ADR-0017: Triangulation cold / subsequent / warm performance regions
             
           </span>
         </div>
@@ -232,7 +228,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +258,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -343,7 +339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/01_quickstart/" class="md-nav__link">
+      <a href="../../../tutorials/01_quickstart/" class="md-nav__link">
         
   
   
@@ -371,7 +367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/02_first_optimization/" class="md-nav__link">
+      <a href="../../../tutorials/02_first_optimization/" class="md-nav__link">
         
   
   
@@ -399,7 +395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/03_stratum_tracking/" class="md-nav__link">
+      <a href="../../../tutorials/03_stratum_tracking/" class="md-nav__link">
         
   
   
@@ -488,7 +484,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/design_thesis/" class="md-nav__link">
+      <a href="../../../explanation/design_thesis/" class="md-nav__link">
         
   
   
@@ -516,7 +512,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/stratification_theory/" class="md-nav__link">
+      <a href="../../../explanation/stratification_theory/" class="md-nav__link">
         
   
   
@@ -544,7 +540,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/why_brep/" class="md-nav__link">
+      <a href="../../../explanation/why_brep/" class="md-nav__link">
         
   
   
@@ -572,7 +568,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/license_strategy/" class="md-nav__link">
+      <a href="../../../explanation/license_strategy/" class="md-nav__link">
         
   
   
@@ -600,7 +596,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
+      <a href="../../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
         
   
   
@@ -628,7 +624,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/toi_derivation/" class="md-nav__link">
+      <a href="../../../explanation/toi_derivation/" class="md-nav__link">
         
   
   
@@ -656,7 +652,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/hybrid_optimization_strategy/" class="md-nav__link">
+      <a href="../../../explanation/hybrid_optimization_strategy/" class="md-nav__link">
         
   
   
@@ -684,7 +680,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/concept_proof_evaluation/" class="md-nav__link">
+      <a href="../../../explanation/concept_proof_evaluation/" class="md-nav__link">
         
   
   
@@ -712,7 +708,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/3d_extension_evaluation/" class="md-nav__link">
+      <a href="../../../explanation/3d_extension_evaluation/" class="md-nav__link">
         
   
   
@@ -740,7 +736,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/nurbs_brep_feasibility/" class="md-nav__link">
+      <a href="../../../explanation/nurbs_brep_feasibility/" class="md-nav__link">
         
   
   
@@ -768,7 +764,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/nist_evaluation/" class="md-nav__link">
+      <a href="../../../explanation/nist_evaluation/" class="md-nav__link">
         
   
   
@@ -796,7 +792,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../explanation/csg_reconstruction_feasibility/" class="md-nav__link">
+      <a href="../../../explanation/csg_reconstruction_feasibility/" class="md-nav__link">
         
   
   
@@ -885,7 +881,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/" class="md-nav__link">
+      <a href="../../../reference/" class="md-nav__link">
         
   
   
@@ -913,7 +909,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/primitives/" class="md-nav__link">
+      <a href="../../../reference/primitives/" class="md-nav__link">
         
   
   
@@ -941,7 +937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/boolean/" class="md-nav__link">
+      <a href="../../../reference/boolean/" class="md-nav__link">
         
   
   
@@ -969,7 +965,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/analytical/" class="md-nav__link">
+      <a href="../../../reference/analytical/" class="md-nav__link">
         
   
   
@@ -997,7 +993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/applications/" class="md-nav__link">
+      <a href="../../../reference/applications/" class="md-nav__link">
         
   
   
@@ -1029,8 +1025,6 @@
       
   
   
-    
-  
   
   
     
@@ -1043,11 +1037,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
@@ -1068,7 +1064,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1083,37 +1079,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
         
   
   
@@ -1129,37 +1098,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#decision-log" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Log
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1223,7 +1161,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0001-jax-native-rationale/" class="md-nav__link">
+      <a href="../0001-jax-native-rationale/" class="md-nav__link">
         
   
   
@@ -1251,7 +1189,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0002-equinox-pytree-pattern/" class="md-nav__link">
+      <a href="../0002-equinox-pytree-pattern/" class="md-nav__link">
         
   
   
@@ -1279,7 +1217,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0003-stratum-label-encoding/" class="md-nav__link">
+      <a href="../0003-stratum-label-encoding/" class="md-nav__link">
         
   
   
@@ -1307,7 +1245,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0004-custom-vjp-at-boundaries/" class="md-nav__link">
+      <a href="../0004-custom-vjp-at-boundaries/" class="md-nav__link">
         
   
   
@@ -1335,7 +1273,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0005-half-edge-padding-strategy/" class="md-nav__link">
+      <a href="../0005-half-edge-padding-strategy/" class="md-nav__link">
         
   
   
@@ -1363,7 +1301,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0006-license-apache-2-rationale/" class="md-nav__link">
+      <a href="../0006-license-apache-2-rationale/" class="md-nav__link">
         
   
   
@@ -1391,7 +1329,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0007-ocp-binding-choice/" class="md-nav__link">
+      <a href="../0007-ocp-binding-choice/" class="md-nav__link">
         
   
   
@@ -1419,7 +1357,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0008-occt-abstraction-layer/" class="md-nav__link">
+      <a href="../0008-occt-abstraction-layer/" class="md-nav__link">
         
   
   
@@ -1447,7 +1385,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0009-method-b-deferred/" class="md-nav__link">
+      <a href="../0009-method-b-deferred/" class="md-nav__link">
         
   
   
@@ -1475,7 +1413,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0010-design-validation-split/" class="md-nav__link">
+      <a href="../0010-design-validation-split/" class="md-nav__link">
         
   
   
@@ -1503,7 +1441,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0011-hybrid-strategy/" class="md-nav__link">
+      <a href="../0011-hybrid-strategy/" class="md-nav__link">
         
   
   
@@ -1531,7 +1469,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0012-generic-stratum-detection/" class="md-nav__link">
+      <a href="../0012-generic-stratum-detection/" class="md-nav__link">
         
   
   
@@ -1559,7 +1497,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0013-mold-direction-demonstrator/" class="md-nav__link">
+      <a href="../0013-mold-direction-demonstrator/" class="md-nav__link">
         
   
   
@@ -1587,7 +1525,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0014-step-io-initial/" class="md-nav__link">
+      <a href="../0014-step-io-initial/" class="md-nav__link">
         
   
   
@@ -1615,7 +1553,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0015-face-to-primitive-conversion/" class="md-nav__link">
+      <a href="../0015-face-to-primitive-conversion/" class="md-nav__link">
         
   
   
@@ -1643,7 +1581,7 @@
   
   
     <li class="md-nav__item">
-      <a href="adr/0016-divergence-theorem-volume/" class="md-nav__link">
+      <a href="../0016-divergence-theorem-volume/" class="md-nav__link">
         
   
   
@@ -1706,10 +1644,43 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#decision-log" class="md-nav__link">
+  <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Log
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
       
     </span>
   </a>
@@ -1736,105 +1707,119 @@
   
 
 
-<h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h1>
-<p>This section documents the key architectural decisions made during BRepAX development. Each decision is recorded as an Architecture Decision Record (ADR) following the MADR format.</p>
-<h2 id="decision-log">Decision Log<a class="headerlink" href="#decision-log" title="Permanent link">&para;</a></h2>
+<h1 id="adr-0017-triangulation-cold-subsequent-warm-performance-regions">ADR-0017: Triangulation cold / subsequent / warm performance regions<a class="headerlink" href="#adr-0017-triangulation-cold-subsequent-warm-performance-regions" title="Permanent link">&para;</a></h1>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>The original performance target for BSpline-heavy triangulation was stated as
+"CTC-02 (664 faces, 34 BSpline, 247K triangles) &lt; 10 s cold". After the
+triangulation refactor in commits <code>8931f24</code> (JIT sharing per surface signature),
+<code>9d799f3</code> (face dispatch batching), and <code>725fbf9</code> (persistent compilation cache
+public API), the measured CTC-02 timings are:</p>
 <table>
 <thead>
 <tr>
-<th>ADR</th>
-<th>Title</th>
-<th>Status</th>
+<th>Scenario</th>
+<th>Time</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="adr/0001-jax-native-rationale/">0001</a></td>
-<td>JAX-Native Rationale</td>
-<td>Accepted</td>
+<td>Fresh process, cache off</td>
+<td>~12 s</td>
 </tr>
 <tr>
-<td><a href="adr/0002-equinox-pytree-pattern/">0002</a></td>
-<td>Equinox PyTree Pattern</td>
-<td>Accepted</td>
+<td>Fresh process, cache on, first-ever run</td>
+<td>~14 s (cache write cost)</td>
 </tr>
 <tr>
-<td><a href="adr/0003-stratum-label-encoding/">0003</a></td>
-<td>Stratum Label Encoding</td>
-<td>Accepted</td>
+<td>Fresh process, cache on, second run onward</td>
+<td>~6 s</td>
 </tr>
 <tr>
-<td><a href="adr/0004-custom-vjp-at-boundaries/">0004</a></td>
-<td>Custom VJP at Boundaries</td>
-<td>Accepted</td>
+<td>Repeated call in the same Python process</td>
+<td>~0.8 s</td>
 </tr>
 <tr>
-<td><a href="adr/0005-half-edge-padding-strategy/">0005</a></td>
-<td>Half-Edge Padding Strategy</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0006-license-apache-2-rationale/">0006</a></td>
-<td>License Apache 2.0 Rationale</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0007-ocp-binding-choice/">0007</a></td>
-<td>OCP Binding Choice</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0008-occt-abstraction-layer/">0008</a></td>
-<td>OCCT Abstraction Layer</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0009-method-b-deferred/">0009</a></td>
-<td>Method (B) TOI Deferred</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0010-design-validation-split/">0010</a></td>
-<td>Design Validation Split</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0011-hybrid-strategy/">0011</a></td>
-<td>Hybrid Optimization Strategy</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0012-generic-stratum-detection/">0012</a></td>
-<td>Generic Stratum Detection</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0013-mold-direction-demonstrator/">0013</a></td>
-<td>Mold Direction Demonstrator</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0014-step-io-initial/">0014</a></td>
-<td>STEP I/O Initial</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0015-face-to-primitive-conversion/">0015</a></td>
-<td>Face-to-Primitive Conversion</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0016-divergence-theorem-volume/">0016</a></td>
-<td>Divergence Theorem Volume</td>
-<td>Accepted</td>
-</tr>
-<tr>
-<td><a href="adr/0017-cold-subsequent-warm-gate/">0017</a></td>
-<td>Triangulation Cold / Subsequent / Warm Performance Regions</td>
-<td>Accepted</td>
+<td><code>divergence_volume</code> + <code>jax.grad</code> on an already-triangulated mesh</td>
+<td>&lt; 1 s</td>
 </tr>
 </tbody>
 </table>
+<p>A single "cold" number hides two things.  First, the first-ever run always pays
+the full XLA compile cost.  Second, the steady-state cold under a populated
+disk cache is a factor of two faster.  Reporting one number either
+over-promises (if we quote 6 s) or under-promises (if we quote 14 s) on every
+user's actual first interaction.</p>
+<p>Practical CAD optimization in BRepAX stays in the warm regime almost
+exclusively.  A typical pipeline loads one shape, calls <code>triangulate_shape</code>
+once (or uses <code>extract_mesh_topology</code> + <code>evaluate_mesh</code> for parametric sweeps),
+and runs hundreds of gradient steps in the same Python process.  Cold latency
+matters only for batch jobs, interactive exploration, and the first run after
+installing the library.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>Measure and report three distinct performance regions rather than one gate:</p>
+<ol>
+<li><strong>First-ever cold.</strong> Fresh Python process, no disk cache on the machine.
+   Lower bound for a user's very first call on BRepAX.</li>
+<li><strong>Subsequent cold.</strong> Fresh Python process with a populated disk cache
+   from an earlier run (opt-in via <code>brepax.enable_compilation_cache</code>).
+   Covers CI jobs, batch scripts, and interactive shells after the first run.</li>
+<li><strong>In-process warm.</strong> Repeated calls within the same Python process, hitting
+   JAX's in-memory JIT cache.  Covers optimization loops and Jupyter sessions.</li>
+</ol>
+<p>CTC-02 targets under the new framing:</p>
+<table>
+<thead>
+<tr>
+<th>Region</th>
+<th>Target</th>
+<th>Measured</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>First-ever cold</td>
+<td>as close to 10 s as is feasible</td>
+<td>12–14 s</td>
+</tr>
+<tr>
+<td>Subsequent cold</td>
+<td>&lt; 10 s</td>
+<td>~6 s</td>
+</tr>
+<tr>
+<td>In-process warm</td>
+<td>&lt; 2 s</td>
+<td>~0.8 s</td>
+</tr>
+</tbody>
+</table>
+<p>The original 10 s gate is not met in region 1 as strictly stated, and is met
+with margin in regions 2 and 3.  The remaining first-ever cost breaks down
+approximately as 3–5 s of OCCT Python face traversal, 5–8 s of per-signature
+XLA compilation, and ~1 s of small overhead (STEP parse, mesh concat).
+Further tightening requires attacking the OCCT traversal path or collapsing
+BSpline signatures into a padded single-compile dispatch; neither is currently
+planned.</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Benchmarks (<code>tests/benchmarks/test_ctc02_baseline.py</code>,
+  <code>tests/benchmarks/test_multi_model_baseline.py</code>) print cold and warm columns
+  side by side so results can be interpreted under the new framing.  A future
+  enhancement is N-run median to tighten the single-shot variance.</li>
+<li>Documentation for <code>enable_compilation_cache</code> explains that it affects
+  subsequent cold only; the first-ever cold on a new machine is unchanged.</li>
+<li>The paper narrative for triangulation performance reports three numbers per
+  model instead of one.  This is an honest framing that avoids having to
+  explain why "cold" fluctuates between invocations.</li>
+<li>First-ever cold becomes a separate optimization target if ever needed.  The
+  remaining levers (OCCT face traversal batching, BSpline padding to a single
+  compile, ahead-of-time warmup on import) are catalogued for a future
+  milestone but not scheduled.</li>
+<li>Users who need predictable first-call latency should call
+  <code>brepax.enable_compilation_cache()</code> before their first BRepAX call.</li>
+</ul>
 
 
 
@@ -1890,10 +1875,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
