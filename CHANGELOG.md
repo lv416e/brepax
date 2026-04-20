@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.5.0](https://github.com/lv416e/brepax/compare/v0.4.2...v0.5.0) (2026-04-20)
+
+
+### Features
+
+* **brep:** add enable_compilation_cache public API ([#53](https://github.com/lv416e/brepax/issues/53)) ([725fbf9](https://github.com/lv416e/brepax/commit/725fbf96f1e4a38a623db6af3293d6452aeeb574))
+
+
+### Performance Improvements
+
+* **brep:** batch face dispatch by signature, single vmap per group ([#52](https://github.com/lv416e/brepax/issues/52)) ([9d799f3](https://github.com/lv416e/brepax/commit/9d799f351d98dd112051577f50893468cc9c2ba0))
+* **brep:** share JIT cache across faces by surface type and BSpline signature ([#51](https://github.com/lv416e/brepax/issues/51)) ([8931f24](https://github.com/lv416e/brepax/commit/8931f2426345896e27a678e4ed56caba7ec12c6c))
+
+
+### Documentation
+
+* **adr:** ADR-0017 triangulation cold/subsequent/warm performance regions ([#57](https://github.com/lv416e/brepax/issues/57)) ([d587dc9](https://github.com/lv416e/brepax/commit/d587dc9cecb01fa58b6a23e28e6962aaec308506))
+* **brep:** surface enable_compilation_cache in README and example 11 ([#56](https://github.com/lv416e/brepax/issues/56)) ([88ebb0e](https://github.com/lv416e/brepax/commit/88ebb0ea64201e7140fcb40f17c974f01787a4aa))
+* clean up stale explanation docs and update architecture index ([#49](https://github.com/lv416e/brepax/issues/49)) ([5484588](https://github.com/lv416e/brepax/commit/54845886ffbf33d6cd5194ae2d8614dbe9ccbab6))
+
+
+### Miscellaneous Chores
+
+* release 0.5.0 ([#58](https://github.com/lv416e/brepax/issues/58)) ([310899a](https://github.com/lv416e/brepax/commit/310899a623bfb210ccb26107246c6df75d16cad9))
+
 ## [0.4.2](https://github.com/lv416e/brepax/compare/v0.4.1...v0.4.2) (2026-04-19)
 
 
