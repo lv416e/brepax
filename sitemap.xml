@@ -9,10 +9,6 @@
          <lastmod>2026-04-20</lastmod>
     </url>
     <url>
-         <loc>https://lv416e.github.io/brepax/architecture/3d-extension-roadmap/</loc>
-         <lastmod>2026-04-20</lastmod>
-    </url>
-    <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0001-jax-native-rationale/</loc>
          <lastmod>2026-04-20</lastmod>
     </url>
@@ -89,10 +85,6 @@
          <lastmod>2026-04-20</lastmod>
     </url>
     <url>
-         <loc>https://lv416e.github.io/brepax/explanation/contact_dynamics_analogy/</loc>
-         <lastmod>2026-04-20</lastmod>
-    </url>
-    <url>
          <loc>https://lv416e.github.io/brepax/explanation/csg_reconstruction_feasibility/</loc>
          <lastmod>2026-04-20</lastmod>
     </url>
@@ -117,11 +109,7 @@
          <lastmod>2026-04-20</lastmod>
     </url>
     <url>
-         <loc>https://lv416e.github.io/brepax/explanation/pseudo_sdf_problem/</loc>
-         <lastmod>2026-04-20</lastmod>
-    </url>
-    <url>
-         <loc>https://lv416e.github.io/brepax/explanation/stage_c_feasibility/</loc>
+         <loc>https://lv416e.github.io/brepax/explanation/nurbs_brep_feasibility/</loc>
          <lastmod>2026-04-20</lastmod>
     </url>
     <url>

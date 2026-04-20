@@ -10,9 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/stage_c_feasibility/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/explanation/nurbs_brep_feasibility/">
       
       
+        <link rel="prev" href="../3d_extension_evaluation/">
+      
+      
+        <link rel="next" href="../nist_evaluation/">
       
       
         
@@ -23,7 +27,7 @@
     
     
       
-        <title>Differentiable NURBS B-Rep: Feasibility Assessment - BRepAX</title>
+        <title>NURBS B-Rep Feasibility - BRepAX</title>
       
     
     
@@ -112,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Differentiable NURBS B-Rep: Feasibility Assessment
+              NURBS B-Rep Feasibility
             
           </span>
         </div>
@@ -427,8 +431,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -439,13 +445,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -466,7 +470,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -492,6 +496,34 @@
     
   
     Design Thesis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stratification_theory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stratification Theory
   
 
     
@@ -688,6 +720,397 @@
     
   
     3D Extension Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NURBS B-Rep Feasibility
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NURBS B-Rep Feasibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#abstract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Abstract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#research-question" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Research Question
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#literature-survey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Literature Survey
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Literature Survey">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#differentiable-nurbs-and-spline-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Differentiable NURBS and Spline Optimization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithmic-differentiation-of-cad-kernels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithmic Differentiation of CAD Kernels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#differentiable-csg-and-boolean-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Differentiable CSG and Boolean Operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#neural-b-rep-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Neural B-Rep Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isogeometric-analysis-and-shape-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Isogeometric Analysis and Shape Optimization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#differentiable-physics-and-contact-dynamics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Differentiable Physics and Contact Dynamics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#topology-aware-computational-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topology-Aware Computational Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#assessment-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assessment Matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gap-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap Analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gap Analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-structural-divide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Structural Divide
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-brepax-brings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What BRepAX Brings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minimum-viable-nurbs-prototype-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimum Viable NURBS Prototype Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Minimum Viable NURBS Prototype Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nurbs-sdf-computation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NURBS SDF Computation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stratum-dispatch-extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stratum Dispatch Extension
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#risk-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risk Assessment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nist_evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NIST Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../csg_reconstruction_feasibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CSG Reconstruction Feasibility
   
 
     
@@ -997,34 +1420,6 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../architecture/3d-extension-roadmap/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    3D Extension Roadmap
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
     
     
     
@@ -1038,10 +1433,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_3" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_2" >
         
           
-          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
             
   
   
@@ -1059,8 +1454,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1308,7 +1703,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0009: Method B Deferred
+    ADR-0009: Method (B) TOI Deferred
   
 
     
@@ -1364,7 +1759,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0011: Hybrid Strategy
+    ADR-0011: Hybrid Optimization Strategy
   
 
     
@@ -1477,6 +1872,34 @@
     
   
     ADR-0015: Face-to-Primitive Conversion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0016-divergence-theorem-volume/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0016: Divergence Theorem Volume
   
 
     
