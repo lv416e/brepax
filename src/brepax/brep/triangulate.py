@@ -9,6 +9,7 @@ etc.) while preserving mesh watertightness.
 
 from __future__ import annotations
 
+import functools
 from typing import Any
 
 import jax
@@ -122,6 +123,124 @@ def _eval_torus(
     return result
 
 
+# Module-level vmap-jit for each analytical surface type. Runtime args keep
+# JIT cache hot across faces of the same type (663 fresh closures -> 5 jits).
+
+
+@jax.jit
+def _plane_vmap(
+    origin: jnp.ndarray,
+    xdir: jnp.ndarray,
+    ydir: jnp.ndarray,
+    us: jnp.ndarray,
+    vs: jnp.ndarray,
+) -> jnp.ndarray:
+    return jax.vmap(lambda u, v: _eval_plane(origin, xdir, ydir, u, v))(us, vs)
+
+
+@jax.jit
+def _cylinder_vmap(
+    center: jnp.ndarray,
+    xdir: jnp.ndarray,
+    ydir: jnp.ndarray,
+    axis: jnp.ndarray,
+    radius: jnp.ndarray,
+    us: jnp.ndarray,
+    vs: jnp.ndarray,
+) -> jnp.ndarray:
+    return jax.vmap(
+        lambda u, v: _eval_cylinder(center, xdir, ydir, axis, radius, u, v)
+    )(us, vs)
+
+
+@jax.jit
+def _sphere_vmap(
+    center: jnp.ndarray,
+    xdir: jnp.ndarray,
+    ydir: jnp.ndarray,
+    axis: jnp.ndarray,
+    radius: jnp.ndarray,
+    us: jnp.ndarray,
+    vs: jnp.ndarray,
+) -> jnp.ndarray:
+    return jax.vmap(lambda u, v: _eval_sphere(center, xdir, ydir, axis, radius, u, v))(
+        us, vs
+    )
+
+
+@jax.jit
+def _cone_vmap(
+    location: jnp.ndarray,
+    xdir: jnp.ndarray,
+    ydir: jnp.ndarray,
+    axis: jnp.ndarray,
+    ref_radius: jnp.ndarray,
+    semi_angle: jnp.ndarray,
+    us: jnp.ndarray,
+    vs: jnp.ndarray,
+) -> jnp.ndarray:
+    return jax.vmap(
+        lambda u, v: _eval_cone(
+            location, xdir, ydir, axis, ref_radius, semi_angle, u, v
+        )
+    )(us, vs)
+
+
+@jax.jit
+def _torus_vmap(
+    center: jnp.ndarray,
+    xdir: jnp.ndarray,
+    ydir: jnp.ndarray,
+    axis: jnp.ndarray,
+    major_r: jnp.ndarray,
+    minor_r: jnp.ndarray,
+    us: jnp.ndarray,
+    vs: jnp.ndarray,
+) -> jnp.ndarray:
+    return jax.vmap(
+        lambda u, v: _eval_torus(center, xdir, ydir, axis, major_r, minor_r, u, v)
+    )(us, vs)
+
+
+@functools.cache
+def _get_bspline_vmap(deg_u: int, deg_v: int, is_rational: bool) -> Any:
+    """One JIT per (deg_u, deg_v, rational). Runtime args carry face-specific data."""
+    if is_rational:
+
+        @jax.jit
+        def _fn(
+            control_points: jnp.ndarray,
+            knots_u: jnp.ndarray,
+            knots_v: jnp.ndarray,
+            weights: jnp.ndarray,
+            us: jnp.ndarray,
+            vs: jnp.ndarray,
+        ) -> jnp.ndarray:
+            return jax.vmap(
+                lambda u, v: evaluate_surface(
+                    control_points, knots_u, knots_v, deg_u, deg_v, u, v, weights
+                )
+            )(us, vs)
+
+        return _fn
+
+    @jax.jit
+    def _fn_nr(
+        control_points: jnp.ndarray,
+        knots_u: jnp.ndarray,
+        knots_v: jnp.ndarray,
+        us: jnp.ndarray,
+        vs: jnp.ndarray,
+    ) -> jnp.ndarray:
+        return jax.vmap(
+            lambda u, v: evaluate_surface(
+                control_points, knots_u, knots_v, deg_u, deg_v, u, v, None
+            )
+        )(us, vs)
+
+    return _fn_nr
+
+
 def _extract_ax3(
     position: Any,
 ) -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
@@ -142,9 +261,11 @@ def _make_face_eval(
 ) -> tuple[Any, dict[str, Any]] | None:
     """Build a JAX eval function for a face's surface type.
 
-    Returns ``(eval_fn, params)`` where ``eval_fn(u, v)`` evaluates
-    the surface at parametric coordinates, or ``None`` for unsupported
-    surface types.
+    Returns ``(eval_fn, params)`` where ``eval_fn(us, vs)`` evaluates
+    the surface at a batch of parametric coordinates, or ``None`` for
+    unsupported surface types. ``eval_fn`` forwards to a module-level
+    jitted function so the JIT cache is shared across faces of the
+    same type / BSpline signature.
     """
     stype = adaptor.GetType()
 
@@ -152,8 +273,9 @@ def _make_face_eval(
         gp = adaptor.Plane()
         origin, xdir, ydir, _axis = _extract_ax3(gp.Position())
 
-        def eval_fn(u: jnp.ndarray, v: jnp.ndarray) -> jnp.ndarray:
-            return _eval_plane(origin, xdir, ydir, u, v)
+        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
+            out: jnp.ndarray = _plane_vmap(origin, xdir, ydir, us, vs)
+            return out
 
         return eval_fn, {"origin": origin}
 
@@ -162,8 +284,9 @@ def _make_face_eval(
         center, xdir, ydir, axis = _extract_ax3(gp.Position())
         radius = jnp.array(gp.Radius())
 
-        def eval_fn(u: jnp.ndarray, v: jnp.ndarray) -> jnp.ndarray:
-            return _eval_cylinder(center, xdir, ydir, axis, radius, u, v)
+        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
+            out: jnp.ndarray = _cylinder_vmap(center, xdir, ydir, axis, radius, us, vs)
+            return out
 
         return eval_fn, {"center": center, "axis": axis, "radius": radius}
 
@@ -172,8 +295,9 @@ def _make_face_eval(
         center, xdir, ydir, axis = _extract_ax3(gp.Position())
         radius = jnp.array(gp.Radius())
 
-        def eval_fn(u: jnp.ndarray, v: jnp.ndarray) -> jnp.ndarray:
-            return _eval_sphere(center, xdir, ydir, axis, radius, u, v)
+        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
+            out: jnp.ndarray = _sphere_vmap(center, xdir, ydir, axis, radius, us, vs)
+            return out
 
         return eval_fn, {"center": center, "radius": radius}
 
@@ -183,8 +307,11 @@ def _make_face_eval(
         ref_radius = jnp.array(gp.RefRadius())
         semi_angle = jnp.array(gp.SemiAngle())
 
-        def eval_fn(u: jnp.ndarray, v: jnp.ndarray) -> jnp.ndarray:
-            return _eval_cone(location, xdir, ydir, axis, ref_radius, semi_angle, u, v)
+        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
+            out: jnp.ndarray = _cone_vmap(
+                location, xdir, ydir, axis, ref_radius, semi_angle, us, vs
+            )
+            return out
 
         return eval_fn, {
             "location": location,
@@ -199,8 +326,11 @@ def _make_face_eval(
         major_r = jnp.array(gp.MajorRadius())
         minor_r = jnp.array(gp.MinorRadius())
 
-        def eval_fn(u: jnp.ndarray, v: jnp.ndarray) -> jnp.ndarray:
-            return _eval_torus(center, xdir, ydir, axis, major_r, minor_r, u, v)
+        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
+            out: jnp.ndarray = _torus_vmap(
+                center, xdir, ydir, axis, major_r, minor_r, us, vs
+            )
+            return out
 
         return eval_fn, {
             "center": center,
@@ -261,10 +391,21 @@ def _make_bspline_eval(
                 w[i - 1, j - 1] = bspl.Weight(i, j)
         weights = jnp.array(w)
 
-    def eval_fn(u: jnp.ndarray, v: jnp.ndarray) -> jnp.ndarray:
-        return evaluate_surface(
-            control_points, knots_u, knots_v, deg_u, deg_v, u, v, weights
-        )
+    shared = _get_bspline_vmap(deg_u, deg_v, weights is not None)
+
+    if weights is not None:
+        weights_arr: jnp.ndarray = weights
+
+        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
+            out: jnp.ndarray = shared(
+                control_points, knots_u, knots_v, weights_arr, us, vs
+            )
+            return out
+    else:
+
+        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
+            out: jnp.ndarray = shared(control_points, knots_u, knots_v, us, vs)
+            return out
 
     params: dict[str, Any] = {
         "control_points": control_points,
@@ -351,8 +492,9 @@ def triangulate_shape(
                 n1, n2, n3 = poly_tri.Triangle(i).Get()
                 conn[i - 1] = [n1 - 1, n2 - 1, n3 - 1]
 
-            # Re-evaluate vertex positions in JAX graph
-            positions = jax.vmap(eval_fn)(jnp.array(us_np), jnp.array(vs_np))
+            # Re-evaluate vertex positions via module-level jit (cache-shared
+            # across faces of the same surface type / BSpline signature).
+            positions = eval_fn(jnp.array(us_np), jnp.array(vs_np))
 
             # Assemble triangles via fancy indexing (no Python per-triangle loop)
             reverse = face.Orientation() != TopAbs_FORWARD
