@@ -241,6 +241,127 @@ def _get_bspline_vmap(deg_u: int, deg_v: int, is_rational: bool) -> Any:
     return _fn_nr
 
 
+# Module-level vmap-of-vmap JITs: batch N faces of the same type/signature
+# into a single XLA dispatch. Each call returns (N_faces, max_points, 3).
+
+
+@jax.jit
+def _plane_batched_vmap(
+    origins: jnp.ndarray,
+    xdirs: jnp.ndarray,
+    ydirs: jnp.ndarray,
+    us_mat: jnp.ndarray,
+    vs_mat: jnp.ndarray,
+) -> jnp.ndarray:
+    out: jnp.ndarray = jax.vmap(_plane_vmap)(origins, xdirs, ydirs, us_mat, vs_mat)
+    return out
+
+
+@jax.jit
+def _cylinder_batched_vmap(
+    centers: jnp.ndarray,
+    xdirs: jnp.ndarray,
+    ydirs: jnp.ndarray,
+    axes: jnp.ndarray,
+    radii: jnp.ndarray,
+    us_mat: jnp.ndarray,
+    vs_mat: jnp.ndarray,
+) -> jnp.ndarray:
+    out: jnp.ndarray = jax.vmap(_cylinder_vmap)(
+        centers, xdirs, ydirs, axes, radii, us_mat, vs_mat
+    )
+    return out
+
+
+@jax.jit
+def _sphere_batched_vmap(
+    centers: jnp.ndarray,
+    xdirs: jnp.ndarray,
+    ydirs: jnp.ndarray,
+    axes: jnp.ndarray,
+    radii: jnp.ndarray,
+    us_mat: jnp.ndarray,
+    vs_mat: jnp.ndarray,
+) -> jnp.ndarray:
+    out: jnp.ndarray = jax.vmap(_sphere_vmap)(
+        centers, xdirs, ydirs, axes, radii, us_mat, vs_mat
+    )
+    return out
+
+
+@jax.jit
+def _cone_batched_vmap(
+    locations: jnp.ndarray,
+    xdirs: jnp.ndarray,
+    ydirs: jnp.ndarray,
+    axes: jnp.ndarray,
+    ref_radii: jnp.ndarray,
+    semi_angles: jnp.ndarray,
+    us_mat: jnp.ndarray,
+    vs_mat: jnp.ndarray,
+) -> jnp.ndarray:
+    out: jnp.ndarray = jax.vmap(_cone_vmap)(
+        locations, xdirs, ydirs, axes, ref_radii, semi_angles, us_mat, vs_mat
+    )
+    return out
+
+
+@jax.jit
+def _torus_batched_vmap(
+    centers: jnp.ndarray,
+    xdirs: jnp.ndarray,
+    ydirs: jnp.ndarray,
+    axes: jnp.ndarray,
+    major_rs: jnp.ndarray,
+    minor_rs: jnp.ndarray,
+    us_mat: jnp.ndarray,
+    vs_mat: jnp.ndarray,
+) -> jnp.ndarray:
+    out: jnp.ndarray = jax.vmap(_torus_vmap)(
+        centers, xdirs, ydirs, axes, major_rs, minor_rs, us_mat, vs_mat
+    )
+    return out
+
+
+@functools.cache
+def _get_bspline_batched_vmap(deg_u: int, deg_v: int, is_rational: bool) -> Any:
+    """Batched vmap over N faces sharing the same BSpline signature."""
+    per_face = _get_bspline_vmap(deg_u, deg_v, is_rational)
+
+    if is_rational:
+
+        @jax.jit
+        def _fn(
+            control_points_b: jnp.ndarray,
+            knots_u_b: jnp.ndarray,
+            knots_v_b: jnp.ndarray,
+            weights_b: jnp.ndarray,
+            us_mat: jnp.ndarray,
+            vs_mat: jnp.ndarray,
+        ) -> jnp.ndarray:
+            out: jnp.ndarray = jax.vmap(per_face)(
+                control_points_b, knots_u_b, knots_v_b, weights_b, us_mat, vs_mat
+            )
+            return out
+
+        return _fn
+
+    @jax.jit
+    def _fn_nr(
+        control_points_b: jnp.ndarray,
+        knots_u_b: jnp.ndarray,
+        knots_v_b: jnp.ndarray,
+        us_mat: jnp.ndarray,
+        vs_mat: jnp.ndarray,
+    ) -> jnp.ndarray:
+        out: jnp.ndarray = jax.vmap(per_face)(
+            control_points_b, knots_u_b, knots_v_b, us_mat, vs_mat
+        )
+        return out
+
+    return _fn_nr
+
+
 def _extract_ax3(
     position: Any,
 ) -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
@@ -256,167 +377,212 @@ def _extract_ax3(
     return origin, xdir, ydir, axis
 
 
-def _make_face_eval(
-    adaptor: Any,
-) -> tuple[Any, dict[str, Any]] | None:
-    """Build a JAX eval function for a face's surface type.
+def _extract_face_geometric_params(adaptor: Any) -> tuple[str, dict[str, Any]] | None:
+    """Extract surface type and raw geometric parameters for batching.
 
-    Returns ``(eval_fn, params)`` where ``eval_fn(us, vs)`` evaluates
-    the surface at a batch of parametric coordinates, or ``None`` for
-    unsupported surface types. ``eval_fn`` forwards to a module-level
-    jitted function so the JIT cache is shared across faces of the
-    same type / BSpline signature.
+    Separates the analytical parameter tuple from the JIT-wrapping
+    responsibility so ``triangulate_shape`` can group and stack
+    parameters across faces before any JAX dispatch.
     """
     stype = adaptor.GetType()
 
     if stype == GeomAbs_Plane:
-        gp = adaptor.Plane()
-        origin, xdir, ydir, _axis = _extract_ax3(gp.Position())
-
-        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
-            out: jnp.ndarray = _plane_vmap(origin, xdir, ydir, us, vs)
-            return out
-
-        return eval_fn, {"origin": origin}
+        origin, xdir, ydir, _ = _extract_ax3(adaptor.Plane().Position())
+        return "plane", {"origin": origin, "xdir": xdir, "ydir": ydir}
 
     if stype == GeomAbs_Cylinder:
         gp = adaptor.Cylinder()
         center, xdir, ydir, axis = _extract_ax3(gp.Position())
-        radius = jnp.array(gp.Radius())
-
-        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
-            out: jnp.ndarray = _cylinder_vmap(center, xdir, ydir, axis, radius, us, vs)
-            return out
-
-        return eval_fn, {"center": center, "axis": axis, "radius": radius}
+        return "cylinder", {
+            "center": center,
+            "xdir": xdir,
+            "ydir": ydir,
+            "axis": axis,
+            "radius": jnp.array(gp.Radius()),
+        }
 
     if stype == GeomAbs_Sphere:
         gp = adaptor.Sphere()
         center, xdir, ydir, axis = _extract_ax3(gp.Position())
-        radius = jnp.array(gp.Radius())
-
-        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
-            out: jnp.ndarray = _sphere_vmap(center, xdir, ydir, axis, radius, us, vs)
-            return out
-
-        return eval_fn, {"center": center, "radius": radius}
+        return "sphere", {
+            "center": center,
+            "xdir": xdir,
+            "ydir": ydir,
+            "axis": axis,
+            "radius": jnp.array(gp.Radius()),
+        }
 
     if stype == GeomAbs_Cone:
         gp = adaptor.Cone()
         location, xdir, ydir, axis = _extract_ax3(gp.Position())
-        ref_radius = jnp.array(gp.RefRadius())
-        semi_angle = jnp.array(gp.SemiAngle())
-
-        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
-            out: jnp.ndarray = _cone_vmap(
-                location, xdir, ydir, axis, ref_radius, semi_angle, us, vs
-            )
-            return out
-
-        return eval_fn, {
+        return "cone", {
             "location": location,
+            "xdir": xdir,
+            "ydir": ydir,
             "axis": axis,
-            "ref_radius": ref_radius,
-            "semi_angle": semi_angle,
+            "ref_radius": jnp.array(gp.RefRadius()),
+            "semi_angle": jnp.array(gp.SemiAngle()),
         }
 
     if stype == GeomAbs_Torus:
         gp = adaptor.Torus()
         center, xdir, ydir, axis = _extract_ax3(gp.Position())
-        major_r = jnp.array(gp.MajorRadius())
-        minor_r = jnp.array(gp.MinorRadius())
-
-        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
-            out: jnp.ndarray = _torus_vmap(
-                center, xdir, ydir, axis, major_r, minor_r, us, vs
-            )
-            return out
-
-        return eval_fn, {
+        return "torus", {
             "center": center,
+            "xdir": xdir,
+            "ydir": ydir,
             "axis": axis,
-            "major_radius": major_r,
-            "minor_radius": minor_r,
+            "major_radius": jnp.array(gp.MajorRadius()),
+            "minor_radius": jnp.array(gp.MinorRadius()),
         }
 
     if stype == GeomAbs_BSplineSurface:
-        return _make_bspline_eval(adaptor)
+        from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
+
+        from brepax.brep.convert import _expand_knots
+
+        bspl = adaptor.BSpline()
+        n_u, n_v = bspl.NbUPoles(), bspl.NbVPoles()
+        deg_u, deg_v = bspl.UDegree(), bspl.VDegree()
+
+        poles = np.zeros((n_u, n_v, 3))
+        for i in range(1, n_u + 1):
+            for j in range(1, n_v + 1):
+                pt = bspl.Pole(i, j)
+                poles[i - 1, j - 1] = [pt.X(), pt.Y(), pt.Z()]
+
+        uk = TColStd_Array1OfReal(1, bspl.NbUKnots())
+        um = TColStd_Array1OfInteger(1, bspl.NbUKnots())
+        bspl.UKnots(uk)
+        bspl.UMultiplicities(um)
+        knots_u = _expand_knots(
+            [uk.Value(i) for i in range(1, bspl.NbUKnots() + 1)],
+            [um.Value(i) for i in range(1, bspl.NbUKnots() + 1)],
+        )
+
+        vk = TColStd_Array1OfReal(1, bspl.NbVKnots())
+        vm = TColStd_Array1OfInteger(1, bspl.NbVKnots())
+        bspl.VKnots(vk)
+        bspl.VMultiplicities(vm)
+        knots_v = _expand_knots(
+            [vk.Value(i) for i in range(1, bspl.NbVKnots() + 1)],
+            [vm.Value(i) for i in range(1, bspl.NbVKnots() + 1)],
+        )
+
+        is_rational = bspl.IsURational() or bspl.IsVRational()
+        weights_arr: jnp.ndarray | None = None
+        if is_rational:
+            w = np.zeros((n_u, n_v))
+            for i in range(1, n_u + 1):
+                for j in range(1, n_v + 1):
+                    w[i - 1, j - 1] = bspl.Weight(i, j)
+            weights_arr = jnp.array(w)
+
+        bspline_params: dict[str, Any] = {
+            "control_points": jnp.array(poles),
+            "knots_u": knots_u,
+            "knots_v": knots_v,
+            "deg_u": deg_u,
+            "deg_v": deg_v,
+        }
+        if weights_arr is not None:
+            bspline_params["weights"] = weights_arr
+        return "bspline", bspline_params
 
     return None
 
 
-def _make_bspline_eval(
-    adaptor: Any,
-) -> tuple[Any, dict[str, Any]]:
-    """Build a JAX eval function for a BSpline face."""
-    bspl = adaptor.BSpline()
-    n_u, n_v = bspl.NbUPoles(), bspl.NbVPoles()
-    deg_u, deg_v = bspl.UDegree(), bspl.VDegree()
+def _face_group_key(surface_type: str, params: dict[str, Any]) -> tuple[Any, ...]:
+    """Signature that makes two faces share a batched JIT compile."""
+    if surface_type == "bspline":
+        return (
+            "bspline",
+            params["deg_u"],
+            params["deg_v"],
+            params["control_points"].shape,
+            params["knots_u"].shape,
+            params["knots_v"].shape,
+            "weights" in params,
+        )
+    return (surface_type,)
 
-    poles = np.zeros((n_u, n_v, 3))
-    for i in range(1, n_u + 1):
-        for j in range(1, n_v + 1):
-            pt = bspl.Pole(i, j)
-            poles[i - 1, j - 1] = [pt.X(), pt.Y(), pt.Z()]
-    control_points = jnp.array(poles)
 
-    from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
+def _dispatch_analytical_group(
+    surface_type: str,
+    faces_params: list[dict[str, Any]],
+    us_mat: jnp.ndarray,
+    vs_mat: jnp.ndarray,
+) -> jnp.ndarray:
+    out: jnp.ndarray
+    if surface_type == "plane":
+        origins = jnp.stack([p["origin"] for p in faces_params])
+        xdirs = jnp.stack([p["xdir"] for p in faces_params])
+        ydirs = jnp.stack([p["ydir"] for p in faces_params])
+        out = _plane_batched_vmap(origins, xdirs, ydirs, us_mat, vs_mat)
+        return out
+    if surface_type == "cylinder":
+        centers = jnp.stack([p["center"] for p in faces_params])
+        xdirs = jnp.stack([p["xdir"] for p in faces_params])
+        ydirs = jnp.stack([p["ydir"] for p in faces_params])
+        axes = jnp.stack([p["axis"] for p in faces_params])
+        radii = jnp.stack([p["radius"] for p in faces_params])
+        out = _cylinder_batched_vmap(centers, xdirs, ydirs, axes, radii, us_mat, vs_mat)
+        return out
+    if surface_type == "sphere":
+        centers = jnp.stack([p["center"] for p in faces_params])
+        xdirs = jnp.stack([p["xdir"] for p in faces_params])
+        ydirs = jnp.stack([p["ydir"] for p in faces_params])
+        axes = jnp.stack([p["axis"] for p in faces_params])
+        radii = jnp.stack([p["radius"] for p in faces_params])
+        out = _sphere_batched_vmap(centers, xdirs, ydirs, axes, radii, us_mat, vs_mat)
+        return out
+    if surface_type == "cone":
+        locations = jnp.stack([p["location"] for p in faces_params])
+        xdirs = jnp.stack([p["xdir"] for p in faces_params])
+        ydirs = jnp.stack([p["ydir"] for p in faces_params])
+        axes = jnp.stack([p["axis"] for p in faces_params])
+        ref_radii = jnp.stack([p["ref_radius"] for p in faces_params])
+        semi_angles = jnp.stack([p["semi_angle"] for p in faces_params])
+        out = _cone_batched_vmap(
+            locations, xdirs, ydirs, axes, ref_radii, semi_angles, us_mat, vs_mat
+        )
+        return out
+    if surface_type == "torus":
+        centers = jnp.stack([p["center"] for p in faces_params])
+        xdirs = jnp.stack([p["xdir"] for p in faces_params])
+        ydirs = jnp.stack([p["ydir"] for p in faces_params])
+        axes = jnp.stack([p["axis"] for p in faces_params])
+        major_rs = jnp.stack([p["major_radius"] for p in faces_params])
+        minor_rs = jnp.stack([p["minor_radius"] for p in faces_params])
+        out = _torus_batched_vmap(
+            centers, xdirs, ydirs, axes, major_rs, minor_rs, us_mat, vs_mat
+        )
+        return out
+    raise ValueError(f"Unknown analytical surface type: {surface_type}")
 
-    from brepax.brep.convert import _expand_knots
 
-    uk = TColStd_Array1OfReal(1, bspl.NbUKnots())
-    um = TColStd_Array1OfInteger(1, bspl.NbUKnots())
-    bspl.UKnots(uk)
-    bspl.UMultiplicities(um)
-    knots_u = _expand_knots(
-        [uk.Value(i) for i in range(1, bspl.NbUKnots() + 1)],
-        [um.Value(i) for i in range(1, bspl.NbUKnots() + 1)],
-    )
+def _dispatch_bspline_group(
+    faces_params: list[dict[str, Any]],
+    us_mat: jnp.ndarray,
+    vs_mat: jnp.ndarray,
+) -> jnp.ndarray:
+    # All faces in the group share the same signature (shapes and degrees).
+    first = faces_params[0]
+    deg_u = first["deg_u"]
+    deg_v = first["deg_v"]
+    is_rational = "weights" in first
+    fn = _get_bspline_batched_vmap(deg_u, deg_v, is_rational)
 
-    vk = TColStd_Array1OfReal(1, bspl.NbVKnots())
-    vm = TColStd_Array1OfInteger(1, bspl.NbVKnots())
-    bspl.VKnots(vk)
-    bspl.VMultiplicities(vm)
-    knots_v = _expand_knots(
-        [vk.Value(i) for i in range(1, bspl.NbVKnots() + 1)],
-        [vm.Value(i) for i in range(1, bspl.NbVKnots() + 1)],
-    )
-
-    is_rational = bspl.IsURational() or bspl.IsVRational()
-    weights = None
+    cp_b = jnp.stack([p["control_points"] for p in faces_params])
+    ku_b = jnp.stack([p["knots_u"] for p in faces_params])
+    kv_b = jnp.stack([p["knots_v"] for p in faces_params])
+    out: jnp.ndarray
     if is_rational:
-        w = np.zeros((n_u, n_v))
-        for i in range(1, n_u + 1):
-            for j in range(1, n_v + 1):
-                w[i - 1, j - 1] = bspl.Weight(i, j)
-        weights = jnp.array(w)
-
-    shared = _get_bspline_vmap(deg_u, deg_v, weights is not None)
-
-    if weights is not None:
-        weights_arr: jnp.ndarray = weights
-
-        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
-            out: jnp.ndarray = shared(
-                control_points, knots_u, knots_v, weights_arr, us, vs
-            )
-            return out
+        w_b = jnp.stack([p["weights"] for p in faces_params])
+        out = fn(cp_b, ku_b, kv_b, w_b, us_mat, vs_mat)
     else:
-
-        def eval_fn(us: jnp.ndarray, vs: jnp.ndarray) -> jnp.ndarray:
-            out: jnp.ndarray = shared(control_points, knots_u, knots_v, us, vs)
-            return out
-
-    params: dict[str, Any] = {
-        "control_points": control_points,
-        "knots_u": knots_u,
-        "knots_v": knots_v,
-        "deg_u": deg_u,
-        "deg_v": deg_v,
-    }
-    if weights is not None:
-        params["weights"] = weights
-    return eval_fn, params
+        out = fn(cp_b, ku_b, kv_b, us_mat, vs_mat)
+    return out
 
 
 def triangulate_shape(
@@ -428,8 +594,9 @@ def triangulate_shape(
 
     Uses OCCT BRepMesh for watertight mesh topology, then re-evaluates
     each vertex position using JAX-native parametric surface functions.
-    This ensures the divergence theorem gives correct volume while
-    ``jax.grad`` flows through the vertex positions.
+    Faces are grouped by surface type (and BSpline signature) so each
+    group is evaluated with a single batched ``jax.vmap``, eliminating
+    per-face Python dispatch overhead.
 
     Args:
         shape: An OCCT topological shape.
@@ -438,17 +605,12 @@ def triangulate_shape(
     Returns:
         Tuple of ``(triangles, params_list)`` where triangles has
         shape ``(n_total, 3, 3)`` and params_list contains one
-        parameter dict per face.
+        parameter dict per face, in traversal order.
     """
     BRepMesh_IncrementalMesh(shape, deflection)
 
-    all_tris: list[jnp.ndarray] = []
-    all_params: list[dict[str, Any]] = []
-
     # Iterate faces per-Solid to exclude orphan faces/shells that
     # are not part of any solid and would break the divergence theorem.
-    # Fall back to all faces when the shape contains no Solids
-    # (e.g. a single surface or open shell).
     face_sources: list[Any] = []
     exp_solid = TopExp_Explorer(shape, TopAbs_SOLID)
     while exp_solid.More():
@@ -457,18 +619,19 @@ def triangulate_shape(
     if not face_sources:
         face_sources.append(shape)
 
+    # Pass 1: walk faces, extract raw UV + connectivity + params in numpy.
+    face_records: list[dict[str, Any]] = []
     for source in face_sources:
         exp = TopExp_Explorer(source, TopAbs_FACE)
         while exp.More():
             face = TopoDS.Face_s(exp.Current())
             adaptor = BRepAdaptor_Surface(face)
 
-            result = _make_face_eval(adaptor)
+            result = _extract_face_geometric_params(adaptor)
             if result is None:
                 exp.Next()
                 continue
-
-            eval_fn, params = result
+            surface_type, params = result
 
             loc = TopLoc_Location()
             poly_tri = BRep_Tool.Triangulation_s(face, loc)
@@ -479,7 +642,6 @@ def triangulate_shape(
             n_nodes = poly_tri.NbNodes()
             n_tris = poly_tri.NbTriangles()
 
-            # Batch-extract UV coordinates and connectivity as numpy arrays
             us_np = np.empty(n_nodes)
             vs_np = np.empty(n_nodes)
             for i in range(1, n_nodes + 1):
@@ -492,24 +654,79 @@ def triangulate_shape(
                 n1, n2, n3 = poly_tri.Triangle(i).Get()
                 conn[i - 1] = [n1 - 1, n2 - 1, n3 - 1]
 
-            # Re-evaluate vertex positions via module-level jit (cache-shared
-            # across faces of the same surface type / BSpline signature).
-            positions = eval_fn(jnp.array(us_np), jnp.array(vs_np))
-
-            # Assemble triangles via fancy indexing (no Python per-triangle loop)
             reverse = face.Orientation() != TopAbs_FORWARD
-            idx = conn[:, [0, 2, 1]] if reverse else conn
-            face_tris = positions[idx]
+            if reverse:
+                conn = conn[:, [0, 2, 1]]
 
-            all_tris.append(face_tris)
-            all_params.append(params)
-
+            face_records.append(
+                {
+                    "surface_type": surface_type,
+                    "params": params,
+                    "us": us_np,
+                    "vs": vs_np,
+                    "n_points": n_nodes,
+                    "conn": conn,
+                }
+            )
             exp.Next()
 
-    if not all_tris:
+    if not face_records:
         return jnp.zeros((0, 3, 3)), []
 
-    return jnp.concatenate(all_tris, axis=0), all_params
+    # Pass 2: group faces by signature, batch-evaluate each group.
+    groups: dict[tuple[Any, ...], list[int]] = {}
+    for idx, rec in enumerate(face_records):
+        key = _face_group_key(rec["surface_type"], rec["params"])
+        groups.setdefault(key, []).append(idx)
+
+    # For each face: (n_points, 3) positions array produced via group dispatch.
+    positions_per_face: list[jnp.ndarray] = [jnp.zeros((0, 3))] * len(face_records)
+
+    for _key, indices in groups.items():
+        group_recs = [face_records[i] for i in indices]
+        max_pts = max(r["n_points"] for r in group_recs)
+        n = len(group_recs)
+
+        us_mat = np.zeros((n, max_pts))
+        vs_mat = np.zeros((n, max_pts))
+        for i, r in enumerate(group_recs):
+            us_mat[i, : r["n_points"]] = r["us"]
+            vs_mat[i, : r["n_points"]] = r["vs"]
+        us_j = jnp.array(us_mat)
+        vs_j = jnp.array(vs_mat)
+
+        faces_params = [r["params"] for r in group_recs]
+        surface_type = group_recs[0]["surface_type"]
+        if surface_type == "bspline":
+            batched_out = _dispatch_bspline_group(faces_params, us_j, vs_j)
+        else:
+            batched_out = _dispatch_analytical_group(
+                surface_type, faces_params, us_j, vs_j
+            )
+        # batched_out: (N_faces, max_pts, 3). Slice per-face to actual count.
+        for i, face_idx in enumerate(indices):
+            n_pts = group_recs[i]["n_points"]
+            positions_per_face[face_idx] = batched_out[i, :n_pts]
+
+    # Pass 3: remap per-face connectivity to global indices, single indexed fetch.
+    offsets = np.zeros(len(face_records) + 1, dtype=np.int64)
+    for i, rec in enumerate(face_records):
+        offsets[i + 1] = offsets[i] + rec["n_points"]
+
+    global_conn = np.concatenate(
+        [face_records[i]["conn"] + offsets[i] for i in range(len(face_records))],
+        axis=0,
+    )
+    all_positions = jnp.concatenate(positions_per_face, axis=0)
+    triangles: jnp.ndarray = all_positions[global_conn]
+
+    # params_list preserves traversal order, with surface_type included so
+    # downstream tooling can distinguish batched groupings.
+    all_params = [
+        {"surface_type": rec["surface_type"], **rec["params"]} for rec in face_records
+    ]
+
+    return triangles, all_params
 
 
 def divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
@@ -756,7 +973,9 @@ def _extract_face_data(
         }
 
     if name == "bspline":
-        _, bspline_params = _make_bspline_eval(adaptor)
+        result = _extract_face_geometric_params(adaptor)
+        assert result is not None  # BSpline is supported
+        _stype, bspline_params = result
         bspline_params["surface_type"] = name
         return bspline_params
 
