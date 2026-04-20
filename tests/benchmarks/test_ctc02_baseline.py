@@ -1,14 +1,13 @@
-"""CTC-02 triangulation baseline benchmark (M5 entry point).
+"""CTC-02 triangulation baseline benchmark.
 
 Measures the STEP -> triangulate_shape -> divergence_volume -> gradient
-pipeline on NIST CTC-02 (664 faces, 34 BSpline, ~247K triangles).
-
-ADR-0016 recorded ~95s for BSpline face re-evaluation in this pipeline.
-This benchmark reproduces and decomposes that number so M5 improvements
-can be A/B compared.
+pipeline on NIST CTC-02 (664 faces, 34 BSpline, ~247K triangles). The
+cold, warm, and gradient timings decompose the per-face cost so
+triangulation optimizations can be A/B compared against a stable
+reference.
 
 Run explicitly (slow, not part of default suite):
-    uv run pytest tests/benchmarks/bench_ctc02_triangulate.py -m slow -s
+    uv run pytest tests/benchmarks/test_ctc02_baseline.py -m slow -s
 """
 
 from __future__ import annotations
