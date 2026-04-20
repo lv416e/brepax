@@ -22,3 +22,4 @@ This section documents the key architectural decisions made during BRepAX develo
 | [0014](adr/0014-step-io-initial.md) | STEP I/O Initial | Accepted |
 | [0015](adr/0015-face-to-primitive-conversion.md) | Face-to-Primitive Conversion | Accepted |
 | [0016](adr/0016-divergence-theorem-volume.md) | Divergence Theorem Volume | Accepted |
+| [0017](adr/0017-cold-subsequent-warm-gate.md) | Triangulation Cold / Subsequent / Warm Performance Regions | Accepted |
