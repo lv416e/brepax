@@ -41,6 +41,34 @@ The TOI correction (Method B, deferred in ADR-0009) was designed precisely for b
 
 Re-evaluation trigger: when a use case requires single-method cross-stratum optimization without a coarse-to-fine schedule.
 
+## Empirical Confirmation
+
+3D benchmark testing confirmed the hybrid strategy with three findings:
+
+1. **Disjoint→intersecting stall validated.** `intersect_volume_stratum`
+   with two disjoint spheres (d=2.5) returns gradient exactly zero.
+   Optimization stalls at step 0. Method A is the only path to
+   cross-stratum exploration in this direction.
+
+2. **Within-stratum optimization works.** Adam optimizer on
+   sphere-sphere and cylinder-sphere objectives converges to
+   < 1% of analytical optimum despite near-tangent STE error
+   of 25-542%. Gradient direction (sign) is always correct.
+
+3. **Contained↔intersecting crossing is smooth.** Method C handles
+   the contained-intersecting boundary without stalling, unlike
+   the disjoint-intersecting boundary. This asymmetry is expected:
+   contained→intersecting involves a continuous volume change,
+   while disjoint→intersecting involves a volume jump from zero.
+
+The three-problem decomposition (Problem A: disjoint stall,
+Problem B: STE near-tangent bias, Problem C: Path C frozen
+topology) confirms that the hybrid framework addresses Problem A
+while Method C alone handles Problems B and C adequately for
+practical optimization.
+
+See `tests/benchmarks/test_gradient_accuracy_3d.py` for data.
+
 ## Consequences
 
 - Hybrid optimizer design becomes a first-class concern (not an afterthought)

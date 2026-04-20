@@ -39,6 +39,29 @@ Method (B) should be reconsidered if:
 - Optimization trajectories require explicit boundary-crossing awareness (e.g., path-dependent stratum tracking)
 - A use case emerges where Method (C) is insufficient but Method (B)'s root-finding approach adds value
 
+## Empirical Validation
+
+3D sphere-sphere and cylinder-sphere gradient benchmarks confirmed
+the deferral decision with an additional finding:
+
+**Method B does not address the primary Stratum 1 gradient error.**
+Forced-label experiments (bypassing stratum detection, directly
+computing STE gradient with correct stratum=intersecting) showed
+that STE accuracy at near-tangent configurations degrades to
+25-542% error regardless of detection quality. The root cause is
+the sigmoid kernel width exceeding the intersection feature size,
+not stratum misclassification at the boundary.
+
+Method B corrects the gradient *jump* at stratum transitions.
+The observed error is a stratum-*internal* integration problem
+that Method B cannot address.
+
+Interior STE accuracy is < 1% (sphere-sphere) and < 10%
+(cylinder-sphere) at resolution 128, and optimization converges
+despite near-tangent error.
+
+See `tests/benchmarks/test_gradient_accuracy_3d.py` for data.
+
 ## Consequences
 
 - Concept proof benchmark compares Method (A) vs Method (C) only
