@@ -11,6 +11,7 @@ to gradient-based manufacturing analysis.
 import equinox as eqx
 import jax.numpy as jnp
 
+import brepax
 from brepax.brep.csg_stump import reconstruct_csg_stump, stump_to_differentiable
 from brepax.io.step import read_step
 from brepax.metrics import (
@@ -18,6 +19,10 @@ from brepax.metrics import (
     surface_area,
     thin_wall_volume,
 )
+
+# Persist JIT artifacts across process starts so repeated runs skip
+# the first-time XLA compile. Idempotent; safe to call unconditionally.
+brepax.enable_compilation_cache()
 
 
 def main() -> None:
