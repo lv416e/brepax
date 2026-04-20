@@ -709,9 +709,7 @@ def triangulate_shape(
             positions_per_face[face_idx] = batched_out[i, :n_pts]
 
     # Pass 3: remap per-face connectivity to global indices, single indexed fetch.
-    offsets = np.zeros(len(face_records) + 1, dtype=np.int64)
-    for i, rec in enumerate(face_records):
-        offsets[i + 1] = offsets[i] + rec["n_points"]
+    offsets = np.cumsum([0] + [r["n_points"] for r in face_records], dtype=np.int64)
 
     global_conn = np.concatenate(
         [face_records[i]["conn"] + offsets[i] for i in range(len(face_records))],
