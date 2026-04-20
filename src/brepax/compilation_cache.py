@@ -9,12 +9,6 @@ triangulation below 6 seconds on CTC-02.
 
 The cache is opt-in: nothing on BRepAX import changes ``jax.config``.
 Users call :func:`enable_compilation_cache` early in their program.
-
-Cached artifacts may produce numerically equivalent but not
-bit-identical results compared to fresh compilation because XLA's
-optimization pipeline can choose slightly different reduction orders
-per run.  The difference is within standard floating-point tolerance
-(~1e-5 relative on accumulated volumes).
 """
 
 from __future__ import annotations
