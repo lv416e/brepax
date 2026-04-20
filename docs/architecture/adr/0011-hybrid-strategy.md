@@ -41,7 +41,7 @@ The TOI correction (Method B, deferred in ADR-0009) was designed precisely for b
 
 Re-evaluation trigger: when a use case requires single-method cross-stratum optimization without a coarse-to-fine schedule.
 
-## M4.3 Empirical Confirmation (2026-04-20)
+## Empirical Confirmation (2026-04-20)
 
 3D benchmark testing confirmed the hybrid strategy with three findings:
 

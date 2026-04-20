@@ -6,7 +6,7 @@ Extends the 2D benchmark (test_gradient_accuracy.py) to 3D with:
 - Optimization convergence with Adam on non-degenerate objectives
 - Cross-stratum stall validation (ADR-0011)
 
-Key findings (M4.3):
+Key findings:
 - STE interior gradient: < 1% (sphere-sphere), 3-9% (cyl-sphere) at res=128
 - Near-tangent error increases as sigmoid kernel width > feature size
 - Method B (TOI) does not address STE accuracy (stratum-internal problem)

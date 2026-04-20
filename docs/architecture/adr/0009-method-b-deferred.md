@@ -39,7 +39,7 @@ Method (B) should be reconsidered if:
 - Optimization trajectories require explicit boundary-crossing awareness (e.g., path-dependent stratum tracking)
 - A use case emerges where Method (C) is insufficient but Method (B)'s root-finding approach adds value
 
-## M4.3 Empirical Validation (2026-04-20)
+## Empirical Validation (2026-04-20)
 
 3D sphere-sphere and cylinder-sphere gradient benchmarks confirmed
 the deferral decision with an additional finding:
