@@ -64,6 +64,8 @@ compiled artifacts from disk:
 
 ```python
 import brepax
+from brepax.io.step import read_step
+from brepax.brep.triangulate import triangulate_shape
 
 brepax.enable_compilation_cache()  # defaults to ~/.cache/brepax/jax-compile
 
