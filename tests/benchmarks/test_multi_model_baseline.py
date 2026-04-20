@@ -3,8 +3,8 @@
 Reports cold/warm triangulation, volume, and gradient timings on a
 small set of fixture models that span face count (1-37) and BSpline
 ratio (0-100%). CTC-02 lives in its own benchmark; this file covers
-the complement so the M5 optimizations can be sanity-checked beyond
-the single large part.
+the complement so the triangulation optimizations can be
+sanity-checked beyond the single large part.
 
 Single-shot timings; treat as order-of-magnitude reference, not
 paper-grade statistics. The models run sequentially within one test
@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+from typing import Any, NamedTuple
 
 import jax
 import jax.numpy as jnp
@@ -44,9 +45,24 @@ MODELS: list[tuple[str, str]] = [
 ]
 
 
-def _time(fn: object, *args: object) -> tuple[float, object]:
+class Row(NamedTuple):
+    """One model's timing record for the printed table."""
+
+    label: str
+    n_faces: int
+    n_bspline: int
+    n_tris: int
+    tri_cold: float
+    tri_warm: float
+    vol_cold: float
+    vol_warm: float
+    grd_cold: float
+    grd_warm: float
+
+
+def _time(fn: Any, *args: Any) -> tuple[float, Any]:
     t0 = time.perf_counter()
-    out = fn(*args)  # type: ignore[operator]
+    out = fn(*args)
     jax.block_until_ready(out)
     return time.perf_counter() - t0, out
 
@@ -55,7 +71,7 @@ def _time(fn: object, *args: object) -> tuple[float, object]:
 @pytest.mark.benchmark
 def test_multi_model_baseline() -> None:
     """Print a per-model timing table; asserts basic liveness."""
-    rows: list[tuple[str, int, int, int, float, float, float, float, float, float]] = []
+    rows: list[Row] = []
     grad_volume = jax.grad(divergence_volume)
 
     for label, rel_path in MODELS:
@@ -64,7 +80,7 @@ def test_multi_model_baseline() -> None:
         shape = read_step(str(path))
 
         t_tri_cold, pair_cold = _time(triangulate_shape, shape)
-        triangles_cold, params_list = pair_cold  # type: ignore[misc]
+        triangles_cold, params_list = pair_cold
         t_tri_warm, _ = _time(triangulate_shape, shape)
 
         n_tris = int(triangles_cold.shape[0])
@@ -81,17 +97,17 @@ def test_multi_model_baseline() -> None:
         assert jnp.all(jnp.isfinite(grad))
 
         rows.append(
-            (
-                label,
-                n_faces,
-                n_bspline,
-                n_tris,
-                t_tri_cold,
-                t_tri_warm,
-                t_vol_cold,
-                t_vol_warm,
-                t_grad_cold,
-                t_grad_warm,
+            Row(
+                label=label,
+                n_faces=n_faces,
+                n_bspline=n_bspline,
+                n_tris=n_tris,
+                tri_cold=t_tri_cold,
+                tri_warm=t_tri_warm,
+                vol_cold=t_vol_cold,
+                vol_warm=t_vol_warm,
+                grd_cold=t_grad_cold,
+                grd_warm=t_grad_warm,
             )
         )
 
@@ -106,8 +122,9 @@ def test_multi_model_baseline() -> None:
     print("-" * len(header))
     for r in rows:
         print(
-            f"{r[0]:18s}  {r[1]:5d} {r[2]:4d} {r[3]:7d}  "
-            f"{r[4]:7.3f} {r[5]:7.3f}  {r[6]:7.3f} {r[7]:7.3f}  "
-            f"{r[8]:7.3f} {r[9]:7.3f}"
+            f"{r.label:18s}  {r.n_faces:5d} {r.n_bspline:4d} {r.n_tris:7d}  "
+            f"{r.tri_cold:7.3f} {r.tri_warm:7.3f}  "
+            f"{r.vol_cold:7.3f} {r.vol_warm:7.3f}  "
+            f"{r.grd_cold:7.3f} {r.grd_warm:7.3f}"
         )
     print("=" * len(header))
