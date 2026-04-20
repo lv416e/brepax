@@ -56,7 +56,7 @@ CTC-02 targets under the new framing:
 The original 10 s gate is not met in region 1 as strictly stated, and is met
 with margin in regions 2 and 3.  The remaining first-ever cost breaks down
 approximately as 3–5 s of OCCT Python face traversal, 5–8 s of per-signature
-XLA compilation, and ≈1 s of small overhead (STEP parse, mesh concat).
+XLA compilation, and ~1 s of small overhead (STEP parse, mesh concat).
 Further tightening requires attacking the OCCT traversal path or collapsing
 BSpline signatures into a padded single-compile dispatch; neither is currently
 planned.
