@@ -65,8 +65,8 @@ decomposes into three independent problems with distinct solutions:
 | Problem | Phenomenon | Root cause | Solution |
 |---|---|---|---|
 | Cross-stratum stall | Gradient is zero in disjoint stratum for intersection volume | SDF carries no overlap information outside the intersection | Method A (smoothing extends signal across boundary) |
-| Near-tangent STE bias | 25-542% gradient error approaching tangency | Sigmoid kernel width exceeds intersection feature size | Higher resolution or boundary integral (Path C) |
-| Frozen-topology plateau | Divergence theorem gradient plateaus at ~25% | Mesh topology does not adapt to parameter changes | Explicit boundary integral for moving intersection curve |
+| Near-tangent STE bias | 25-542% gradient error approaching tangency | Sigmoid kernel width exceeds intersection feature size | Higher resolution or exact boundary integral via divergence theorem |
+| Frozen-topology plateau | Divergence theorem gradient plateaus at ~25% | Mesh topology does not adapt to parameter changes | Hadamard shape derivative boundary integral for moving intersection curve |
 
 The first problem is addressed by the hybrid A+C strategy
 (see [hybrid optimization strategy](hybrid_optimization_strategy.md)).

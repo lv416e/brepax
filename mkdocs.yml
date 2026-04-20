@@ -86,9 +86,9 @@ nav:
           - "ADR-0006: License Apache 2 Rationale": architecture/adr/0006-license-apache-2-rationale.md
           - "ADR-0007: OCP Binding Choice": architecture/adr/0007-ocp-binding-choice.md
           - "ADR-0008: OCCT Abstraction Layer": architecture/adr/0008-occt-abstraction-layer.md
-          - "ADR-0009: Method B Deferred": architecture/adr/0009-method-b-deferred.md
+          - "ADR-0009: Method (B) TOI Deferred": architecture/adr/0009-method-b-deferred.md
           - "ADR-0010: Design Validation Split": architecture/adr/0010-design-validation-split.md
-          - "ADR-0011: Hybrid Strategy": architecture/adr/0011-hybrid-strategy.md
+          - "ADR-0011: Hybrid Optimization Strategy": architecture/adr/0011-hybrid-strategy.md
           - "ADR-0012: Generic Stratum Detection": architecture/adr/0012-generic-stratum-detection.md
           - "ADR-0013: Mold Direction Demonstrator": architecture/adr/0013-mold-direction-demonstrator.md
           - "ADR-0014: STEP I/O Initial": architecture/adr/0014-step-io-initial.md
