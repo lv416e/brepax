@@ -1493,6 +1493,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#empirical-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empirical Confirmation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1738,6 +1749,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#empirical-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empirical Confirmation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1797,6 +1819,35 @@
 <h2 id="method-b-reconsideration">Method (B) Reconsideration<a class="headerlink" href="#method-b-reconsideration" title="Permanent link">&para;</a></h2>
 <p>The TOI correction (Method B, deferred in ADR-0009) was designed precisely for boundary-crossing gradient computation. The Axis 3 finding strengthens the case for Method (B) implementation in future work: it provides the mathematical machinery to transfer gradient information across stratum boundaries via the implicit function theorem.</p>
 <p>Re-evaluation trigger: when a use case requires single-method cross-stratum optimization without a coarse-to-fine schedule.</p>
+<h2 id="empirical-confirmation">Empirical Confirmation<a class="headerlink" href="#empirical-confirmation" title="Permanent link">&para;</a></h2>
+<p>3D benchmark testing confirmed the hybrid strategy with three findings:</p>
+<ol>
+<li>
+<p><strong>Disjoint→intersecting stall validated.</strong> <code>intersect_volume_stratum</code>
+   with two disjoint spheres (d=2.5) returns gradient exactly zero.
+   Optimization stalls at step 0. Method A is the only path to
+   cross-stratum exploration in this direction.</p>
+</li>
+<li>
+<p><strong>Within-stratum optimization works.</strong> Adam optimizer on
+   sphere-sphere and cylinder-sphere objectives converges to
+   &lt; 1% of analytical optimum despite near-tangent STE error
+   of 25-542%. Gradient direction (sign) is always correct.</p>
+</li>
+<li>
+<p><strong>Contained↔intersecting crossing is smooth.</strong> Method C handles
+   the contained-intersecting boundary without stalling, unlike
+   the disjoint-intersecting boundary. This asymmetry is expected:
+   contained→intersecting involves a continuous volume change,
+   while disjoint→intersecting involves a volume jump from zero.</p>
+</li>
+</ol>
+<p>The three-problem decomposition (Problem A: disjoint stall,
+Problem B: STE near-tangent bias, Problem C: Path C frozen
+topology) confirms that the hybrid framework addresses Problem A
+while Method C alone handles Problems B and C adequately for
+practical optimization.</p>
+<p>See <code>tests/benchmarks/test_gradient_accuracy_3d.py</code> for data.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Hybrid optimizer design becomes a first-class concern (not an afterthought)</li>
