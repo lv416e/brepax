@@ -267,3 +267,136 @@ class TestGradient:
         g = jax.grad(loss)({"major": jnp.asarray(5.0), "minor": jnp.asarray(1.0)})
         assert jnp.isfinite(g["major"])
         assert jnp.isfinite(g["minor"])
+
+
+class TestDegenerateAxisFallback:
+    """Query points on the axis with axis parallel to +x.
+
+    Tests that the orthogonal-vector fallback produces a unit radial
+    direction for any axis orientation.  The 3D foot must still land on
+    the surface (at distance ``radius`` / along the cone slant / on the
+    torus tube) and the gradient must stay finite.
+    """
+
+    def test_cylinder_on_axis_parallel_to_x(self) -> None:
+        # Cylinder with axis +x through the origin, radius 2.
+        # Query on the axis itself: foot must be on the surface (|foot - axis| = 2).
+        point = jnp.zeros(3)
+        axis = jnp.array([1.0, 0.0, 0.0])
+        query = jnp.array([5.0, 0.0, 0.0])  # exactly on axis
+        foot = foot_on_cylinder(query, point, axis, jnp.asarray(2.0))
+        # Foot should be at axial position 5 and at radial distance 2.
+        axial = jnp.dot(foot - point, axis)
+        perp = foot - point - axial * axis
+        assert jnp.isclose(axial, 5.0)
+        assert jnp.isclose(jnp.linalg.norm(perp), 2.0, atol=1e-6)
+        assert jnp.all(jnp.isfinite(foot))
+
+    def test_cone_on_axis_parallel_to_x(self) -> None:
+        # Apex at origin, axis +x, half-angle pi/6. Query on the axis.
+        apex = jnp.zeros(3)
+        axis = jnp.array([1.0, 0.0, 0.0])
+        angle = jnp.asarray(np.pi / 6)
+        query = jnp.array([3.0, 0.0, 0.0])  # on axis, h=3
+        foot = foot_on_cone(query, apex, axis, angle)
+        # For query on axis, optimal t = h*cos(angle) + 0.
+        # Foot slant length equals t, and foot should lie on the cone surface.
+        h_foot = jnp.dot(foot - apex, axis)
+        r_foot = jnp.linalg.norm(foot - apex - h_foot * axis)
+        assert jnp.isclose(r_foot, h_foot * jnp.tan(angle), atol=1e-6)
+        assert jnp.all(jnp.isfinite(foot))
+
+    def test_torus_on_axis_parallel_to_x(self) -> None:
+        # Torus centered at origin, axis +x, major=5, minor=1.
+        # Query on the central axis: foot should land on the tube
+        # surface (distance minor_radius from a point on the major ring).
+        center = jnp.zeros(3)
+        axis = jnp.array([1.0, 0.0, 0.0])
+        query = jnp.array([0.0, 0.0, 0.0])  # exactly on the central axis
+        foot = foot_on_torus(query, center, axis, jnp.asarray(5.0), jnp.asarray(1.0))
+        # Foot must be on the torus surface — closest tube point from origin
+        # is at (0, +/- (major - minor), 0) or in the y-z plane at radius 4.
+        # The implementation-defined fallback is the +y or +z direction depending
+        # on the seed choice; we verify the invariant numerically.
+        h_foot = jnp.dot(foot - center, axis)
+        r_foot = jnp.linalg.norm(foot - center - h_foot * axis)
+        # On-axis foot has h=0 and r = major_radius - minor_radius (closer tube side)
+        # or major + minor (farther side). The canonical fallback lands on the
+        # tube at radial distance major_radius, then outward by minor_radius.
+        tube_side_dist = jnp.abs(jnp.sqrt((r_foot - 5.0) ** 2 + h_foot**2) - 1.0)
+        assert jnp.isclose(tube_side_dist, 0.0, atol=1e-6)
+        assert jnp.all(jnp.isfinite(foot))
+
+    def test_sphere_grad_finite_at_center(self) -> None:
+        # Degenerate: query coincides with center.  Gradient through radius
+        # must stay finite thanks to the safe-denom pattern.
+        def loss(params):
+            foot = foot_on_sphere(params["query"], params["center"], params["radius"])
+            return jnp.sum(foot**2)
+
+        params = {
+            "query": jnp.array([0.0, 0.0, 0.0]),
+            "center": jnp.array([0.0, 0.0, 0.0]),
+            "radius": jnp.asarray(3.0),
+        }
+        g = jax.grad(loss)(params)
+        assert jnp.all(jnp.isfinite(g["query"]))
+        assert jnp.all(jnp.isfinite(g["center"]))
+        assert jnp.isfinite(g["radius"])
+
+    def test_cylinder_grad_finite_on_axis(self) -> None:
+        def loss(params):
+            foot = foot_on_cylinder(
+                params["query"], jnp.zeros(3), params["axis"], params["radius"]
+            )
+            return jnp.sum(foot**2)
+
+        params = {
+            "query": jnp.array([5.0, 0.0, 0.0]),
+            "axis": jnp.array([1.0, 0.0, 0.0]),
+            "radius": jnp.asarray(2.0),
+        }
+        g = jax.grad(loss)(params)
+        assert jnp.all(jnp.isfinite(g["query"]))
+        assert jnp.all(jnp.isfinite(g["axis"]))
+        assert jnp.isfinite(g["radius"])
+
+    def test_cone_grad_finite_on_axis(self) -> None:
+        def loss(params):
+            foot = foot_on_cone(
+                params["query"], jnp.zeros(3), params["axis"], params["angle"]
+            )
+            return jnp.sum(foot**2)
+
+        params = {
+            "query": jnp.array([3.0, 0.0, 0.0]),
+            "axis": jnp.array([1.0, 0.0, 0.0]),
+            "angle": jnp.asarray(np.pi / 6),
+        }
+        g = jax.grad(loss)(params)
+        assert jnp.all(jnp.isfinite(g["query"]))
+        assert jnp.all(jnp.isfinite(g["axis"]))
+        assert jnp.isfinite(g["angle"])
+
+    def test_torus_grad_finite_on_axis(self) -> None:
+        def loss(params):
+            foot = foot_on_torus(
+                params["query"],
+                jnp.zeros(3),
+                params["axis"],
+                params["major"],
+                params["minor"],
+            )
+            return jnp.sum(foot**2)
+
+        params = {
+            "query": jnp.array([0.0, 0.0, 0.0]),
+            "axis": jnp.array([1.0, 0.0, 0.0]),
+            "major": jnp.asarray(5.0),
+            "minor": jnp.asarray(1.0),
+        }
+        g = jax.grad(loss)(params)
+        assert jnp.all(jnp.isfinite(g["query"]))
+        assert jnp.all(jnp.isfinite(g["axis"]))
+        assert jnp.isfinite(g["major"])
+        assert jnp.isfinite(g["minor"])
