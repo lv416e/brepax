@@ -10,6 +10,7 @@ from OCP.BRep import BRep_Tool
 from OCP.BRepAdaptor import BRepAdaptor_Curve2d, BRepAdaptor_Surface
 from OCP.BRepBndLib import BRepBndLib
 from OCP.BRepClass3d import BRepClass3d_SolidClassifier
+from OCP.BRepGProp import BRepGProp
 from OCP.BRepMesh import BRepMesh_IncrementalMesh
 from OCP.BRepTools import BRepTools, BRepTools_WireExplorer
 from OCP.GeomAbs import (
@@ -23,6 +24,7 @@ from OCP.GeomAbs import (
     GeomAbs_Torus,
 )
 from OCP.gp import gp_Pnt
+from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.STEPControl import STEPControl_Reader
 from OCP.TopAbs import (
@@ -47,11 +49,13 @@ __all__ = [
     "BRepAdaptor_Surface",
     "BRepBndLib",
     "BRepClass3d_SolidClassifier",
+    "BRepGProp",
     "BRepMesh_IncrementalMesh",
     "BRepTools",
     "BRepTools_WireExplorer",
     "BRep_Tool",
     "Bnd_Box",
+    "GProp_GProps",
     "GeomAbs_BSplineSurface",
     "GeomAbs_BezierSurface",
     "GeomAbs_Cone",
