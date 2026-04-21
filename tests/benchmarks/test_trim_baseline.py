@@ -114,9 +114,7 @@ def _volume_from_sdf(
     """Integrate ``sdf_fn`` on the grid and return the scalar volume."""
     grid = make_grid_3d(lo, hi, resolution)[0]
     sdf_vals = sdf_fn(grid)
-    jax.block_until_ready(sdf_vals)  # type: ignore[no-untyped-call]
     vol = integrate_sdf_volume(sdf_vals, lo, hi, resolution)
-    jax.block_until_ready(vol)  # type: ignore[no-untyped-call]
     return float(vol)
 
 
