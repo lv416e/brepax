@@ -156,6 +156,46 @@ def closest_point(
     return uv[0], uv[1]
 
 
+def closest_point_and_foot(
+    query: Float[Array, 3],
+    control_points: Float[Array, "nu nv 3"],
+    knots_u: Float[Array, ...],
+    knots_v: Float[Array, ...],
+    degree_u: int,
+    degree_v: int,
+    u0: Float[Array, ""] | float = 0.5,
+    v0: Float[Array, ""] | float = 0.5,
+    weights: Float[Array, "nu nv"] | None = None,
+    param_u_range: tuple[float, float] | None = None,
+    param_v_range: tuple[float, float] | None = None,
+) -> tuple[Float[Array, 3], Float[Array, ""], Float[Array, ""]]:
+    """Return the closest surface point and its parameters as ``(foot, u, v)``.
+
+    Wraps :func:`closest_point` by evaluating the surface at the
+    converged parameters so callers that need the 3D foot do not pay a
+    second evaluation.  Needed by Marschner composition where both
+    ``|q - S(u*, v*)|`` and the UV coords feed into the trim indicator.
+    """
+    u_opt, v_opt = closest_point(
+        query,
+        control_points,
+        knots_u,
+        knots_v,
+        degree_u,
+        degree_v,
+        u0,
+        v0,
+        weights,
+        param_u_range,
+        param_v_range,
+    )
+    foot = evaluate_surface(
+        control_points, knots_u, knots_v, degree_u, degree_v, u_opt, v_opt, weights
+    )
+    return foot, u_opt, v_opt
+
+
 __all__ = [
     "closest_point",
+    "closest_point_and_foot",
 ]
