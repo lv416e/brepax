@@ -49,7 +49,7 @@ class TestPointSegmentDistance3D:
             jnp.array([0.0, 0.0, 0.0]),
             jnp.array([2.0, 0.0, 0.0]),
         )
-        assert float(d) < 1e-6
+        assert jnp.isclose(d, 0.0, atol=1e-6)
 
     def test_degenerate_segment(self) -> None:
         # a == b: distance collapses to point-to-vertex distance.
@@ -126,7 +126,7 @@ class TestPolylineUnsignedDistance:
         # Distance from a vertex to the loop must be zero.
         verts, mask = _triangle_loop()
         d = polyline_unsigned_distance(verts[1], verts, mask)
-        assert float(d) < 1e-6
+        assert jnp.isclose(d, 0.0, atol=1e-6)
 
     def test_square_above_center(self) -> None:
         # Query at z=3 above the centroid; nearest loop edge midpoint

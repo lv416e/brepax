@@ -17,6 +17,11 @@ segment, or a zero-length segment) via the same safe-square pattern as
 point.  The older ``sqrt(sq + eps)`` form in the 2D sibling is avoided
 because it biases the forward value and still leaks NaN through the
 untaken ``where`` branch in the VJP.
+
+Masked-out segments contribute a large finite sentinel (``1e30``)
+rather than ``jnp.inf`` so that an all-masked reduction (an empty
+trim loop) stays finite in backward; this matches the convention in
+``nurbs/trim.py``.
 """
 
 from __future__ import annotations
@@ -40,7 +45,7 @@ def point_segment_distance_3d(
     """
     ab = b - a
     ap = point - a
-    ab_sq = jnp.sum(ab * ab)
+    ab_sq = jnp.dot(ab, ab)
     ab_sq_safe = jnp.where(ab_sq > _EPS_SQ, ab_sq, 1.0)
     t = jnp.where(
         ab_sq > _EPS_SQ,
@@ -49,7 +54,7 @@ def point_segment_distance_3d(
     )
     foot = a + t * ab
     diff = point - foot
-    diff_sq = jnp.sum(diff * diff)
+    diff_sq = jnp.dot(diff, diff)
     diff_sq_safe = jnp.where(diff_sq > _EPS_SQ, diff_sq, 1.0)
     return jnp.where(diff_sq > _EPS_SQ, jnp.sqrt(diff_sq_safe), 0.0)
 
@@ -65,7 +70,9 @@ def polyline_unsigned_distance(
     positions and 0.0 on padding.  The polyline is closed by wrapping
     the last valid vertex back to the first, so for ``mask =
     [1, 1, 1, 0]`` the segments are ``(v0->v1)``, ``(v1->v2)``,
-    ``(v2->v0)``.  Segments touching padding contribute ``+inf``.
+    ``(v2->v0)``.  Segments touching padding contribute a large finite
+    sentinel so the ``jnp.min`` backward stays finite even when the
+    mask is all zero.
 
     Args:
         point: Query point, shape ``(3,)``.
@@ -84,7 +91,9 @@ def polyline_unsigned_distance(
     last_valid_idx = jnp.maximum(0, num_valid - 1)
     v2 = v2.at[last_valid_idx].set(vertices[0])
 
-    per_segment = jax.vmap(lambda a, b: point_segment_distance_3d(point, a, b))(v1, v2)
+    per_segment = jax.vmap(point_segment_distance_3d, in_axes=(None, 0, 0))(
+        point, v1, v2
+    )
 
     # Mask invalid segments (either endpoint is padding).  The segment
     # starting at slot i uses v1[i] and v2[i]; v1 is valid iff mask[i]
@@ -92,7 +101,7 @@ def polyline_unsigned_distance(
     segment_mask = mask * jnp.roll(mask, -1, axis=0)
     segment_mask = segment_mask.at[last_valid_idx].set(mask[last_valid_idx])
 
-    masked = jnp.where(segment_mask > 0.5, per_segment, jnp.inf)
+    masked = jnp.where(segment_mask > 0.5, per_segment, 1e30)
     return jnp.min(masked)
 
 
