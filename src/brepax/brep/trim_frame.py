@@ -132,19 +132,13 @@ def extract_plane_trim_frame(
 
     polygon_np = np.zeros((max_vertices, 2), dtype=np.float64)
     mask_np = np.zeros(max_vertices, dtype=np.float64)
-    for i, (u, v) in enumerate(raw_uv):
-        polygon_np[i, 0] = u
-        polygon_np[i, 1] = v
-        mask_np[i] = 1.0
+    polygon_np[:n_valid] = raw_uv
+    mask_np[:n_valid] = 1.0
 
     polygon_uv = jnp.asarray(polygon_np)
     mask = jnp.asarray(mask_np)
 
-    polyline_3d = (
-        origin
-        + polygon_uv[:, 0:1] * frame_u[None, :]
-        + polygon_uv[:, 1:2] * frame_v[None, :]
-    )
+    polyline_3d = origin + polygon_uv @ jnp.stack([frame_u, frame_v])
 
     return PlaneTrimFrame(
         normal=normal,
