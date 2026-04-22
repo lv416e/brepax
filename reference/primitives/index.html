@@ -1810,6 +1810,78 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#brepax.primitives.foot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="foot">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_cone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_cone
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_cylinder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_cylinder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_plane
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_sphere" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_sphere
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_torus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_torus
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brepax.primitives.plane" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3555,6 +3627,78 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="foot">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_cone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_cone
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_cylinder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_cylinder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_plane
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_sphere" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_sphere
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.primitives.foot.foot_on_torus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foot_on_torus
+      
+    </span>
+  </a>
   
 </li>
         
@@ -8657,6 +8801,348 @@ direction along <code>axis</code>.</p>
 
 </div>
 
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h3 id="brepax.primitives.foot" class="doc doc-heading">
+            <code>foot</code>
+
+
+<a href="#brepax.primitives.foot" class="headerlink" title="Permanent link">&para;</a></h3>
+
+    <div class="doc doc-contents ">
+
+        <p>Analytical foot-of-perpendicular on primitive surfaces.</p>
+<p>Each function returns the closest point on an infinite analytical
+surface (plane, sphere, cylinder, cone, torus) to a query point.
+Closed form given the primitive parameters; fully differentiable
+w.r.t. both the query and the primitive parameters.</p>
+<p>Scope is the untrimmed surface only; trim-boundary interaction is
+layered on via Marschner composition in a separate module.  Cone
+and torus inner-region degeneracies (apex, tube axis) are handled
+with an epsilon guard on the radial direction.</p>
+<p>Zero-denominator handling uses a safe-square-then-sqrt pattern that
+keeps both forward <em>and</em> gradient finite at the degenerate boundary.
+<code>jnp.linalg.norm(v)</code> has infinite derivative at <code>v = 0</code>; since
+<code>jnp.where</code> evaluates both branches in the VJP, a naive guard on
+<code>norm</code> still leaks NaN into <code>jax.grad</code>.  The pattern used here
+switches on the squared norm before <code>sqrt</code>, so the <code>sqrt</code> argument
+is bounded below by 1 when the query is degenerate:</p>
+<div class="highlight"><pre><span></span><code>sq = sum(v * v)
+is_ok = sq &gt; eps_sq
+safe_sq = where(is_ok, sq, 1.0)
+norm = sqrt(safe_sq)   # always &gt;= 1 at the degenerate point
+direction = where(is_ok, v / norm, fallback)
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="brepax.primitives.foot.foot_on_cone" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">foot_on_cone</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">apex</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">angle</span><span class="p">)</span></code>
+
+<a href="#brepax.primitives.foot.foot_on_cone" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Closest point on the half-cone extending forward of <code>apex</code>.</p>
+<p>The cone is the surface <code>r(h) = h * tan(angle)</code> for <code>h &gt;= 0</code>
+along <code>axis</code>.  For queries that project to <code>h &lt; 0</code> the foot is
+clamped to <code>apex</code>.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/primitives/foot.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-118">118</a></span>
+<span class="normal"><a href="#__codelineno-0-119">119</a></span>
+<span class="normal"><a href="#__codelineno-0-120">120</a></span>
+<span class="normal"><a href="#__codelineno-0-121">121</a></span>
+<span class="normal"><a href="#__codelineno-0-122">122</a></span>
+<span class="normal"><a href="#__codelineno-0-123">123</a></span>
+<span class="normal"><a href="#__codelineno-0-124">124</a></span>
+<span class="normal"><a href="#__codelineno-0-125">125</a></span>
+<span class="normal"><a href="#__codelineno-0-126">126</a></span>
+<span class="normal"><a href="#__codelineno-0-127">127</a></span>
+<span class="normal"><a href="#__codelineno-0-128">128</a></span>
+<span class="normal"><a href="#__codelineno-0-129">129</a></span>
+<span class="normal"><a href="#__codelineno-0-130">130</a></span>
+<span class="normal"><a href="#__codelineno-0-131">131</a></span>
+<span class="normal"><a href="#__codelineno-0-132">132</a></span>
+<span class="normal"><a href="#__codelineno-0-133">133</a></span>
+<span class="normal"><a href="#__codelineno-0-134">134</a></span>
+<span class="normal"><a href="#__codelineno-0-135">135</a></span>
+<span class="normal"><a href="#__codelineno-0-136">136</a></span>
+<span class="normal"><a href="#__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#__codelineno-0-138">138</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-118" name="__codelineno-0-118"></a><span class="k">def</span><span class="w"> </span><span class="nf">foot_on_cone</span><span class="p">(</span>
+<a id="__codelineno-0-119" name="__codelineno-0-119"></a>    <span class="n">query</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-120" name="__codelineno-0-120"></a>    <span class="n">apex</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-121" name="__codelineno-0-121"></a>    <span class="n">axis</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-122" name="__codelineno-0-122"></a>    <span class="n">angle</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">]:</span>
+<a id="__codelineno-0-124" name="__codelineno-0-124"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Closest point on the half-cone extending forward of ``apex``.</span>
+<a id="__codelineno-0-125" name="__codelineno-0-125"></a>
+<a id="__codelineno-0-126" name="__codelineno-0-126"></a><span class="sd">    The cone is the surface ``r(h) = h * tan(angle)`` for ``h &gt;= 0``</span>
+<a id="__codelineno-0-127" name="__codelineno-0-127"></a><span class="sd">    along ``axis``.  For queries that project to ``h &lt; 0`` the foot is</span>
+<a id="__codelineno-0-128" name="__codelineno-0-128"></a><span class="sd">    clamped to ``apex``.</span>
+<a id="__codelineno-0-129" name="__codelineno-0-129"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-130" name="__codelineno-0-130"></a>    <span class="n">v</span> <span class="o">=</span> <span class="n">query</span> <span class="o">-</span> <span class="n">apex</span>
+<a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="n">h</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a>    <span class="n">radial</span> <span class="o">=</span> <span class="n">v</span> <span class="o">-</span> <span class="n">h</span> <span class="o">*</span> <span class="n">axis</span>
+<a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="n">radial_norm</span><span class="p">,</span> <span class="n">radial_dir</span> <span class="o">=</span> <span class="n">_safe_unit</span><span class="p">(</span><span class="n">radial</span><span class="p">,</span> <span class="n">_axis_orthogonal</span><span class="p">(</span><span class="n">axis</span><span class="p">))</span>
+<a id="__codelineno-0-134" name="__codelineno-0-134"></a>    <span class="n">cos_a</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+<a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="n">sin_a</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+<a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="n">t</span> <span class="o">=</span> <span class="n">h</span> <span class="o">*</span> <span class="n">cos_a</span> <span class="o">+</span> <span class="n">radial_norm</span> <span class="o">*</span> <span class="n">sin_a</span>
+<a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="n">t</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a id="__codelineno-0-138" name="__codelineno-0-138"></a>    <span class="k">return</span> <span class="n">apex</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="n">cos_a</span> <span class="o">*</span> <span class="n">axis</span> <span class="o">+</span> <span class="n">sin_a</span> <span class="o">*</span> <span class="n">radial_dir</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="brepax.primitives.foot.foot_on_cylinder" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">foot_on_cylinder</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span></code>
+
+<a href="#brepax.primitives.foot.foot_on_cylinder" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Closest point on an infinite cylinder of <code>radius</code> about the axis.</p>
+<p>On the axis itself the radial direction is ill-defined; a canonical
+unit vector orthogonal to <code>axis</code> is used to keep the computation
+differentiable.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/primitives/foot.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
+<span class="normal"><a href="#__codelineno-0-100">100</a></span>
+<span class="normal"><a href="#__codelineno-0-101">101</a></span>
+<span class="normal"><a href="#__codelineno-0-102">102</a></span>
+<span class="normal"><a href="#__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#__codelineno-0-104">104</a></span>
+<span class="normal"><a href="#__codelineno-0-105">105</a></span>
+<span class="normal"><a href="#__codelineno-0-106">106</a></span>
+<span class="normal"><a href="#__codelineno-0-107">107</a></span>
+<span class="normal"><a href="#__codelineno-0-108">108</a></span>
+<span class="normal"><a href="#__codelineno-0-109">109</a></span>
+<span class="normal"><a href="#__codelineno-0-110">110</a></span>
+<span class="normal"><a href="#__codelineno-0-111">111</a></span>
+<span class="normal"><a href="#__codelineno-0-112">112</a></span>
+<span class="normal"><a href="#__codelineno-0-113">113</a></span>
+<span class="normal"><a href="#__codelineno-0-114">114</a></span>
+<span class="normal"><a href="#__codelineno-0-115">115</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="k">def</span><span class="w"> </span><span class="nf">foot_on_cylinder</span><span class="p">(</span>
+<a id="__codelineno-0-100" name="__codelineno-0-100"></a>    <span class="n">query</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-101" name="__codelineno-0-101"></a>    <span class="n">point</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-102" name="__codelineno-0-102"></a>    <span class="n">axis</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-103" name="__codelineno-0-103"></a>    <span class="n">radius</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">]:</span>
+<a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Closest point on an infinite cylinder of ``radius`` about the axis.</span>
+<a id="__codelineno-0-106" name="__codelineno-0-106"></a>
+<a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="sd">    On the axis itself the radial direction is ill-defined; a canonical</span>
+<a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="sd">    unit vector orthogonal to ``axis`` is used to keep the computation</span>
+<a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">    differentiable.</span>
+<a id="__codelineno-0-110" name="__codelineno-0-110"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-111" name="__codelineno-0-111"></a>    <span class="n">v</span> <span class="o">=</span> <span class="n">query</span> <span class="o">-</span> <span class="n">point</span>
+<a id="__codelineno-0-112" name="__codelineno-0-112"></a>    <span class="n">axial_len</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+<a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="n">radial</span> <span class="o">=</span> <span class="n">v</span> <span class="o">-</span> <span class="n">axial_len</span> <span class="o">*</span> <span class="n">axis</span>
+<a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">direction</span> <span class="o">=</span> <span class="n">_safe_unit</span><span class="p">(</span><span class="n">radial</span><span class="p">,</span> <span class="n">_axis_orthogonal</span><span class="p">(</span><span class="n">axis</span><span class="p">))</span>
+<a id="__codelineno-0-115" name="__codelineno-0-115"></a>    <span class="k">return</span> <span class="n">point</span> <span class="o">+</span> <span class="n">axial_len</span> <span class="o">*</span> <span class="n">axis</span> <span class="o">+</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">direction</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="brepax.primitives.foot.foot_on_plane" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">foot_on_plane</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">normal</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span></code>
+
+<a href="#brepax.primitives.foot.foot_on_plane" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Closest point on an infinite plane <code>normal . x = offset</code>.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/primitives/foot.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#__codelineno-0-81">81</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">foot_on_plane</span><span class="p">(</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a>    <span class="n">query</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a>    <span class="n">normal</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="n">offset</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">]:</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Closest point on an infinite plane ``normal . x = offset``.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="n">signed</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">normal</span><span class="p">)</span> <span class="o">-</span> <span class="n">offset</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">return</span> <span class="n">query</span> <span class="o">-</span> <span class="n">signed</span> <span class="o">*</span> <span class="n">normal</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="brepax.primitives.foot.foot_on_sphere" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">foot_on_sphere</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span></code>
+
+<a href="#brepax.primitives.foot.foot_on_sphere" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Closest point on a sphere of <code>radius</code> around <code>center</code>.</p>
+<p>At the center (degenerate) the result is <code>center + radius * e_z</code>;
+an arbitrary direction is required to keep the gradient finite.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/primitives/foot.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#__codelineno-0-87">87</a></span>
+<span class="normal"><a href="#__codelineno-0-88">88</a></span>
+<span class="normal"><a href="#__codelineno-0-89">89</a></span>
+<span class="normal"><a href="#__codelineno-0-90">90</a></span>
+<span class="normal"><a href="#__codelineno-0-91">91</a></span>
+<span class="normal"><a href="#__codelineno-0-92">92</a></span>
+<span class="normal"><a href="#__codelineno-0-93">93</a></span>
+<span class="normal"><a href="#__codelineno-0-94">94</a></span>
+<span class="normal"><a href="#__codelineno-0-95">95</a></span>
+<span class="normal"><a href="#__codelineno-0-96">96</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="k">def</span><span class="w"> </span><span class="nf">foot_on_sphere</span><span class="p">(</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>    <span class="n">query</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="n">center</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="n">radius</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">]:</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Closest point on a sphere of ``radius`` around ``center``.</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="sd">    At the center (degenerate) the result is ``center + radius * e_z``;</span>
+<a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">    an arbitrary direction is required to keep the gradient finite.</span>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a>    <span class="n">v</span> <span class="o">=</span> <span class="n">query</span> <span class="o">-</span> <span class="n">center</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">direction</span> <span class="o">=</span> <span class="n">_safe_unit</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]))</span>
+<a id="__codelineno-0-96" name="__codelineno-0-96"></a>    <span class="k">return</span> <span class="n">center</span> <span class="o">+</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">direction</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="brepax.primitives.foot.foot_on_torus" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">foot_on_torus</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">major_radius</span><span class="p">,</span> <span class="n">minor_radius</span><span class="p">)</span></code>
+
+<a href="#brepax.primitives.foot.foot_on_torus" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Closest point on the torus tube around the major ring.</p>
+<p>Project to the tube-center ring first, then shift outward by
+<code>minor_radius</code>.  On the central axis (<code>radial == 0</code>) a canonical
+in-plane direction is used; on the tube center itself
+(<code>dq == 0</code>) the fallback is the radial direction.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/primitives/foot.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-141">141</a></span>
+<span class="normal"><a href="#__codelineno-0-142">142</a></span>
+<span class="normal"><a href="#__codelineno-0-143">143</a></span>
+<span class="normal"><a href="#__codelineno-0-144">144</a></span>
+<span class="normal"><a href="#__codelineno-0-145">145</a></span>
+<span class="normal"><a href="#__codelineno-0-146">146</a></span>
+<span class="normal"><a href="#__codelineno-0-147">147</a></span>
+<span class="normal"><a href="#__codelineno-0-148">148</a></span>
+<span class="normal"><a href="#__codelineno-0-149">149</a></span>
+<span class="normal"><a href="#__codelineno-0-150">150</a></span>
+<span class="normal"><a href="#__codelineno-0-151">151</a></span>
+<span class="normal"><a href="#__codelineno-0-152">152</a></span>
+<span class="normal"><a href="#__codelineno-0-153">153</a></span>
+<span class="normal"><a href="#__codelineno-0-154">154</a></span>
+<span class="normal"><a href="#__codelineno-0-155">155</a></span>
+<span class="normal"><a href="#__codelineno-0-156">156</a></span>
+<span class="normal"><a href="#__codelineno-0-157">157</a></span>
+<span class="normal"><a href="#__codelineno-0-158">158</a></span>
+<span class="normal"><a href="#__codelineno-0-159">159</a></span>
+<span class="normal"><a href="#__codelineno-0-160">160</a></span>
+<span class="normal"><a href="#__codelineno-0-161">161</a></span>
+<span class="normal"><a href="#__codelineno-0-162">162</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-141" name="__codelineno-0-141"></a><span class="k">def</span><span class="w"> </span><span class="nf">foot_on_torus</span><span class="p">(</span>
+<a id="__codelineno-0-142" name="__codelineno-0-142"></a>    <span class="n">query</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-143" name="__codelineno-0-143"></a>    <span class="n">center</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-144" name="__codelineno-0-144"></a>    <span class="n">axis</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<a id="__codelineno-0-145" name="__codelineno-0-145"></a>    <span class="n">major_radius</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-146" name="__codelineno-0-146"></a>    <span class="n">minor_radius</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="mi">3</span><span class="p">]:</span>
+<a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Closest point on the torus tube around the major ring.</span>
+<a id="__codelineno-0-149" name="__codelineno-0-149"></a>
+<a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">    Project to the tube-center ring first, then shift outward by</span>
+<a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="sd">    ``minor_radius``.  On the central axis (``radial == 0``) a canonical</span>
+<a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="sd">    in-plane direction is used; on the tube center itself</span>
+<a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="sd">    (``dq == 0``) the fallback is the radial direction.</span>
+<a id="__codelineno-0-154" name="__codelineno-0-154"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-155" name="__codelineno-0-155"></a>    <span class="n">v</span> <span class="o">=</span> <span class="n">query</span> <span class="o">-</span> <span class="n">center</span>
+<a id="__codelineno-0-156" name="__codelineno-0-156"></a>    <span class="n">h</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+<a id="__codelineno-0-157" name="__codelineno-0-157"></a>    <span class="n">radial</span> <span class="o">=</span> <span class="n">v</span> <span class="o">-</span> <span class="n">h</span> <span class="o">*</span> <span class="n">axis</span>
+<a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">radial_dir</span> <span class="o">=</span> <span class="n">_safe_unit</span><span class="p">(</span><span class="n">radial</span><span class="p">,</span> <span class="n">_axis_orthogonal</span><span class="p">(</span><span class="n">axis</span><span class="p">))</span>
+<a id="__codelineno-0-159" name="__codelineno-0-159"></a>    <span class="n">tube_center</span> <span class="o">=</span> <span class="n">center</span> <span class="o">+</span> <span class="n">major_radius</span> <span class="o">*</span> <span class="n">radial_dir</span>
+<a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="n">dq</span> <span class="o">=</span> <span class="n">query</span> <span class="o">-</span> <span class="n">tube_center</span>
+<a id="__codelineno-0-161" name="__codelineno-0-161"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">dq_dir</span> <span class="o">=</span> <span class="n">_safe_unit</span><span class="p">(</span><span class="n">dq</span><span class="p">,</span> <span class="n">radial_dir</span><span class="p">)</span>
+<a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="k">return</span> <span class="n">tube_center</span> <span class="o">+</span> <span class="n">minor_radius</span> <span class="o">*</span> <span class="n">dq_dir</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
 
 
 
