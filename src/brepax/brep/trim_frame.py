@@ -33,6 +33,7 @@ from brepax._occt.backend import (
     BRepAdaptor_Surface,
     BRepTools,
     BRepTools_WireExplorer,
+    GeomAbs_Cylinder,
     GeomAbs_Plane,
     TopAbs_FORWARD,
 )
@@ -40,6 +41,57 @@ from brepax._occt.types import TopoDS_Face
 from brepax.brep.trim_sdf import trim_aware_sdf
 
 _SAMPLES_PER_EDGE = 8
+
+
+def _sample_outer_wire_uv(
+    face: TopoDS_Face, max_vertices: int
+) -> tuple[jnp.ndarray, jnp.ndarray, int] | None:
+    """Sample a face's outer wire into a padded ``(u, v)`` polygon.
+
+    Returns ``(polygon_uv, mask, n_valid)`` with ``polygon_uv`` shape
+    ``(max_vertices, 2)`` and ``mask`` shape ``(max_vertices,)``.
+    Returns ``None`` when the face has no outer wire or produces fewer
+    than 3 samples (degenerate).  Raises ``ValueError`` when the sample
+    count exceeds ``max_vertices``.
+
+    The same 8-samples-per-edge convention is used by every
+    analytical primitive extractor so their polygons stay comparable.
+    """
+    wire = BRepTools.OuterWire_s(face)
+    if wire.IsNull():
+        return None
+
+    raw_uv: list[tuple[float, float]] = []
+    we = BRepTools_WireExplorer(wire, face)
+    while we.More():
+        edge = we.Current()
+        curve2d = BRepAdaptor_Curve2d(edge, face)
+        t0 = curve2d.FirstParameter()
+        t1 = curve2d.LastParameter()
+        is_forward = edge.Orientation() == TopAbs_FORWARD
+
+        for i in range(_SAMPLES_PER_EDGE):
+            frac = i / _SAMPLES_PER_EDGE
+            t = t0 + (t1 - t0) * frac if is_forward else t1 - (t1 - t0) * frac
+            pt = curve2d.Value(t)
+            raw_uv.append((pt.X(), pt.Y()))
+
+        we.Next()
+
+    if len(raw_uv) < 3:
+        return None
+
+    n_valid = len(raw_uv)
+    if n_valid > max_vertices:
+        raise ValueError(
+            f"trim polygon has {n_valid} vertices, exceeds max_vertices={max_vertices}"
+        )
+
+    polygon_np = np.zeros((max_vertices, 2), dtype=np.float64)
+    mask_np = np.zeros(max_vertices, dtype=np.float64)
+    polygon_np[:n_valid] = raw_uv
+    mask_np[:n_valid] = 1.0
+    return jnp.asarray(polygon_np), jnp.asarray(mask_np), n_valid
 
 
 class PlaneTrimFrame(NamedTuple):
@@ -61,6 +113,38 @@ class PlaneTrimFrame(NamedTuple):
     origin: Float[Array, 3]
     frame_u: Float[Array, 3]
     frame_v: Float[Array, 3]
+    polygon_uv: Float[Array, "n 2"]
+    polyline_3d: Float[Array, "n 3"]
+    mask: Float[Array, ...]
+
+
+class CylinderTrimFrame(NamedTuple):
+    """Marschner-composition inputs for a cylinder face.
+
+    The cylinder's parametric surface is
+    ``S(u, v) = origin + v * axis + radius * (cos(u) * x_dir + sin(u) * y_dir)``,
+    matching OCCT's Geom_Cylinder convention.  ``polygon_uv`` stores
+    the trim loop in ``(u, v)``; OCCT parameterises full-revolution
+    faces as rectangles ``[0, 2*pi] x [v_min, v_max]``.  The 3D
+    polyline is rebuilt from the frame for every valid slot by the
+    same identity.
+
+    ``sign_flip`` captures the face orientation: ``+1`` for a
+    ``TopAbs_FORWARD`` face (outward normal points radially away from
+    the axis, matching the ``Cylinder`` primitive's signed-distance
+    convention) and ``-1`` for a ``TopAbs_REVERSED`` face (outward
+    points *toward* the axis, as with the inside of a hole).  The
+    composition wrapper multiplies the primitive's signed distance by
+    ``sign_flip`` so phantom elimination stays correct for reversed
+    faces.
+    """
+
+    origin: Float[Array, 3]
+    axis: Float[Array, 3]
+    x_dir: Float[Array, 3]
+    y_dir: Float[Array, 3]
+    radius: Float[Array, ""]
+    sign_flip: Float[Array, ""]
     polygon_uv: Float[Array, "n 2"]
     polyline_3d: Float[Array, "n 3"]
     mask: Float[Array, ...]
@@ -112,43 +196,10 @@ def extract_plane_trim_frame(
     yd = position.YDirection()
     frame_v = jnp.array([yd.X(), yd.Y(), yd.Z()])
 
-    wire = BRepTools.OuterWire_s(face)
-    if wire.IsNull():
+    sampled = _sample_outer_wire_uv(face, max_vertices)
+    if sampled is None:
         return None
-
-    raw_uv: list[tuple[float, float]] = []
-    we = BRepTools_WireExplorer(wire, face)
-    while we.More():
-        edge = we.Current()
-        curve2d = BRepAdaptor_Curve2d(edge, face)
-        t0 = curve2d.FirstParameter()
-        t1 = curve2d.LastParameter()
-        is_forward = edge.Orientation() == TopAbs_FORWARD
-
-        for i in range(_SAMPLES_PER_EDGE):
-            frac = i / _SAMPLES_PER_EDGE
-            t = t0 + (t1 - t0) * frac if is_forward else t1 - (t1 - t0) * frac
-            pt = curve2d.Value(t)
-            raw_uv.append((pt.X(), pt.Y()))
-
-        we.Next()
-
-    if len(raw_uv) < 3:
-        return None
-
-    n_valid = len(raw_uv)
-    if n_valid > max_vertices:
-        raise ValueError(
-            f"trim polygon has {n_valid} vertices, exceeds max_vertices={max_vertices}"
-        )
-
-    polygon_np = np.zeros((max_vertices, 2), dtype=np.float64)
-    mask_np = np.zeros(max_vertices, dtype=np.float64)
-    polygon_np[:n_valid] = raw_uv
-    mask_np[:n_valid] = 1.0
-
-    polygon_uv = jnp.asarray(polygon_np)
-    mask = jnp.asarray(mask_np)
+    polygon_uv, mask, _ = sampled
 
     polyline_3d = origin + polygon_uv @ jnp.stack([frame_u, frame_v])
 
@@ -158,6 +209,77 @@ def extract_plane_trim_frame(
         origin=origin,
         frame_u=frame_u,
         frame_v=frame_v,
+        polygon_uv=polygon_uv,
+        polyline_3d=polyline_3d,
+        mask=mask,
+    )
+
+
+def extract_cylinder_trim_frame(
+    face: TopoDS_Face,
+    max_vertices: int = 64,
+) -> CylinderTrimFrame | None:
+    """Build Marschner-composition inputs for a cylinder face.
+
+    Args:
+        face: OCCT face whose underlying surface must be
+            ``GeomAbs_Cylinder``; any other surface type returns
+            ``None``.
+        max_vertices: Fixed polygon capacity after padding.  Raises
+            when the actual sample count exceeds this capacity.
+
+    Returns:
+        :class:`CylinderTrimFrame`, or ``None`` when the face is not a
+        cylinder or has no outer wire.
+    """
+    adaptor = BRepAdaptor_Surface(face)
+    if adaptor.GetType() != GeomAbs_Cylinder:
+        return None
+
+    gp_cyl = adaptor.Cylinder()
+    position = gp_cyl.Position()
+
+    loc = position.Location()
+    origin = jnp.array([loc.X(), loc.Y(), loc.Z()])
+
+    ax = position.Direction()
+    axis = jnp.array([ax.X(), ax.Y(), ax.Z()])
+
+    xd = position.XDirection()
+    x_dir = jnp.array([xd.X(), xd.Y(), xd.Z()])
+    yd = position.YDirection()
+    y_dir = jnp.array([yd.X(), yd.Y(), yd.Z()])
+
+    radius = jnp.asarray(gp_cyl.Radius())
+
+    # FORWARD cylinder faces (e.g. outside of a boss) have their
+    # outward normal radially outward; REVERSED faces (e.g. inside of
+    # a hole) have it pointing toward the axis.  ``sign_flip`` is
+    # applied to the ``Cylinder`` primitive's radial signed distance
+    # in the composition wrapper.
+    sign_flip = jnp.asarray(1.0 if face.Orientation() == TopAbs_FORWARD else -1.0)
+
+    sampled = _sample_outer_wire_uv(face, max_vertices)
+    if sampled is None:
+        return None
+    polygon_uv, mask, _ = sampled
+
+    # S(u, v) = origin + v * axis + radius * (cos(u) * x_dir + sin(u) * y_dir)
+    us = polygon_uv[:, 0]
+    vs = polygon_uv[:, 1]
+    polyline_3d = (
+        origin
+        + vs[:, None] * axis
+        + radius * (jnp.cos(us)[:, None] * x_dir + jnp.sin(us)[:, None] * y_dir)
+    )
+
+    return CylinderTrimFrame(
+        origin=origin,
+        axis=axis,
+        x_dir=x_dir,
+        y_dir=y_dir,
+        radius=radius,
+        sign_flip=sign_flip,
         polygon_uv=polygon_uv,
         polyline_3d=polyline_3d,
         mask=mask,
@@ -231,7 +353,9 @@ def plane_face_sdf(
 
 
 __all__ = [
+    "CylinderTrimFrame",
     "PlaneTrimFrame",
+    "extract_cylinder_trim_frame",
     "extract_plane_trim_frame",
     "plane_face_sdf",
     "plane_face_sdf_from_frame",
