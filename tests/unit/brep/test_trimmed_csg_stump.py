@@ -68,6 +68,30 @@ class TestTrimmedSampleBoxMatchesUntrimmed:
         _, stump, trimmed = sample_box_stump_and_trimmed
         assert len(trimmed.frames) == len(stump.primitives)
 
+    def test_volume_uses_stored_bounds_when_unspecified(
+        self, sample_box_stump_and_trimmed
+    ) -> None:
+        # enrich_with_trim_frames stashes bbox on the stump, so
+        # volume() without explicit ``lo``/``hi`` must succeed.
+        _, _, trimmed = sample_box_stump_and_trimmed
+        v = float(trimmed.volume(resolution=32))
+        assert v > 0.0
+
+    def test_gradient_flows_through_frames(self, sample_box_stump_and_trimmed) -> None:
+        # TrimmedCSGStump is an eqx.Module; gradients of sdf w.r.t.
+        # frame parameters (e.g. plane normals) should be finite.
+        import jax
+
+        _, _, trimmed = sample_box_stump_and_trimmed
+
+        def loss(t):
+            return jnp.sum(t.sdf(jnp.array([5.0, 10.0, 15.0])) ** 2)
+
+        g = jax.grad(loss)(trimmed)
+        # Every frame has a differentiable JAX field; confirm at
+        # least one primitive frame's normal received a finite grad.
+        assert jnp.all(jnp.isfinite(g.frames[0].normal))
+
     def test_sdf_signs_match_untrimmed(self, sample_box_stump_and_trimmed) -> None:
         # sample_box: inside the box => both SDFs negative; outside
         # => both positive.  Magnitude may differ slightly because of
