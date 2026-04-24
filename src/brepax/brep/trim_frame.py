@@ -1,19 +1,23 @@
-"""Extract Marschner-composition inputs from an OCCT face.
+"""Extract Marschner-composition inputs from an OCCT face and compose.
 
 For each analytical primitive type, this module produces the trim-aware
 SDF inputs (frame, polygon in UV, polyline in 3D, validity mask) that
 ``trim_sdf.trim_aware_sdf`` consumes, on top of the primitive-level
-reconstruction already done in ``convert.py``.
+reconstruction already done in ``convert.py``.  It also exposes the
+per-surface composition wrappers that combine the extracted frame with
+the JAX composition primitive, so callers can go from an OCCT face to a
+trim-aware signed distance without re-implementing the frame-to-SDF
+plumbing on every call.
 
 Plane is supported first; sphere, cylinder, cone, torus, and BSpline
 are follow-ups that reuse the same ``NamedTuple``-style return
 convention and the same outer-wire sampling path so caller code stays
 uniform.
 
-The helper is a pure Python function (no JIT).  Its outputs are JAX
-arrays that feed directly into ``trim_aware_sdf``, which *is* JIT-able.
-OCCT traversal is inherently Python-side, so this separation keeps the
-Python-side work isolated and runs once per face at reconstruction time.
+Extraction is Python-side (OCCT traversal is inherently so) and runs
+once per face.  The composition function takes the extracted frame
+plus a query point and is pure JAX, so a typical usage pattern is:
+extract once, then JIT a grid/batch evaluation of the composition.
 """
 
 from __future__ import annotations
@@ -33,6 +37,7 @@ from brepax._occt.backend import (
     TopAbs_FORWARD,
 )
 from brepax._occt.types import TopoDS_Face
+from brepax.brep.trim_sdf import trim_aware_sdf
 
 _SAMPLES_PER_EDGE = 8
 
@@ -93,6 +98,13 @@ def extract_plane_trim_frame(
 
     axis = position.Direction()
     normal = jnp.array([axis.X(), axis.Y(), axis.Z()])
+    # OCCT faces carry an orientation independent of the underlying
+    # surface normal; REVERSED means the solid's outward direction is
+    # opposite the Geom_Plane's axis.  Flip so the frame's normal is
+    # always the outward one, matching the convention used by the
+    # ``Plane`` primitive's signed distance.
+    if face.Orientation() != TopAbs_FORWARD:
+        normal = -normal
     offset = jnp.dot(normal, origin)
 
     xd = position.XDirection()
@@ -152,7 +164,75 @@ def extract_plane_trim_frame(
     )
 
 
+def plane_face_sdf_from_frame(
+    frame: PlaneTrimFrame,
+    query: Float[Array, 3],
+    sharpness: float = 200.0,
+) -> Float[Array, ""]:
+    """Trim-aware signed distance to a plane face, from a pre-extracted frame.
+
+    Pure JAX, jittable.  Combines the signed half-space distance
+    ``d_s = normal . query - offset`` with the trim-aware composition
+    from ``trim_sdf.trim_aware_sdf`` using the frame's ``polygon_uv``,
+    ``polyline_3d``, and ``mask``.  The foot-of-perpendicular UV is the
+    projection of ``query`` onto the plane's 2D frame; because
+    ``frame_u`` and ``frame_v`` are orthogonal to ``normal``, the
+    projection collapses to two dot products against the frame basis.
+
+    Args:
+        frame: Extracted plane-face data from
+            :func:`extract_plane_trim_frame`.
+        query: 3D query point, shape ``(3,)``.
+        sharpness: Trim-indicator sigmoid sharpness; forwarded to
+            ``trim_aware_sdf``.
+
+    Returns:
+        Signed scalar distance.  Negative strictly inside the trimmed
+        face's half-space, positive outside (including in the phantom
+        region where the query is on the inside of the infinite
+        half-space but outside the trim polygon).
+    """
+    # Compute d_s via delta to keep the subtraction in coordinate space,
+    # avoiding catastrophic cancellation when query and origin are both
+    # far from the world origin but close to each other.
+    delta = query - frame.origin
+    d_s = jnp.dot(frame.normal, delta)
+    foot_uv = jnp.stack([jnp.dot(delta, frame.frame_u), jnp.dot(delta, frame.frame_v)])
+    return trim_aware_sdf(
+        query,
+        d_s,
+        foot_uv,
+        frame.polygon_uv,
+        frame.mask,
+        frame.polyline_3d,
+        frame.mask,
+        sharpness=sharpness,
+    )
+
+
+def plane_face_sdf(
+    face: TopoDS_Face,
+    query: Float[Array, 3],
+    max_vertices: int = 64,
+    sharpness: float = 200.0,
+) -> Float[Array, ""] | None:
+    """Convenience wrapper: extract the frame and compose in one call.
+
+    Intended for one-off evaluations.  For grids or batches, extract
+    the frame once via :func:`extract_plane_trim_frame` and JIT the
+    composition over queries via :func:`plane_face_sdf_from_frame`.
+
+    Returns ``None`` when the face is not a plane or has no outer wire.
+    """
+    frame = extract_plane_trim_frame(face, max_vertices=max_vertices)
+    if frame is None:
+        return None
+    return plane_face_sdf_from_frame(frame, query, sharpness=sharpness)
+
+
 __all__ = [
     "PlaneTrimFrame",
     "extract_plane_trim_frame",
+    "plane_face_sdf",
+    "plane_face_sdf_from_frame",
 ]
