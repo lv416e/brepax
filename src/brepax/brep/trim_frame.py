@@ -1128,12 +1128,144 @@ def torus_face_sdf(
     return torus_face_sdf_from_frame(frame, query, sharpness=sharpness)
 
 
+_EPS_SQ_CONE = 1e-24
+# Degenerate half-angle guard.  Real OCCT cones never hit this, but
+# the safe-divide idiom keeps the VJP finite for any input.
+_EPS_COS_CONE = 1e-12
+
+
+def cone_face_sdf_from_frame(
+    frame: ConeTrimFrame,
+    query: Float[Array, 3],
+    sharpness: float = 200.0,
+) -> Float[Array, ""]:
+    """Trim-aware signed distance to a cone face, from a pre-extracted frame.
+
+    Pure JAX, jittable.  The cone primitive's signed distance in the
+    frame's ``(radial, axial)`` plane is the perpendicular offset from
+    the slant line through ``(ref_radius, 0)`` with direction
+    ``(sin(semi_angle), cos(semi_angle))``:
+
+        d_s_raw = (r - ref_radius) * cos(semi_angle)
+                - axial * sin(semi_angle)
+
+    This matches OCCT's signed convention: positive on the outward
+    radial side of the infinite cone surface, negative inside.  The
+    wrapper applies ``sign_flip`` so a REVERSED face (conical hollow)
+    gets the outward direction inverted, analogous to the cylinder
+    and sphere wrappers.
+
+    ``foot_uv`` is ``(u, v)`` with ``u`` the major angle around the
+    polar axis (wrapped to ``[0, 2*pi]``) and ``v`` the slant
+    distance ``axial / cos(semi_angle)``.  Safe-square / double-where
+    guards keep the VJP finite on the axis (``u`` undefined) and at
+    a degenerate half-angle (``cos(semi_angle) == 0``, which real
+    OCCT cones do not produce but the pattern is cheap to include).
+
+    Args:
+        frame: Extracted cone-face data from
+            :func:`extract_cone_trim_frame`.
+        query: 3D query point, shape ``(3,)``.
+        sharpness: Trim-indicator sigmoid sharpness; forwarded to
+            ``trim_aware_sdf``.
+
+    Returns:
+        Signed scalar distance.  Negative strictly inside the trimmed
+        face's half-space (per ``sign_flip``); positive outside,
+        including the phantom region where ``v`` or ``u`` is outside
+        the trim range.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import (
+        ...     cone_face_sdf_from_frame,
+        ...     extract_cone_trim_frame,
+        ... )
+        >>> # tf = extract_cone_trim_frame(cone_face)
+        >>> # d = cone_face_sdf_from_frame(tf, jnp.array([0., 4., 3.]))
+    """
+    delta = query - frame.location
+    axial = jnp.dot(delta, frame.axis)
+    radial_vec = delta - axial * frame.axis
+
+    radial_sq = jnp.dot(radial_vec, radial_vec)
+    is_off_axis = radial_sq > _EPS_SQ_CONE
+    safe_radial_sq = jnp.where(is_off_axis, radial_sq, 1.0)
+    safe_radial = jnp.sqrt(safe_radial_sq)
+    r = jnp.where(is_off_axis, safe_radial, 0.0)
+
+    cos_a = jnp.cos(frame.semi_angle)
+    sin_a = jnp.sin(frame.semi_angle)
+
+    # Signed perpendicular from the slant line: positive on the outward
+    # radial side of the cone surface, negative inside.
+    d_s_raw = (r - frame.ref_radius) * cos_a - axial * sin_a
+    d_s = frame.sign_flip * d_s_raw
+
+    # foot_u = atan2(radial . y_dir, radial . x_dir) mod 2*pi.
+    y_comp = jnp.dot(radial_vec, frame.y_dir)
+    x_comp = jnp.dot(radial_vec, frame.x_dir)
+    u_raw = jnp.where(
+        is_off_axis,
+        jnp.arctan2(
+            jnp.where(is_off_axis, y_comp, 1.0),
+            jnp.where(is_off_axis, x_comp, 1.0),
+        ),
+        0.0,
+    )
+    foot_u = jnp.mod(u_raw, 2.0 * jnp.pi)
+
+    # foot_v = axial / cos(semi_angle).  cos is bounded away from zero
+    # for OCCT cones but the safe-divide idiom costs little.
+    cos_a_nondegenerate = jnp.abs(cos_a) > _EPS_COS_CONE
+    cos_a_safe = jnp.where(cos_a_nondegenerate, cos_a, 1.0)
+    foot_v = jnp.where(cos_a_nondegenerate, axial / cos_a_safe, 0.0)
+
+    foot_uv = jnp.stack([foot_u, foot_v])
+
+    return trim_aware_sdf(
+        query,
+        d_s,
+        foot_uv,
+        frame.polygon_uv,
+        frame.mask,
+        frame.polyline_3d,
+        frame.mask,
+        sharpness=sharpness,
+    )
+
+
+def cone_face_sdf(
+    face: TopoDS_Face,
+    query: Float[Array, 3],
+    max_vertices: int = 64,
+    sharpness: float = 200.0,
+) -> Float[Array, ""] | None:
+    """Convenience wrapper: extract the frame and compose in one call.
+
+    Intended for one-off evaluations.  For grids or batches, extract
+    the frame once via :func:`extract_cone_trim_frame` and JIT the
+    composition over queries via :func:`cone_face_sdf_from_frame`.
+
+    Returns ``None`` when the face is not a cone or has no outer wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import cone_face_sdf
+        >>> # d = cone_face_sdf(cone_face, jnp.array([0., 4., 3.]))
+    """
+    frame = extract_cone_trim_frame(face, max_vertices=max_vertices)
+    if frame is None:
+        return None
+    return cone_face_sdf_from_frame(frame, query, sharpness=sharpness)
+
+
 __all__ = [
     "ConeTrimFrame",
     "CylinderTrimFrame",
     "PlaneTrimFrame",
     "SphereTrimFrame",
     "TorusTrimFrame",
+    "cone_face_sdf",
+    "cone_face_sdf_from_frame",
     "cylinder_face_sdf",
     "cylinder_face_sdf_from_frame",
     "extract_cone_trim_frame",
