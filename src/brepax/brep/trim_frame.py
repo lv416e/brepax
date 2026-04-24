@@ -370,9 +370,122 @@ def plane_face_sdf(
     return plane_face_sdf_from_frame(frame, query, sharpness=sharpness)
 
 
+_EPS_SQ_CYLINDER = 1e-24
+
+
+def cylinder_face_sdf_from_frame(
+    frame: CylinderTrimFrame,
+    query: Float[Array, 3],
+    sharpness: float = 200.0,
+) -> Float[Array, ""]:
+    """Trim-aware signed distance to a cylinder face, from a pre-extracted frame.
+
+    Pure JAX, jittable.  Computes the cylinder primitive's signed
+    distance, applies ``sign_flip`` to get the outward-aware half-space
+    sign, and composes via :func:`trim_aware_sdf`.  The foot-of-
+    perpendicular UV is ``(theta, v)`` with ``theta`` wrapped to the
+    ``[0, 2*pi]`` range that OCCT uses for its cylinder parameter
+    polygon, and ``v`` the axial projection.
+
+    Axis-on queries (``perp == 0``) hit the safe-square pattern: the
+    radial norm is evaluated on a shifted squared quantity so both
+    the forward value (``perp = 0``) and the VJP stay finite.
+
+    Args:
+        frame: Extracted cylinder-face data from
+            :func:`extract_cylinder_trim_frame`.
+        query: 3D query point, shape ``(3,)``.
+        sharpness: Trim-indicator sigmoid sharpness; forwarded to
+            ``trim_aware_sdf``.
+
+    Returns:
+        Signed scalar distance.  Negative strictly inside the trimmed
+        face's half-space (as declared by ``sign_flip``); positive
+        outside, including the phantom region where the query is
+        axially outside the trim range but the untrimmed cylinder
+        classification would have lied.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import (
+        ...     cylinder_face_sdf_from_frame,
+        ...     extract_cylinder_trim_frame,
+        ... )
+        >>> # tf = extract_cylinder_trim_frame(cylinder_face)
+        >>> # d = cylinder_face_sdf_from_frame(tf, jnp.array([0., 0., 5.]))
+    """
+    delta = query - frame.origin
+    axial_len = jnp.dot(delta, frame.axis)
+    radial_vec = delta - axial_len * frame.axis
+
+    radial_sq = jnp.dot(radial_vec, radial_vec)
+    is_off_axis = radial_sq > _EPS_SQ_CYLINDER
+    safe_sq = jnp.where(is_off_axis, radial_sq, 1.0)
+    safe_norm = jnp.sqrt(safe_sq)
+    perp = jnp.where(is_off_axis, safe_norm, 0.0)
+
+    d_s_raw = perp - frame.radius
+    d_s = frame.sign_flip * d_s_raw
+
+    # Double-where guard: arctan2(0, 0) has NaN gradient in its
+    # backward pass, and jnp.where evaluates both branches for VJP.
+    # Substitute dummy arguments on the on-axis branch so that the
+    # untaken arctan2 still receives a non-degenerate input.
+    y_comp = jnp.dot(radial_vec, frame.y_dir)
+    x_comp = jnp.dot(radial_vec, frame.x_dir)
+    theta_raw = jnp.where(
+        is_off_axis,
+        jnp.arctan2(
+            jnp.where(is_off_axis, y_comp, 1.0),
+            jnp.where(is_off_axis, x_comp, 1.0),
+        ),
+        0.0,
+    )
+    theta = jnp.mod(theta_raw, 2.0 * jnp.pi)
+    foot_uv = jnp.stack([theta, axial_len])
+
+    return trim_aware_sdf(
+        query,
+        d_s,
+        foot_uv,
+        frame.polygon_uv,
+        frame.mask,
+        frame.polyline_3d,
+        frame.mask,
+        sharpness=sharpness,
+    )
+
+
+def cylinder_face_sdf(
+    face: TopoDS_Face,
+    query: Float[Array, 3],
+    max_vertices: int = 64,
+    sharpness: float = 200.0,
+) -> Float[Array, ""] | None:
+    """Convenience wrapper: extract the frame and compose in one call.
+
+    Intended for one-off evaluations.  For grids or batches, extract
+    the frame once via :func:`extract_cylinder_trim_frame` and JIT the
+    composition over queries via
+    :func:`cylinder_face_sdf_from_frame`.
+
+    Returns ``None`` when the face is not a cylinder or has no outer
+    wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import cylinder_face_sdf
+        >>> # d = cylinder_face_sdf(cylinder_face, jnp.array([0., 0., 5.]))
+    """
+    frame = extract_cylinder_trim_frame(face, max_vertices=max_vertices)
+    if frame is None:
+        return None
+    return cylinder_face_sdf_from_frame(frame, query, sharpness=sharpness)
+
+
 __all__ = [
     "CylinderTrimFrame",
     "PlaneTrimFrame",
+    "cylinder_face_sdf",
+    "cylinder_face_sdf_from_frame",
     "extract_cylinder_trim_frame",
     "extract_plane_trim_frame",
     "plane_face_sdf",
