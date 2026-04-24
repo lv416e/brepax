@@ -45,10 +45,10 @@ _SAMPLES_PER_EDGE = 8
 
 def _sample_outer_wire_uv(
     face: TopoDS_Face, max_vertices: int
-) -> tuple[jnp.ndarray, jnp.ndarray, int] | None:
+) -> tuple[jnp.ndarray, jnp.ndarray] | None:
     """Sample a face's outer wire into a padded ``(u, v)`` polygon.
 
-    Returns ``(polygon_uv, mask, n_valid)`` with ``polygon_uv`` shape
+    Returns ``(polygon_uv, mask)`` with ``polygon_uv`` shape
     ``(max_vertices, 2)`` and ``mask`` shape ``(max_vertices,)``.
     Returns ``None`` when the face has no outer wire or produces fewer
     than 3 samples (degenerate).  Raises ``ValueError`` when the sample
@@ -70,6 +70,9 @@ def _sample_outer_wire_uv(
         t1 = curve2d.LastParameter()
         is_forward = edge.Orientation() == TopAbs_FORWARD
 
+        # frac spans [0, 1) so t1 is deliberately excluded: adjacent
+        # edges of a closed wire share endpoints, and the exclusion
+        # avoids duplicating the shared vertex on each seam.
         for i in range(_SAMPLES_PER_EDGE):
             frac = i / _SAMPLES_PER_EDGE
             t = t0 + (t1 - t0) * frac if is_forward else t1 - (t1 - t0) * frac
@@ -91,7 +94,7 @@ def _sample_outer_wire_uv(
     mask_np = np.zeros(max_vertices, dtype=np.float64)
     polygon_np[:n_valid] = raw_uv
     mask_np[:n_valid] = 1.0
-    return jnp.asarray(polygon_np), jnp.asarray(mask_np), n_valid
+    return jnp.asarray(polygon_np), jnp.asarray(mask_np)
 
 
 class PlaneTrimFrame(NamedTuple):
@@ -137,6 +140,14 @@ class CylinderTrimFrame(NamedTuple):
     composition wrapper multiplies the primitive's signed distance by
     ``sign_flip`` so phantom elimination stays correct for reversed
     faces.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_cylinder_trim_frame
+        >>> # Assuming ``face`` is an OCCT plane face of a cylinder surface:
+        >>> # tf = extract_cylinder_trim_frame(face)
+        >>> # tf.polygon_uv.shape   # (64, 2)
+        >>> # tf.polyline_3d.shape  # (64, 3)
+        >>> # tf.radius             # Array(<scalar>)
     """
 
     origin: Float[Array, 3]
@@ -199,7 +210,7 @@ def extract_plane_trim_frame(
     sampled = _sample_outer_wire_uv(face, max_vertices)
     if sampled is None:
         return None
-    polygon_uv, mask, _ = sampled
+    polygon_uv, mask = sampled
 
     polyline_3d = origin + polygon_uv @ jnp.stack([frame_u, frame_v])
 
@@ -231,6 +242,13 @@ def extract_cylinder_trim_frame(
     Returns:
         :class:`CylinderTrimFrame`, or ``None`` when the face is not a
         cylinder or has no outer wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_cylinder_trim_frame
+        >>> # tf = extract_cylinder_trim_frame(cylinder_face)
+        >>> # assert tf is not None
+        >>> # assert tf.polygon_uv.shape == (64, 2)
+        >>> # assert tf.polyline_3d.shape == (64, 3)
     """
     adaptor = BRepAdaptor_Surface(face)
     if adaptor.GetType() != GeomAbs_Cylinder:
@@ -262,7 +280,7 @@ def extract_cylinder_trim_frame(
     sampled = _sample_outer_wire_uv(face, max_vertices)
     if sampled is None:
         return None
-    polygon_uv, mask, _ = sampled
+    polygon_uv, mask = sampled
 
     # S(u, v) = origin + v * axis + radius * (cos(u) * x_dir + sin(u) * y_dir)
     us = polygon_uv[:, 0]

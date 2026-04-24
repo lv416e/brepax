@@ -7,6 +7,8 @@ from pathlib import Path
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from brepax._occt.backend import (
     BRepAdaptor_Surface,
@@ -140,21 +142,32 @@ class TestMaskAndShape:
         assert tf.polyline_3d.shape == (64, 3)
         assert tf.mask.shape == (64,)
 
-    def test_mask_valid_count_positive(self, box_with_holes_cylinder_faces) -> None:
+    def test_mask_valid_count_is_exactly_32(
+        self, box_with_holes_cylinder_faces
+    ) -> None:
+        # 4 edges (two seam edges + top circle + bottom circle) x 8 samples
+        # per edge per the _sample_outer_wire_uv convention.
         tf = extract_cylinder_trim_frame(box_with_holes_cylinder_faces[0])
-        # Full-revolution cylinder face has ~4 edges x 8 samples = 32 valid points
-        # (two seam edges + top circle + bottom circle, split into 8 samples each).
-        n_valid = int(tf.mask.sum())
-        assert n_valid >= 16
-        assert n_valid <= 64
+        assert int(tf.mask.sum()) == 32
 
 
 class TestRejectsNonCylinder:
     def test_plane_face_returns_none(self) -> None:
+        # Explicitly find a plane face to avoid depending on OCCT's
+        # face iteration order.
+        from brepax._occt.backend import GeomAbs_Plane
+
         shape = read_step(str(FIXTURES / "sample_box.step"))
         exp = TopExp_Explorer(shape, TopAbs_FACE)
-        face = TopoDS.Face_s(exp.Current())
-        assert extract_cylinder_trim_frame(face) is None
+        plane_face = None
+        while exp.More():
+            face = TopoDS.Face_s(exp.Current())
+            if BRepAdaptor_Surface(face).GetType() == GeomAbs_Plane:
+                plane_face = face
+                break
+            exp.Next()
+        assert plane_face is not None
+        assert extract_cylinder_trim_frame(plane_face) is None
 
 
 class TestCapacityExceeded:
@@ -163,3 +176,90 @@ class TestCapacityExceeded:
             extract_cylinder_trim_frame(
                 box_with_holes_cylinder_faces[0], max_vertices=4
             )
+
+
+class TestPropertyBased:
+    """Hypothesis-generated OCCT cylinders covering random radii / heights.
+
+    Builds axis-aligned cylinders via ``BRepPrimAPI_MakeCylinder``; the
+    axis is fixed to +z to keep the OCCT construction simple, while
+    radii and heights vary across the full float range the fixture
+    tolerates.  Arbitrary axis orientations are covered by the
+    ``box_with_holes`` fixture tests above — the purpose of this
+    property battery is to fuzz the radius/height arithmetic and the
+    polyline reconstruction across many shapes.
+    """
+
+    @staticmethod
+    def _make_cylinder_face(radius: float, height: float) -> object:
+        from brepax._occt.backend import (
+            BRepPrimAPI_MakeCylinder,
+            GeomAbs_Cylinder,
+        )
+
+        shape = BRepPrimAPI_MakeCylinder(radius, height).Shape()
+        exp = TopExp_Explorer(shape, TopAbs_FACE)
+        while exp.More():
+            face = TopoDS.Face_s(exp.Current())
+            if BRepAdaptor_Surface(face).GetType() == GeomAbs_Cylinder:
+                return face
+            exp.Next()
+        raise AssertionError("no cylinder face in generated solid")
+
+    @given(
+        radius=st.floats(min_value=0.1, max_value=100.0, allow_nan=False),
+        height=st.floats(min_value=0.1, max_value=100.0, allow_nan=False),
+    )
+    @settings(max_examples=25, deadline=None)
+    def test_radius_roundtrips(self, radius: float, height: float) -> None:
+        face = self._make_cylinder_face(radius, height)
+        tf = extract_cylinder_trim_frame(face)
+        assert tf is not None
+        assert jnp.isclose(tf.radius, radius, atol=1e-6)
+
+    @given(
+        radius=st.floats(min_value=0.1, max_value=100.0, allow_nan=False),
+        height=st.floats(min_value=0.1, max_value=100.0, allow_nan=False),
+    )
+    @settings(max_examples=25, deadline=None)
+    def test_frame_is_orthonormal(self, radius: float, height: float) -> None:
+        face = self._make_cylinder_face(radius, height)
+        tf = extract_cylinder_trim_frame(face)
+        assert tf is not None
+        assert jnp.isclose(jnp.linalg.norm(tf.axis), 1.0, atol=1e-9)
+        assert jnp.isclose(jnp.linalg.norm(tf.x_dir), 1.0, atol=1e-9)
+        assert jnp.isclose(jnp.linalg.norm(tf.y_dir), 1.0, atol=1e-9)
+        assert jnp.isclose(jnp.dot(tf.x_dir, tf.y_dir), 0.0, atol=1e-9)
+        assert jnp.isclose(jnp.dot(tf.x_dir, tf.axis), 0.0, atol=1e-9)
+        assert jnp.isclose(jnp.dot(tf.y_dir, tf.axis), 0.0, atol=1e-9)
+
+    @given(
+        radius=st.floats(min_value=0.1, max_value=100.0, allow_nan=False),
+        height=st.floats(min_value=0.1, max_value=100.0, allow_nan=False),
+    )
+    @settings(max_examples=25, deadline=None)
+    def test_polyline_on_cylinder(self, radius: float, height: float) -> None:
+        face = self._make_cylinder_face(radius, height)
+        tf = extract_cylinder_trim_frame(face)
+        assert tf is not None
+        delta = tf.polyline_3d - tf.origin
+        axial = (delta @ tf.axis)[:, None]
+        perp = delta - axial * tf.axis
+        radial_dist = jnp.linalg.norm(perp, axis=-1)
+        valid = tf.mask > 0.5
+        err = jnp.where(valid, jnp.abs(radial_dist - tf.radius), 0.0)
+        # Radial accuracy scales with the cylinder's size; use a
+        # relative tolerance against the radius.
+        assert float(jnp.max(err)) < max(1e-6, 1e-8 * radius)
+
+    @given(
+        radius=st.floats(min_value=0.1, max_value=100.0, allow_nan=False),
+        height=st.floats(min_value=0.1, max_value=100.0, allow_nan=False),
+    )
+    @settings(max_examples=25, deadline=None)
+    def test_mask_is_bitmask(self, radius: float, height: float) -> None:
+        face = self._make_cylinder_face(radius, height)
+        tf = extract_cylinder_trim_frame(face)
+        assert tf is not None
+        vals = jnp.unique(tf.mask)
+        assert {float(v) for v in vals}.issubset({0.0, 1.0})
