@@ -104,6 +104,9 @@ class TestMaskAndShape:
     def test_mask_values_are_bitmask(self, sample_sphere_face) -> None:
         tf = extract_sphere_trim_frame(sample_sphere_face)
         assert jnp.all((tf.mask == 0.0) | (tf.mask == 1.0))
+        # Ensure at least one valid slot: all-zero mask would mean the
+        # extractor silently produced an empty polygon.
+        assert int(tf.mask.sum()) > 0
 
 
 class TestRejectsNonSphere:

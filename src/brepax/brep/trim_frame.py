@@ -136,9 +136,12 @@ class SphereTrimFrame(NamedTuple):
     ``[0, 2*pi] x [-pi/2, pi/2]`` with degenerate edges at the poles.
 
     ``sign_flip`` is ``+1`` for a ``TopAbs_FORWARD`` face (outward
-    radial, as with the outside of a ball) and ``-1`` for a
-    ``TopAbs_REVERSED`` face (outward inward, as with a spherical
-    hollow).
+    normal points radially away from the center, as with the outside
+    of a ball) and ``-1`` for a ``TopAbs_REVERSED`` face (outward
+    points radially toward the center, as with a spherical hollow).
+    The composition wrapper multiplies the primitive's signed
+    distance by ``sign_flip`` so phantom elimination stays correct
+    for reversed faces, matching the cylinder convention.
 
     Examples:
         >>> from brepax.brep.trim_frame import extract_sphere_trim_frame
@@ -349,8 +352,9 @@ def extract_sphere_trim_frame(
     Args:
         face: OCCT face whose underlying surface must be
             ``GeomAbs_Sphere``; any other surface type returns ``None``.
-        max_vertices: Fixed polygon capacity after padding.  Raises when
-            the actual sample count exceeds this capacity.
+        max_vertices: Fixed polygon capacity after padding.  Raises
+            ``ValueError`` when the actual sample count exceeds this
+            capacity.
 
     Returns:
         :class:`SphereTrimFrame`, or ``None`` when the face is not a
@@ -382,6 +386,11 @@ def extract_sphere_trim_frame(
 
     radius = jnp.asarray(gp_sph.Radius())
 
+    # FORWARD sphere faces (e.g. outside of a ball) have their outward
+    # normal radially away from the center; REVERSED faces (e.g. a
+    # spherical hollow) have it pointing toward the center.  sign_flip
+    # is applied to the Sphere primitive's radial signed distance in
+    # the composition wrapper, matching extract_cylinder_trim_frame.
     sign_flip = jnp.asarray(1.0 if face.Orientation() == TopAbs_FORWARD else -1.0)
 
     sampled = _sample_outer_wire_uv(face, max_vertices)
