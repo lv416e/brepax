@@ -33,6 +33,7 @@ from brepax._occt.backend import (
     BRepAdaptor_Surface,
     BRepTools,
     BRepTools_WireExplorer,
+    GeomAbs_Cone,
     GeomAbs_Cylinder,
     GeomAbs_Plane,
     GeomAbs_Sphere,
@@ -154,6 +155,49 @@ class SphereTrimFrame(NamedTuple):
     x_dir: Float[Array, 3]
     y_dir: Float[Array, 3]
     radius: Float[Array, ""]
+    sign_flip: Float[Array, ""]
+    polygon_uv: Float[Array, "n 2"]
+    polyline_3d: Float[Array, "n 3"]
+    mask: Float[Array, ...]
+
+
+class ConeTrimFrame(NamedTuple):
+    """Marschner-composition inputs for a cone face.
+
+    OCCT's Geom_Cone parameterises the cone surface as
+
+        S(u, v) = location
+               + (ref_radius + v * sin(semi_angle))
+                 * (cos(u) * x_dir + sin(u) * y_dir)
+               + v * cos(semi_angle) * axis
+
+    where ``location`` is the reference point on the cone (the base
+    for BRepPrimAPI_MakeCone when ``R1 > R2``), ``ref_radius`` is the
+    radius at that location, ``semi_angle`` is the signed half-angle
+    between the surface and the axis (negative when radius decreases
+    along ``+axis``), and ``v`` is the signed slant distance.
+    ``polygon_uv`` stores the trim loop in ``(u, v)``; full-revolution
+    faces cover the rectangle ``[0, 2*pi] x [v_min, v_max]``.
+
+    ``apex`` is the cone's tip point; ``sign_flip`` is ``+1`` for a
+    ``TopAbs_FORWARD`` face (outward normal points away from the
+    axis, matching the ``Cone`` primitive's signed-distance
+    convention) and ``-1`` for a ``TopAbs_REVERSED`` face (outward
+    points toward the axis, as with the inside of a conical hole).
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_cone_trim_frame
+        >>> # tf = extract_cone_trim_frame(cone_face)
+        >>> # assert tf.polygon_uv.shape == (64, 2)
+    """
+
+    location: Float[Array, 3]
+    apex: Float[Array, 3]
+    axis: Float[Array, 3]
+    x_dir: Float[Array, 3]
+    y_dir: Float[Array, 3]
+    ref_radius: Float[Array, ""]
+    semi_angle: Float[Array, ""]
     sign_flip: Float[Array, ""]
     polygon_uv: Float[Array, "n 2"]
     polyline_3d: Float[Array, "n 3"]
@@ -414,6 +458,96 @@ def extract_sphere_trim_frame(
         x_dir=x_dir,
         y_dir=y_dir,
         radius=radius,
+        sign_flip=sign_flip,
+        polygon_uv=polygon_uv,
+        polyline_3d=polyline_3d,
+        mask=mask,
+    )
+
+
+def extract_cone_trim_frame(
+    face: TopoDS_Face,
+    max_vertices: int = 64,
+) -> ConeTrimFrame | None:
+    """Build Marschner-composition inputs for a cone face.
+
+    Args:
+        face: OCCT face whose underlying surface must be
+            ``GeomAbs_Cone``; any other surface type returns ``None``.
+        max_vertices: Fixed polygon capacity after padding.  Raises
+            ``ValueError`` when the actual sample count exceeds this
+            capacity.
+
+    Returns:
+        :class:`ConeTrimFrame`, or ``None`` when the face is not a
+        cone or has no outer wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_cone_trim_frame
+        >>> # tf = extract_cone_trim_frame(cone_face)
+        >>> # assert tf is not None
+        >>> # assert tf.polyline_3d.shape == (64, 3)
+    """
+    adaptor = BRepAdaptor_Surface(face)
+    if adaptor.GetType() != GeomAbs_Cone:
+        return None
+
+    gp_cone = adaptor.Cone()
+    position = gp_cone.Position()
+
+    loc = position.Location()
+    location = jnp.array([loc.X(), loc.Y(), loc.Z()])
+
+    ax = position.Direction()
+    axis = jnp.array([ax.X(), ax.Y(), ax.Z()])
+
+    xd = position.XDirection()
+    x_dir = jnp.array([xd.X(), xd.Y(), xd.Z()])
+    yd = position.YDirection()
+    y_dir = jnp.array([yd.X(), yd.Y(), yd.Z()])
+
+    ref_radius = jnp.asarray(gp_cone.RefRadius())
+    # OCCT's SemiAngle is signed: negative when the radius decreases
+    # along ``+axis``.  Preserve the sign so polyline reconstruction
+    # via the parametric formula below lands on the correct surface
+    # without further bookkeeping.
+    semi_angle = jnp.asarray(gp_cone.SemiAngle())
+
+    ap = gp_cone.Apex()
+    apex = jnp.array([ap.X(), ap.Y(), ap.Z()])
+
+    # FORWARD cone faces (outside of a solid cone) have their outward
+    # normal radially away from the axis; REVERSED faces (inside of a
+    # conical hollow) have it pointing toward the axis.  sign_flip is
+    # applied to the Cone primitive's signed distance in the
+    # composition wrapper, matching the cylinder and sphere
+    # extractors.
+    sign_flip = jnp.asarray(1.0 if face.Orientation() == TopAbs_FORWARD else -1.0)
+
+    sampled = _sample_outer_wire_uv(face, max_vertices)
+    if sampled is None:
+        return None
+    polygon_uv, mask = sampled
+
+    # S(u, v) = location
+    #        + (ref_radius + v * sin(semi_angle))
+    #          * (cos(u) * x_dir + sin(u) * y_dir)
+    #        + v * cos(semi_angle) * axis
+    us = polygon_uv[:, 0]
+    vs = polygon_uv[:, 1]
+    radius_at_v = (ref_radius + vs * jnp.sin(semi_angle))[:, None]
+    equator_dir = jnp.cos(us)[:, None] * x_dir + jnp.sin(us)[:, None] * y_dir
+    axial_offset = (vs * jnp.cos(semi_angle))[:, None] * axis
+    polyline_3d = location + radius_at_v * equator_dir + axial_offset
+
+    return ConeTrimFrame(
+        location=location,
+        apex=apex,
+        axis=axis,
+        x_dir=x_dir,
+        y_dir=y_dir,
+        ref_radius=ref_radius,
+        semi_angle=semi_angle,
         sign_flip=sign_flip,
         polygon_uv=polygon_uv,
         polyline_3d=polyline_3d,
@@ -732,11 +866,13 @@ def sphere_face_sdf(
 
 
 __all__ = [
+    "ConeTrimFrame",
     "CylinderTrimFrame",
     "PlaneTrimFrame",
     "SphereTrimFrame",
     "cylinder_face_sdf",
     "cylinder_face_sdf_from_frame",
+    "extract_cone_trim_frame",
     "extract_cylinder_trim_frame",
     "extract_plane_trim_frame",
     "extract_sphere_trim_frame",
