@@ -35,6 +35,7 @@ from brepax._occt.backend import (
     BRepTools_WireExplorer,
     GeomAbs_Cylinder,
     GeomAbs_Plane,
+    GeomAbs_Sphere,
     TopAbs_FORWARD,
 )
 from brepax._occt.types import TopoDS_Face
@@ -116,6 +117,41 @@ class PlaneTrimFrame(NamedTuple):
     origin: Float[Array, 3]
     frame_u: Float[Array, 3]
     frame_v: Float[Array, 3]
+    polygon_uv: Float[Array, "n 2"]
+    polyline_3d: Float[Array, "n 3"]
+    mask: Float[Array, ...]
+
+
+class SphereTrimFrame(NamedTuple):
+    """Marschner-composition inputs for a sphere face.
+
+    The sphere's parametric surface is
+    ``S(u, v) = center
+              + radius * (cos(v) * (cos(u) * x_dir + sin(u) * y_dir)
+                          + sin(v) * axis)``,
+    matching OCCT's Geom_Sphere convention.  ``u`` is longitude around
+    the polar ``axis`` and ``v`` is latitude (``-pi/2`` at the south
+    pole, ``+pi/2`` at the north).  ``polygon_uv`` stores the trim
+    loop in ``(u, v)``; full-revolution faces cover the rectangle
+    ``[0, 2*pi] x [-pi/2, pi/2]`` with degenerate edges at the poles.
+
+    ``sign_flip`` is ``+1`` for a ``TopAbs_FORWARD`` face (outward
+    radial, as with the outside of a ball) and ``-1`` for a
+    ``TopAbs_REVERSED`` face (outward inward, as with a spherical
+    hollow).
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_sphere_trim_frame
+        >>> # tf = extract_sphere_trim_frame(sphere_face)
+        >>> # assert tf.polygon_uv.shape == (64, 2)
+    """
+
+    center: Float[Array, 3]
+    axis: Float[Array, 3]
+    x_dir: Float[Array, 3]
+    y_dir: Float[Array, 3]
+    radius: Float[Array, ""]
+    sign_flip: Float[Array, ""]
     polygon_uv: Float[Array, "n 2"]
     polyline_3d: Float[Array, "n 3"]
     mask: Float[Array, ...]
@@ -293,6 +329,78 @@ def extract_cylinder_trim_frame(
 
     return CylinderTrimFrame(
         origin=origin,
+        axis=axis,
+        x_dir=x_dir,
+        y_dir=y_dir,
+        radius=radius,
+        sign_flip=sign_flip,
+        polygon_uv=polygon_uv,
+        polyline_3d=polyline_3d,
+        mask=mask,
+    )
+
+
+def extract_sphere_trim_frame(
+    face: TopoDS_Face,
+    max_vertices: int = 64,
+) -> SphereTrimFrame | None:
+    """Build Marschner-composition inputs for a sphere face.
+
+    Args:
+        face: OCCT face whose underlying surface must be
+            ``GeomAbs_Sphere``; any other surface type returns ``None``.
+        max_vertices: Fixed polygon capacity after padding.  Raises when
+            the actual sample count exceeds this capacity.
+
+    Returns:
+        :class:`SphereTrimFrame`, or ``None`` when the face is not a
+        sphere or has no outer wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_sphere_trim_frame
+        >>> # tf = extract_sphere_trim_frame(sphere_face)
+        >>> # assert tf is not None
+        >>> # assert tf.polyline_3d.shape == (64, 3)
+    """
+    adaptor = BRepAdaptor_Surface(face)
+    if adaptor.GetType() != GeomAbs_Sphere:
+        return None
+
+    gp_sph = adaptor.Sphere()
+    position = gp_sph.Position()
+
+    loc = position.Location()
+    center = jnp.array([loc.X(), loc.Y(), loc.Z()])
+
+    ax = position.Direction()
+    axis = jnp.array([ax.X(), ax.Y(), ax.Z()])
+
+    xd = position.XDirection()
+    x_dir = jnp.array([xd.X(), xd.Y(), xd.Z()])
+    yd = position.YDirection()
+    y_dir = jnp.array([yd.X(), yd.Y(), yd.Z()])
+
+    radius = jnp.asarray(gp_sph.Radius())
+
+    sign_flip = jnp.asarray(1.0 if face.Orientation() == TopAbs_FORWARD else -1.0)
+
+    sampled = _sample_outer_wire_uv(face, max_vertices)
+    if sampled is None:
+        return None
+    polygon_uv, mask = sampled
+
+    # S(u, v) = center
+    #        + r * (cos(v) * (cos(u) * x_dir + sin(u) * y_dir)
+    #               + sin(v) * axis)
+    us = polygon_uv[:, 0]
+    vs = polygon_uv[:, 1]
+    cos_v = jnp.cos(vs)[:, None]
+    sin_v = jnp.sin(vs)[:, None]
+    equator_dir = jnp.cos(us)[:, None] * x_dir + jnp.sin(us)[:, None] * y_dir
+    polyline_3d = center + radius * (cos_v * equator_dir + sin_v * axis)
+
+    return SphereTrimFrame(
+        center=center,
         axis=axis,
         x_dir=x_dir,
         y_dir=y_dir,
@@ -484,10 +592,12 @@ def cylinder_face_sdf(
 __all__ = [
     "CylinderTrimFrame",
     "PlaneTrimFrame",
+    "SphereTrimFrame",
     "cylinder_face_sdf",
     "cylinder_face_sdf_from_frame",
     "extract_cylinder_trim_frame",
     "extract_plane_trim_frame",
+    "extract_sphere_trim_frame",
     "plane_face_sdf",
     "plane_face_sdf_from_frame",
 ]
