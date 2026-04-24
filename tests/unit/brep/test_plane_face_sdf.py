@@ -144,6 +144,62 @@ class TestConvenienceWrapper:
         assert d is None
 
 
+class TestOrientationAcrossAllFaces:
+    """Each plane face of the box must report positive sdf 1 unit outside.
+
+    Covers both ``TopAbs_FORWARD`` and ``TopAbs_REVERSED`` faces, because
+    OCCT stores orientation independently of the underlying Geom_Plane
+    normal and the extracted frame must flip the normal when needed.
+    """
+
+    def _iter_plane_faces(self, step_path: str) -> list:
+        shape = read_step(step_path)
+        faces = []
+        exp = TopExp_Explorer(shape, TopAbs_FACE)
+        while exp.More():
+            face = TopoDS.Face_s(exp.Current())
+            if BRepAdaptor_Surface(face).GetType() == GeomAbs_Plane:
+                faces.append(face)
+            exp.Next()
+        return faces
+
+    def test_one_unit_outside_returns_positive_for_every_face(self) -> None:
+        faces = self._iter_plane_faces(str(FIXTURES / "sample_box.step"))
+        assert len(faces) == 6
+        for face in faces:
+            frame = extract_plane_trim_frame(face)
+            assert frame is not None
+            # Pick a point on the face's centroid then step 1 unit outward.
+            n_valid = int(frame.mask.sum())
+            centroid_uv = jnp.mean(frame.polygon_uv[:n_valid], axis=0)
+            foot_3d = (
+                frame.origin
+                + centroid_uv[0] * frame.frame_u
+                + centroid_uv[1] * frame.frame_v
+            )
+            outside = foot_3d + frame.normal
+            d = plane_face_sdf_from_frame(frame, outside)
+            assert float(d) > 0.0, f"face with normal {frame.normal}: d={float(d)}"
+            assert jnp.isclose(d, 1.0, atol=1e-2)
+
+    def test_one_unit_inside_returns_negative_for_every_face(self) -> None:
+        faces = self._iter_plane_faces(str(FIXTURES / "sample_box.step"))
+        for face in faces:
+            frame = extract_plane_trim_frame(face)
+            assert frame is not None
+            n_valid = int(frame.mask.sum())
+            centroid_uv = jnp.mean(frame.polygon_uv[:n_valid], axis=0)
+            foot_3d = (
+                frame.origin
+                + centroid_uv[0] * frame.frame_u
+                + centroid_uv[1] * frame.frame_v
+            )
+            inside = foot_3d - frame.normal
+            d = plane_face_sdf_from_frame(frame, inside)
+            assert float(d) < 0.0, f"face with normal {frame.normal}: d={float(d)}"
+            assert jnp.isclose(d, -1.0, atol=1e-2)
+
+
 class TestGradient:
     """jax.grad through query, plus through jitted composition."""
 

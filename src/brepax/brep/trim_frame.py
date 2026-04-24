@@ -98,6 +98,13 @@ def extract_plane_trim_frame(
 
     axis = position.Direction()
     normal = jnp.array([axis.X(), axis.Y(), axis.Z()])
+    # OCCT faces carry an orientation independent of the underlying
+    # surface normal; REVERSED means the solid's outward direction is
+    # opposite the Geom_Plane's axis.  Flip so the frame's normal is
+    # always the outward one, matching the convention used by the
+    # ``Plane`` primitive's signed distance.
+    if face.Orientation() != TopAbs_FORWARD:
+        normal = -normal
     offset = jnp.dot(normal, origin)
 
     xd = position.XDirection()
@@ -185,8 +192,11 @@ def plane_face_sdf_from_frame(
         region where the query is on the inside of the infinite
         half-space but outside the trim polygon).
     """
+    # Compute d_s via delta to keep the subtraction in coordinate space,
+    # avoiding catastrophic cancellation when query and origin are both
+    # far from the world origin but close to each other.
     delta = query - frame.origin
-    d_s = jnp.dot(frame.normal, query) - frame.offset
+    d_s = jnp.dot(frame.normal, delta)
     foot_uv = jnp.stack([jnp.dot(delta, frame.frame_u), jnp.dot(delta, frame.frame_v)])
     return trim_aware_sdf(
         query,
