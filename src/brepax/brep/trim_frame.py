@@ -598,6 +598,139 @@ def cylinder_face_sdf(
     return cylinder_face_sdf_from_frame(frame, query, sharpness=sharpness)
 
 
+_EPS_SQ_SPHERE = 1e-24
+
+
+def sphere_face_sdf_from_frame(
+    frame: SphereTrimFrame,
+    query: Float[Array, 3],
+    sharpness: float = 200.0,
+) -> Float[Array, ""]:
+    """Trim-aware signed distance to a sphere face, from a pre-extracted frame.
+
+    Pure JAX, jittable.  Computes the sphere primitive's signed
+    distance ``|delta| - radius``, applies ``sign_flip``, and composes
+    via :func:`trim_aware_sdf`.  The foot-of-perpendicular UV is
+    ``(u, v)`` where ``u`` is longitude around the polar axis
+    (wrapped to ``[0, 2*pi]``) and ``v`` is latitude in
+    ``[-pi/2, pi/2]``, matching OCCT's Geom_Sphere parameterisation.
+
+    Two degenerate inputs need safe-square / double-where guards so
+    gradients stay finite:
+
+    - ``query == center``: distance is zero and the foot direction is
+      undefined.  The safe-square pattern evaluates ``sqrt`` on a
+      shifted squared norm and the UV falls back to ``(0, 0)``.
+    - ``query on axis`` (radial component zero, axial non-zero): the
+      longitude ``u`` is undefined at the pole.  The untaken
+      ``arctan2`` branch receives dummy non-degenerate arguments.
+
+    Args:
+        frame: Extracted sphere-face data from
+            :func:`extract_sphere_trim_frame`.
+        query: 3D query point, shape ``(3,)``.
+        sharpness: Trim-indicator sigmoid sharpness; forwarded to
+            ``trim_aware_sdf``.
+
+    Returns:
+        Signed scalar distance.  Negative strictly inside the trimmed
+        face's half-space (per ``sign_flip``); positive outside,
+        including the phantom region where the query's latitude is
+        outside the trim range but the untrimmed sphere classification
+        would have lied.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import (
+        ...     extract_sphere_trim_frame,
+        ...     sphere_face_sdf_from_frame,
+        ... )
+        >>> # tf = extract_sphere_trim_frame(sphere_face)
+        >>> # d = sphere_face_sdf_from_frame(tf, jnp.array([0., 4., 3.]))
+    """
+    delta = query - frame.center
+
+    dist_sq = jnp.dot(delta, delta)
+    is_not_at_center = dist_sq > _EPS_SQ_SPHERE
+    safe_dist_sq = jnp.where(is_not_at_center, dist_sq, 1.0)
+    safe_dist = jnp.sqrt(safe_dist_sq)
+    dist = jnp.where(is_not_at_center, safe_dist, 0.0)
+
+    d_s_raw = dist - frame.radius
+    d_s = frame.sign_flip * d_s_raw
+
+    axial_component = jnp.dot(delta, frame.axis)
+    radial_vec = delta - axial_component * frame.axis
+    radial_sq = jnp.dot(radial_vec, radial_vec)
+    is_off_axis = radial_sq > _EPS_SQ_SPHERE
+    safe_radial_sq = jnp.where(is_off_axis, radial_sq, 1.0)
+    safe_radial_norm = jnp.sqrt(safe_radial_sq)
+    radial_norm = jnp.where(is_off_axis, safe_radial_norm, 0.0)
+
+    # foot_v = atan2(axial, radial_norm); valid even at center because
+    # atan2(0, 0) = 0 — but its backward pass is NaN, so protect with
+    # the double-where idiom on the untaken branch.
+    foot_v = jnp.where(
+        is_not_at_center,
+        jnp.arctan2(
+            jnp.where(is_not_at_center, axial_component, 0.0),
+            jnp.where(is_not_at_center, radial_norm, 1.0),
+        ),
+        0.0,
+    )
+
+    # foot_u = atan2(radial . y_dir, radial . x_dir); undefined on the
+    # polar axis where the radial vector vanishes.  Same double-where.
+    y_comp = jnp.dot(radial_vec, frame.y_dir)
+    x_comp = jnp.dot(radial_vec, frame.x_dir)
+    u_raw = jnp.where(
+        is_off_axis,
+        jnp.arctan2(
+            jnp.where(is_off_axis, y_comp, 1.0),
+            jnp.where(is_off_axis, x_comp, 1.0),
+        ),
+        0.0,
+    )
+    foot_u = jnp.mod(u_raw, 2.0 * jnp.pi)
+
+    foot_uv = jnp.stack([foot_u, foot_v])
+
+    return trim_aware_sdf(
+        query,
+        d_s,
+        foot_uv,
+        frame.polygon_uv,
+        frame.mask,
+        frame.polyline_3d,
+        frame.mask,
+        sharpness=sharpness,
+    )
+
+
+def sphere_face_sdf(
+    face: TopoDS_Face,
+    query: Float[Array, 3],
+    max_vertices: int = 64,
+    sharpness: float = 200.0,
+) -> Float[Array, ""] | None:
+    """Convenience wrapper: extract the frame and compose in one call.
+
+    Intended for one-off evaluations.  For grids or batches, extract
+    the frame once via :func:`extract_sphere_trim_frame` and JIT the
+    composition over queries via :func:`sphere_face_sdf_from_frame`.
+
+    Returns ``None`` when the face is not a sphere or has no outer
+    wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import sphere_face_sdf
+        >>> # d = sphere_face_sdf(sphere_face, jnp.array([0., 4., 3.]))
+    """
+    frame = extract_sphere_trim_frame(face, max_vertices=max_vertices)
+    if frame is None:
+        return None
+    return sphere_face_sdf_from_frame(frame, query, sharpness=sharpness)
+
+
 __all__ = [
     "CylinderTrimFrame",
     "PlaneTrimFrame",
@@ -609,4 +742,6 @@ __all__ = [
     "extract_sphere_trim_frame",
     "plane_face_sdf",
     "plane_face_sdf_from_frame",
+    "sphere_face_sdf",
+    "sphere_face_sdf_from_frame",
 ]
