@@ -32,6 +32,7 @@ from brepax._occt.backend import (
     TopoDS,
     gp_Pnt,
 )
+from brepax._occt.types import TopoDS_Face
 from brepax.brep.trim_frame import (
     ConeTrimFrame,
     cone_face_sdf,
@@ -43,7 +44,9 @@ from brepax.io.step import read_step
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
 
-def _cone_face(r1: float, r2: float, h: float, angle: float | None = None) -> object:
+def _cone_face(
+    r1: float, r2: float, h: float, angle: float | None = None
+) -> TopoDS_Face:
     if angle is None:
         shape = BRepPrimAPI_MakeCone(r1, r2, h).Shape()
     else:
@@ -58,7 +61,7 @@ def _cone_face(r1: float, r2: float, h: float, angle: float | None = None) -> ob
 
 
 @pytest.fixture()
-def full_cone_face_and_frame() -> tuple[object, ConeTrimFrame]:
+def full_cone_face_and_frame() -> tuple[TopoDS_Face, ConeTrimFrame]:
     """Full cone: R1=3, R2=0, H=9.  Apex at (0, 0, 9), base at z=0."""
     face = _cone_face(3.0, 0.0, 9.0)
     tf = extract_cone_trim_frame(face)
@@ -67,7 +70,7 @@ def full_cone_face_and_frame() -> tuple[object, ConeTrimFrame]:
 
 
 @pytest.fixture()
-def half_cone_face_and_frame() -> tuple[object, ConeTrimFrame]:
+def half_cone_face_and_frame() -> tuple[TopoDS_Face, ConeTrimFrame]:
     """Half revolution (u in [0, pi]) of the same cone."""
     face = _cone_face(3.0, 0.0, 9.0, math.pi)
     tf = extract_cone_trim_frame(face)
@@ -75,7 +78,16 @@ def half_cone_face_and_frame() -> tuple[object, ConeTrimFrame]:
     return face, tf
 
 
-def _occt_face_distance(face: object, query: np.ndarray) -> float:
+@pytest.fixture()
+def frustum_face_and_frame() -> tuple[TopoDS_Face, ConeTrimFrame]:
+    """Frustum: R1=3 at z=0, R2=1 at z=9; cone face has v in [0, ~9.22]."""
+    face = _cone_face(3.0, 1.0, 9.0)
+    tf = extract_cone_trim_frame(face)
+    assert tf is not None
+    return face, tf
+
+
+def _occt_face_distance(face: TopoDS_Face, query: np.ndarray) -> float:
     vertex = BRepBuilderAPI_MakeVertex(
         gp_Pnt(float(query[0]), float(query[1]), float(query[2]))
     ).Vertex()
@@ -153,6 +165,38 @@ class TestHalfConePhantomElimination:
         _, frame = half_cone_face_and_frame
         d = cone_face_sdf_from_frame(frame, jnp.array([0.0, -0.5, 3.0]))
         assert float(d) > 0.0, f"phantom not eliminated: d_T={float(d)}"
+
+
+class TestFrustumVBoundaryPhantomElimination:
+    """A v-trimmed (frustum) cone face exercises the other trim axis.
+
+    The frustum built from ``MakeCone(3, 1, 9)`` has a cone face whose
+    slant ``v`` is bounded to ``[0, ~9.22]``.  A query inside the
+    untrimmed cone body but axially above the top disk (``foot_v``
+    beyond the upper bound) must be flipped to positive by the signed
+    blend.
+    """
+
+    def test_v_above_top_phantom_eliminated(self, frustum_face_and_frame) -> None:
+        # (0.3, 0, 10): axial = 10 (above top disk at z=9), r = 0.3.
+        # At v = 10 / cos(semi_angle) ~= 10.24 the extrapolated cone
+        # radius ~= 0.78, so the query (r=0.3) is inside the untrimmed
+        # cone body: d_s_raw < 0.  foot_v ~= 10.24 sits outside the
+        # frustum's trim [0, ~9.22], so chi collapses to 0 and the
+        # signed blend flips the sign.
+        _, frame = frustum_face_and_frame
+        d = cone_face_sdf_from_frame(frame, jnp.array([0.3, 0.0, 10.0]))
+        assert float(d) > 0.0, f"phantom not eliminated at v_max: d_T={float(d)}"
+
+    def test_v_below_base_phantom_eliminated(self, frustum_face_and_frame) -> None:
+        # (0.0, 2.5, -1): axial = -1 (below base disk at z=0), r = 2.5.
+        # At v = -1 / cos(semi_angle) the untrimmed cone extends back
+        # to radius ref_radius - small; query is inside the untrimmed
+        # body.  foot_v negative sits below the frustum's trim [0, _];
+        # chi ~ 0 flips d_T positive.
+        _, frame = frustum_face_and_frame
+        d = cone_face_sdf_from_frame(frame, jnp.array([0.0, 2.5, -1.0]))
+        assert float(d) > 0.0, f"phantom not eliminated at v_min: d_T={float(d)}"
 
 
 class TestConvenienceWrapper:

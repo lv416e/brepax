@@ -1129,6 +1129,9 @@ def torus_face_sdf(
 
 
 _EPS_SQ_CONE = 1e-24
+# Degenerate half-angle guard.  Real OCCT cones never hit this, but
+# the safe-divide idiom keeps the VJP finite for any input.
+_EPS_COS_CONE = 1e-12
 
 
 def cone_face_sdf_from_frame(
@@ -1213,8 +1216,9 @@ def cone_face_sdf_from_frame(
 
     # foot_v = axial / cos(semi_angle).  cos is bounded away from zero
     # for OCCT cones but the safe-divide idiom costs little.
-    cos_a_safe = jnp.where(jnp.abs(cos_a) > 1e-12, cos_a, 1.0)
-    foot_v = jnp.where(jnp.abs(cos_a) > 1e-12, axial / cos_a_safe, 0.0)
+    cos_a_nondegenerate = jnp.abs(cos_a) > _EPS_COS_CONE
+    cos_a_safe = jnp.where(cos_a_nondegenerate, cos_a, 1.0)
+    foot_v = jnp.where(cos_a_nondegenerate, axial / cos_a_safe, 0.0)
 
     foot_uv = jnp.stack([foot_u, foot_v])
 
