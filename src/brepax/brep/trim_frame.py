@@ -987,6 +987,147 @@ def sphere_face_sdf(
     return sphere_face_sdf_from_frame(frame, query, sharpness=sharpness)
 
 
+_EPS_SQ_TORUS = 1e-24
+
+
+def torus_face_sdf_from_frame(
+    frame: TorusTrimFrame,
+    query: Float[Array, 3],
+    sharpness: float = 200.0,
+) -> Float[Array, ""]:
+    """Trim-aware signed distance to a torus face, from a pre-extracted frame.
+
+    Pure JAX, jittable.  Computes the torus primitive's signed
+    distance ``sqrt((r - R)^2 + h^2) - minor_radius`` (with ``r`` the
+    radial in-plane distance from the polar axis and ``h`` the axial
+    projection), applies ``sign_flip``, and composes via
+    :func:`trim_aware_sdf`.  The foot UV is ``(u, v)`` where ``u`` is
+    the major angle around the polar ``axis`` (wrapped to
+    ``[0, 2*pi]``) and ``v`` is the minor angle around the tube
+    cross-section (also wrapped to ``[0, 2*pi]``).
+
+    Three degenerate inputs need safe-square / double-where guards:
+
+    - ``query`` on the polar axis (``r == 0``): major angle ``u``
+      undefined.
+    - ``query`` on the tube-centre ring (``r == major``, ``h == 0``):
+      minor angle ``v`` undefined and the primitive distance has a
+      ``sqrt(0)``.
+    - ``query`` at ``center``: both angles undefined.
+
+    Each case is handled with a double-where that routes non-degenerate
+    dummy inputs through the untaken ``arctan2`` / ``sqrt`` branch so
+    the VJP stays finite.
+
+    Args:
+        frame: Extracted torus-face data from
+            :func:`extract_torus_trim_frame`.
+        query: 3D query point, shape ``(3,)``.
+        sharpness: Trim-indicator sigmoid sharpness; forwarded to
+            ``trim_aware_sdf``.
+
+    Returns:
+        Signed scalar distance.  Negative strictly inside the trimmed
+        face's half-space (per ``sign_flip``); positive outside,
+        including the phantom region where the query's major angle is
+        outside the trim range.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import (
+        ...     extract_torus_trim_frame,
+        ...     torus_face_sdf_from_frame,
+        ... )
+        >>> # tf = extract_torus_trim_frame(torus_face)
+        >>> # d = torus_face_sdf_from_frame(tf, jnp.array([5., 0., 0.]))
+    """
+    delta = query - frame.center
+    axial = jnp.dot(delta, frame.axis)
+    radial_vec = delta - axial * frame.axis
+
+    radial_sq = jnp.dot(radial_vec, radial_vec)
+    is_off_axis = radial_sq > _EPS_SQ_TORUS
+    safe_radial_sq = jnp.where(is_off_axis, radial_sq, 1.0)
+    safe_radial = jnp.sqrt(safe_radial_sq)
+    r = jnp.where(is_off_axis, safe_radial, 0.0)
+
+    # Tube cross-section: in the (radial, axial) plane the tube centre
+    # sits at (major_radius, 0); the primitive's signed distance is
+    # tube_dist - minor_radius.  Double-where keeps sqrt safe when the
+    # query coincides with the tube-centre ring.
+    dr = r - frame.major_radius
+    tube_sq = dr * dr + axial * axial
+    is_off_tube = tube_sq > _EPS_SQ_TORUS
+    safe_tube_sq = jnp.where(is_off_tube, tube_sq, 1.0)
+    safe_tube = jnp.sqrt(safe_tube_sq)
+    tube_dist = jnp.where(is_off_tube, safe_tube, 0.0)
+
+    d_s_raw = tube_dist - frame.minor_radius
+    d_s = frame.sign_flip * d_s_raw
+
+    # foot_u = atan2(radial . y_dir, radial . x_dir) mod 2*pi.
+    y_comp = jnp.dot(radial_vec, frame.y_dir)
+    x_comp = jnp.dot(radial_vec, frame.x_dir)
+    u_raw = jnp.where(
+        is_off_axis,
+        jnp.arctan2(
+            jnp.where(is_off_axis, y_comp, 1.0),
+            jnp.where(is_off_axis, x_comp, 1.0),
+        ),
+        0.0,
+    )
+    foot_u = jnp.mod(u_raw, 2.0 * jnp.pi)
+
+    # foot_v = atan2(axial, r - major) mod 2*pi: angle around the tube
+    # cross-section measured from the outward-radial direction.
+    v_raw = jnp.where(
+        is_off_tube,
+        jnp.arctan2(
+            jnp.where(is_off_tube, axial, 1.0),
+            jnp.where(is_off_tube, dr, 1.0),
+        ),
+        0.0,
+    )
+    foot_v = jnp.mod(v_raw, 2.0 * jnp.pi)
+
+    foot_uv = jnp.stack([foot_u, foot_v])
+
+    return trim_aware_sdf(
+        query,
+        d_s,
+        foot_uv,
+        frame.polygon_uv,
+        frame.mask,
+        frame.polyline_3d,
+        frame.mask,
+        sharpness=sharpness,
+    )
+
+
+def torus_face_sdf(
+    face: TopoDS_Face,
+    query: Float[Array, 3],
+    max_vertices: int = 64,
+    sharpness: float = 200.0,
+) -> Float[Array, ""] | None:
+    """Convenience wrapper: extract the frame and compose in one call.
+
+    Intended for one-off evaluations.  For grids or batches, extract
+    the frame once via :func:`extract_torus_trim_frame` and JIT the
+    composition over queries via :func:`torus_face_sdf_from_frame`.
+
+    Returns ``None`` when the face is not a torus or has no outer
+    wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import torus_face_sdf
+        >>> # d = torus_face_sdf(torus_face, jnp.array([5., 0., 0.]))
+    """
+    frame = extract_torus_trim_frame(face, max_vertices=max_vertices)
+    if frame is None:
+        return None
+    return torus_face_sdf_from_frame(frame, query, sharpness=sharpness)
+
+
 __all__ = [
     "ConeTrimFrame",
     "CylinderTrimFrame",
@@ -1004,4 +1145,6 @@ __all__ = [
     "plane_face_sdf_from_frame",
     "sphere_face_sdf",
     "sphere_face_sdf_from_frame",
+    "torus_face_sdf",
+    "torus_face_sdf_from_frame",
 ]
