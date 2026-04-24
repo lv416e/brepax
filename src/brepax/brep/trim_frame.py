@@ -37,6 +37,7 @@ from brepax._occt.backend import (
     GeomAbs_Cylinder,
     GeomAbs_Plane,
     GeomAbs_Sphere,
+    GeomAbs_Torus,
     TopAbs_FORWARD,
 )
 from brepax._occt.types import TopoDS_Face
@@ -198,6 +199,45 @@ class ConeTrimFrame(NamedTuple):
     y_dir: Float[Array, 3]
     ref_radius: Float[Array, ""]
     semi_angle: Float[Array, ""]
+    sign_flip: Float[Array, ""]
+    polygon_uv: Float[Array, "n 2"]
+    polyline_3d: Float[Array, "n 3"]
+    mask: Float[Array, ...]
+
+
+class TorusTrimFrame(NamedTuple):
+    """Marschner-composition inputs for a torus face.
+
+    OCCT's Geom_Torus parameterises the surface as
+
+        S(u, v) = center
+               + (major_radius + minor_radius * cos(v))
+                 * (cos(u) * x_dir + sin(u) * y_dir)
+               + minor_radius * sin(v) * axis
+
+    where ``u`` is the major angle (around the polar ``axis``) and
+    ``v`` is the minor angle (around the tube cross-section).  Both
+    axes are periodic in ``[0, 2*pi]``, so full-revolution faces
+    cover the whole square with four seam edges.
+
+    ``sign_flip`` is ``+1`` for a ``TopAbs_FORWARD`` face (outward
+    normal points away from the tube's tube-centre ring, matching
+    the ``Torus`` primitive's signed-distance convention) and
+    ``-1`` for a ``TopAbs_REVERSED`` face (outward points toward
+    the tube-centre ring, as with the inside of a toroidal hollow).
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_torus_trim_frame
+        >>> # tf = extract_torus_trim_frame(torus_face)
+        >>> # assert tf.polygon_uv.shape == (64, 2)
+    """
+
+    center: Float[Array, 3]
+    axis: Float[Array, 3]
+    x_dir: Float[Array, 3]
+    y_dir: Float[Array, 3]
+    major_radius: Float[Array, ""]
+    minor_radius: Float[Array, ""]
     sign_flip: Float[Array, ""]
     polygon_uv: Float[Array, "n 2"]
     polyline_3d: Float[Array, "n 3"]
@@ -555,6 +595,88 @@ def extract_cone_trim_frame(
     )
 
 
+def extract_torus_trim_frame(
+    face: TopoDS_Face,
+    max_vertices: int = 64,
+) -> TorusTrimFrame | None:
+    """Build Marschner-composition inputs for a torus face.
+
+    Args:
+        face: OCCT face whose underlying surface must be
+            ``GeomAbs_Torus``; any other surface type returns ``None``.
+        max_vertices: Fixed polygon capacity after padding.  Raises
+            ``ValueError`` when the actual sample count exceeds this
+            capacity.
+
+    Returns:
+        :class:`TorusTrimFrame`, or ``None`` when the face is not a
+        torus or has no outer wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_torus_trim_frame
+        >>> # tf = extract_torus_trim_frame(torus_face)
+        >>> # assert tf is not None
+        >>> # assert tf.polyline_3d.shape == (64, 3)
+    """
+    adaptor = BRepAdaptor_Surface(face)
+    if adaptor.GetType() != GeomAbs_Torus:
+        return None
+
+    gp_tor = adaptor.Torus()
+    position = gp_tor.Position()
+
+    loc = position.Location()
+    center = jnp.array([loc.X(), loc.Y(), loc.Z()])
+
+    ax = position.Direction()
+    axis = jnp.array([ax.X(), ax.Y(), ax.Z()])
+
+    xd = position.XDirection()
+    x_dir = jnp.array([xd.X(), xd.Y(), xd.Z()])
+    yd = position.YDirection()
+    y_dir = jnp.array([yd.X(), yd.Y(), yd.Z()])
+
+    major_radius = jnp.asarray(gp_tor.MajorRadius())
+    minor_radius = jnp.asarray(gp_tor.MinorRadius())
+
+    # FORWARD torus faces (outside of a solid torus) have their
+    # outward normal radially away from the tube-centre ring;
+    # REVERSED faces (inside of a toroidal hollow) have it pointing
+    # toward the tube-centre ring.  sign_flip is applied to the Torus
+    # primitive's signed distance in the composition wrapper, matching
+    # the cylinder, sphere, and cone extractors.
+    sign_flip = jnp.asarray(1.0 if face.Orientation() == TopAbs_FORWARD else -1.0)
+
+    sampled = _sample_outer_wire_uv(face, max_vertices)
+    if sampled is None:
+        return None
+    polygon_uv, mask = sampled
+
+    # S(u, v) = center
+    #        + (major_radius + minor_radius * cos(v))
+    #          * (cos(u) * x_dir + sin(u) * y_dir)
+    #        + minor_radius * sin(v) * axis
+    us = polygon_uv[:, 0]
+    vs = polygon_uv[:, 1]
+    tube_radius_at_v = (major_radius + minor_radius * jnp.cos(vs))[:, None]
+    equator_dir = jnp.cos(us)[:, None] * x_dir + jnp.sin(us)[:, None] * y_dir
+    axial_offset = (minor_radius * jnp.sin(vs))[:, None] * axis
+    polyline_3d = center + tube_radius_at_v * equator_dir + axial_offset
+
+    return TorusTrimFrame(
+        center=center,
+        axis=axis,
+        x_dir=x_dir,
+        y_dir=y_dir,
+        major_radius=major_radius,
+        minor_radius=minor_radius,
+        sign_flip=sign_flip,
+        polygon_uv=polygon_uv,
+        polyline_3d=polyline_3d,
+        mask=mask,
+    )
+
+
 def plane_face_sdf_from_frame(
     frame: PlaneTrimFrame,
     query: Float[Array, 3],
@@ -870,12 +992,14 @@ __all__ = [
     "CylinderTrimFrame",
     "PlaneTrimFrame",
     "SphereTrimFrame",
+    "TorusTrimFrame",
     "cylinder_face_sdf",
     "cylinder_face_sdf_from_frame",
     "extract_cone_trim_frame",
     "extract_cylinder_trim_frame",
     "extract_plane_trim_frame",
     "extract_sphere_trim_frame",
+    "extract_torus_trim_frame",
     "plane_face_sdf",
     "plane_face_sdf_from_frame",
     "sphere_face_sdf",
