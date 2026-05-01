@@ -2,166 +2,166 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://lv416e.github.io/brepax/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0001-jax-native-rationale/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0002-equinox-pytree-pattern/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0003-stratum-label-encoding/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0004-custom-vjp-at-boundaries/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0005-half-edge-padding-strategy/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0006-license-apache-2-rationale/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0007-ocp-binding-choice/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0008-occt-abstraction-layer/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0009-method-b-deferred/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0010-design-validation-split/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0011-hybrid-strategy/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0012-generic-stratum-detection/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0013-mold-direction-demonstrator/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0014-step-io-initial/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0015-face-to-primitive-conversion/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0016-divergence-theorem-volume/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0017-cold-subsequent-warm-gate/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/0018-trim-aware-sdf-composition/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/architecture/adr/template/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/3d_extension_evaluation/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/concept_proof_evaluation/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/csg_reconstruction_feasibility/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/design_thesis/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/hybrid_optimization_strategy/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/jax_where_gradient_pitfall/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/license_strategy/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/nist_evaluation/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/nurbs_brep_feasibility/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/stratification_theory/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/toi_derivation/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/explanation/why_brep/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/reference/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/reference/analytical/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/reference/applications/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/reference/boolean/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/reference/primitives/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/tutorials/01_quickstart/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/tutorials/02_first_optimization/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
     <url>
          <loc>https://lv416e.github.io/brepax/tutorials/03_stratum_tracking/</loc>
-         <lastmod>2026-04-24</lastmod>
+         <lastmod>2026-05-01</lastmod>
     </url>
 </urlset>
