@@ -100,6 +100,16 @@ class TrimmedCSGStump(eqx.Module):
     Gradients through ``sdf`` and ``volume`` flow through the
     primitives' differentiable parameters (``radius``, ``axis``,
     plane ``normal`` / ``offset``, etc.).
+
+    Examples:
+        >>> import jax.numpy as jnp
+        >>> from brepax.brep.csg_stump import reconstruct_csg_stump
+        >>> from brepax.brep.trimmed_csg_stump import enrich_with_trim_frames
+        >>> # Assuming ``shape`` is an OCCT TopoDS_Shape with analytical faces:
+        >>> # stump = reconstruct_csg_stump(shape)
+        >>> # trimmed = enrich_with_trim_frames(stump, shape)
+        >>> # d = trimmed.sdf(jnp.array([0.0, 0.0, 0.0]))   # scalar SDF at a point
+        >>> # v = trimmed.volume(resolution=64)             # grid-integrated volume
     """
 
     primitives: tuple[Primitive, ...]
@@ -216,6 +226,15 @@ def enrich_with_trim_frames(
     Raises:
         ValueError: If any primitive maps to more than one face or
             to a face whose surface type is not yet supported.
+
+    Examples:
+        >>> from brepax.brep.csg_stump import reconstruct_csg_stump
+        >>> from brepax.brep.trimmed_csg_stump import enrich_with_trim_frames
+        >>> from brepax.io.step import read_step
+        >>> # shape = read_step("part.step")
+        >>> # stump = reconstruct_csg_stump(shape)
+        >>> # trimmed = enrich_with_trim_frames(stump, shape, max_vertices=64)
+        >>> # assert len(trimmed.frames) == len(stump.primitives)
     """
     all_faces = _iter_faces(shape)
 
