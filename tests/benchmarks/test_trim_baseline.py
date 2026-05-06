@@ -1,22 +1,27 @@
 """Volume trim baseline against OCCT reference.
 
-Measures the volume on each fixture via the CSG-Stump SDF path and
-compares against OCCT's analytic reference. The purpose is to document,
-with a hard number, how far the CSG-Stump SDF path drifts from the true
-volume on trimmed geometry before any trim-aware integration is added.
+Measures the volume on each analytical fixture via two CSG-Stump SDF
+paths and compares against OCCT's analytic reference:
 
-Scope is deliberately narrow: a single metric (volume), a single SDF
-path (CSG-Stump composite built from primitive parameters), and OCCT
-ground truth via analytic surface-integral quadrature. Extensions to
-surface area, wall thickness, curvature, and to a second SDF path
-(mesh-based) are deferred to their own follow-ups because each adds
-non-trivial compute and compilation cost.
+- ``sdf_direct``: untrimmed CSG-Stump composite via
+  :class:`DifferentiableCSGStump`. Each primitive contributes its raw
+  half-space SDF.
+- ``sdf_trim``: trim-aware composite via :class:`TrimmedCSGStump`.
+  Per ADR-0019, every analytical primitive (plane, cylinder, sphere,
+  cone, torus) also contributes its raw half-space SDF; the
+  Marschner blend from ADR-0018 is reserved for the standalone-face
+  distance-query use case and for the future BSpline-patch path
+  inside the composition.
 
-The ``sdf_direct`` path ignores any trim boundary and therefore produces
-phantom regions outside the true solid whenever a BSpline face is
-trimmed. Models with analytic-only primitives serve as controls where
-both paths should agree within the sigmoid-indicator first-order
-smearing bias.
+On analytical-only fixtures the two columns must agree to within
+floating-point noise. The purpose of this benchmark is to lock that
+invariant in: any drift between ``sdf_direct`` and ``sdf_trim``
+indicates the analytical dispatch has regressed from raw-half-space
+semantics. Phantom reduction over OCCT ground truth, the original
+motivation for ADR-0018, surfaces only when BSpline primitives are
+wired into the trim-aware path; that is a separate measurement on
+fixtures that contain BSpline faces (Linkrods being the worst
+measured case at +219%, ADR-0016).
 
 Parameters are adaptive per model:
 
@@ -56,6 +61,7 @@ from brepax._occt.types import TopoDS_Shape
 from brepax.brep.csg_eval import integrate_sdf_volume, make_grid_3d
 from brepax.brep.csg_stump import reconstruct_csg_stump, stump_to_differentiable
 from brepax.brep.gprop import compute_gprop_ground_truth
+from brepax.brep.trimmed_csg_stump import enrich_with_trim_frames
 from brepax.io.step import read_step
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
@@ -76,9 +82,12 @@ class VolumeRow(NamedTuple):
 
     model: str
     sdf_direct: float
+    sdf_trim: float
     occt_gt: float
-    err_pct: float
-    t_sec: float
+    err_direct_pct: float
+    err_trim_pct: float
+    t_direct_sec: float
+    t_trim_sec: float
 
 
 def _bbox(shape: TopoDS_Shape) -> tuple[np.ndarray, np.ndarray]:
@@ -121,7 +130,7 @@ def _volume_from_sdf(
 @pytest.mark.slow
 @pytest.mark.benchmark
 def test_trim_volume_baseline() -> None:
-    """Print per-model CSG-Stump volume against OCCT ground truth."""
+    """Print per-model untrimmed and trim-aware volumes against OCCT GT."""
     brepax.enable_compilation_cache()
 
     rows: list[VolumeRow] = []
@@ -142,20 +151,28 @@ def test_trim_volume_baseline() -> None:
         assert stump is not None, f"CSG reconstruction failed for {label}"
         diff = stump_to_differentiable(stump)
 
-        print(f"[{label}] volume integral", flush=True)
+        print(f"[{label}] volume integral (sdf_direct)", flush=True)
         t0 = time.perf_counter()
         v_direct = _volume_from_sdf(diff.sdf, lo, hi, RESOLUTION)
-        t_elapsed = time.perf_counter() - t0
+        t_direct = time.perf_counter() - t0
 
-        err = _relerr(v_direct, gt["volume"])
+        print(f"[{label}] volume integral (sdf_trim)", flush=True)
+        trimmed = enrich_with_trim_frames(stump, shape)
+        t0 = time.perf_counter()
+        v_trim = _volume_from_sdf(trimmed.sdf, lo, hi, RESOLUTION)
+        t_trim = time.perf_counter() - t0
 
+        gt_v = float(gt["volume"])
         rows.append(
             VolumeRow(
                 model=label,
                 sdf_direct=v_direct,
-                occt_gt=float(gt["volume"]),
-                err_pct=err,
-                t_sec=t_elapsed,
+                sdf_trim=v_trim,
+                occt_gt=gt_v,
+                err_direct_pct=_relerr(v_direct, gt_v),
+                err_trim_pct=_relerr(v_trim, gt_v),
+                t_direct_sec=t_direct,
+                t_trim_sec=t_trim,
             )
         )
 
@@ -165,13 +182,18 @@ def test_trim_volume_baseline() -> None:
 
     for r in rows:
         assert math.isfinite(r.sdf_direct), f"non-finite sdf_direct: {r}"
+        assert math.isfinite(r.sdf_trim), f"non-finite sdf_trim: {r}"
         assert r.occt_gt > 0.0, f"non-positive OCCT volume: {r}"
 
 
 def _print_table(rows: list[VolumeRow]) -> None:
     print()
     header = (
-        f"{'model':18s} {'V_direct':>14s} {'V_gt':>14s} {'err%':>10s} {'t_sec':>7s}"
+        f"{'model':18s} "
+        f"{'V_direct':>14s} {'err_d%':>8s} "
+        f"{'V_trim':>14s} {'err_t%':>8s} "
+        f"{'V_gt':>14s} "
+        f"{'t_d':>6s} {'t_t':>6s}"
     )
     print("=" * len(header))
     print(header)
@@ -179,8 +201,9 @@ def _print_table(rows: list[VolumeRow]) -> None:
     for r in rows:
         print(
             f"{r.model:18s} "
-            f"{r.sdf_direct:14.4g} {r.occt_gt:14.4g} "
-            f"{r.err_pct:10.2f} "
-            f"{r.t_sec:7.2f}"
+            f"{r.sdf_direct:14.4g} {r.err_direct_pct:8.2f} "
+            f"{r.sdf_trim:14.4g} {r.err_trim_pct:8.2f} "
+            f"{r.occt_gt:14.4g} "
+            f"{r.t_direct_sec:6.2f} {r.t_trim_sec:6.2f}"
         )
     print("=" * len(header))
