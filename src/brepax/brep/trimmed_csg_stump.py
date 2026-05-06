@@ -1,26 +1,34 @@
 """Trim-aware CSG-Stump composition.
 
-Wires the Marschner signed-blend trim-aware SDF into CSG-Stump DNF
-composition for *curved* primitives only: cylinder, sphere, cone,
-torus.  Plane primitives continue to use their raw half-space SDF.
+Wires CSG-Stump composition for primitives reconstructed from
+trimmed B-Rep faces.
 
-The asymmetry is deliberate.  Marschner replaces a primitive's
-untrimmed signed distance with a face-surface-distance that is
-positive when the query projects outside the trim polygon.  For
-curved primitives the untrimmed extension is the source of phantom
-material in CSG (infinite cylinders extending past a solid's bounds,
-etc.) and the Marschner swap kills it.  For plane primitives the
-untrimmed half-space is *already* the correct CSG ingredient — a
-closed convex polyhedron is exactly the intersection of its half-
-spaces — so swapping in a face-patch distance breaks the DNF: the
-x=0 face of a box does not itself bound the solid by a distance of
-"how far is the query from the x=0 face patch", and that mis-
-classifies queries that are inside the x=0 half-space but project
-outside the face patch.
+Per ADR-0019, every *analytical* primitive (plane, cylinder, sphere,
+cone, torus) contributes its raw untrimmed signed distance to the DNF.
+The untrimmed half-space *is* the correct CSG ingredient: a closed
+solid is exactly the intersection of half-spaces, and substituting in
+a trimmed face-patch SDF (which collapses to a non-negative boundary
+distance outside the trim parameter range) breaks that composition.
+This holds uniformly for every analytical surface type — plane was not
+a special case but the only case the original wiring implemented
+correctly by accident.
 
-Each position in ``frames`` has a concrete Python type, so the
-``isinstance`` dispatch resolves at trace time and the method JITs
-cleanly.
+The Marschner trim-aware blend from ADR-0018 is reserved for two
+distinct use cases:
+
+1. Standalone trimmed-face distance queries (mesh-SDF replacement,
+   OCCT distance comparison) handled by ``brep/trim_frame.py``'s
+   ``*_face_sdf_from_frame`` wrappers — those continue to use the
+   Marschner formula and are unaffected.
+2. BSpline patches inside a CSG-Stump.  BSpline patches are finite in
+   parameter space; their untrimmed extension is the phantom source
+   (ADR-0016, Linkrods +219% measurement).  The Marschner blend will
+   replace the raw BSpline SDF for that surface type when BSpline
+   trim-frame extraction lands.  The per-slot frame is stored here as
+   a placeholder for that integration.
+
+Analytical primitives only need ``primitive.sdf(query)`` — the same
+SDF that :class:`DifferentiableCSGStump` consumes.
 """
 
 from __future__ import annotations
@@ -42,7 +50,6 @@ from brepax._occt.backend import (
     GeomAbs_Sphere,
     GeomAbs_Torus,
     TopAbs_FACE,
-    TopAbs_FORWARD,
     TopExp_Explorer,
     TopoDS,
 )
@@ -55,15 +62,11 @@ from brepax.brep.trim_frame import (
     PlaneTrimFrame,
     SphereTrimFrame,
     TorusTrimFrame,
-    cone_face_sdf_from_frame,
-    cylinder_face_sdf_from_frame,
     extract_cone_trim_frame,
     extract_cylinder_trim_frame,
     extract_plane_trim_frame,
     extract_sphere_trim_frame,
     extract_torus_trim_frame,
-    sphere_face_sdf_from_frame,
-    torus_face_sdf_from_frame,
 )
 
 # Union of every supported trim-frame type.
@@ -76,60 +79,25 @@ TrimFrame = (
 )
 
 
-def _dispatch_frame_sdf(
-    frame: Any,
-    query: Float[Array, 3],
-    sharpness: float,
-) -> Float[Array, ""]:
-    """Per-slot SDF for CSG composition, computed from the frame alone.
-
-    Plane primitives contribute the raw half-space SDF derived from
-    the frame's normal/origin; the Marschner blend is deliberately
-    NOT applied to planes because it would replace the half-space
-    distance with a face-patch distance and break CSG composition
-    (see module docstring).
-
-    Curved primitives (cylinder, sphere, cone, torus) route through
-    the Marschner trim-aware wrapper — each wrapper reads its
-    parameters from the frame, so gradients through frame fields
-    (radius, axis, etc.) flow cleanly.
-
-    ``isinstance`` resolves at JAX trace time since each slot has a
-    concrete Python type.
-    """
-    if isinstance(frame, PlaneTrimFrame):
-        # Half-space SDF from the frame's outward-pointing normal.
-        # Avoid ``dot(normal, query) - offset`` to dodge catastrophic
-        # cancellation when both terms are large and close.
-        return jnp.dot(frame.normal, query - frame.origin)
-    if isinstance(frame, CylinderTrimFrame):
-        return cylinder_face_sdf_from_frame(frame, query, sharpness=sharpness)
-    if isinstance(frame, SphereTrimFrame):
-        return sphere_face_sdf_from_frame(frame, query, sharpness=sharpness)
-    if isinstance(frame, ConeTrimFrame):
-        return cone_face_sdf_from_frame(frame, query, sharpness=sharpness)
-    if isinstance(frame, TorusTrimFrame):
-        return torus_face_sdf_from_frame(frame, query, sharpness=sharpness)
-    raise TypeError(
-        f"Unsupported trim frame type: {type(frame).__name__}. "
-        "Expected one of PlaneTrimFrame / CylinderTrimFrame / "
-        "SphereTrimFrame / ConeTrimFrame / TorusTrimFrame."
-    )
-
-
 class TrimmedCSGStump(eqx.Module):
-    """CSG-Stump composed from trim-aware per-face frames.
+    """CSG-Stump enriched with per-face trim metadata.
 
-    Each slot holds a ``TrimFrame`` (plane / cylinder / sphere / cone
-    / torus); the composite SDF dispatches on frame type to produce
-    the right per-primitive signed distance, then composes via the
-    same DNF (intersection matrix + union mask) as the untrimmed
-    stump.  Frames are the single source of truth for differentiable
-    parameters — gradients of ``sdf`` / ``volume`` flow through
-    frame fields (``radius``, ``axis``, etc.) directly, so a caller
-    can update frames to optimise geometry.
+    Each slot pairs a primitive (``Plane`` / ``Sphere`` / ``Cylinder``
+    / ``Cone`` / ``Torus``) with the trim frame extracted from its
+    source OCCT face.  The composite SDF dispatches on the primitive
+    and returns its raw untrimmed signed distance, then composes via
+    the same DNF (intersection matrix + union mask) as
+    :class:`DifferentiableCSGStump`.  Per ADR-0019, analytical
+    primitives are deliberately not routed through the Marschner
+    blend; the trim frames are retained as the entry point for the
+    future BSpline-patch path described in ADR-0018.
+
+    Gradients through ``sdf`` and ``volume`` flow through the
+    primitives' differentiable parameters (``radius``, ``axis``,
+    plane ``normal`` / ``offset``, etc.).
     """
 
+    primitives: tuple[Any, ...]
     frames: tuple[Any, ...]
     intersection_matrix: np.ndarray = eqx.field(static=True)
     union_mask: np.ndarray = eqx.field(static=True)
@@ -138,17 +106,16 @@ class TrimmedCSGStump(eqx.Module):
     sharpness: float = eqx.field(static=True, default=200.0)
 
     def sdf(self, x: Float[Array, "... 3"]) -> Float[Array, ...]:
-        """Composite CSG SDF with per-frame trim-awareness.
+        """Composite CSG SDF.
 
-        Plane slots contribute the raw half-space SDF derived from
-        the frame; curved slots contribute the Marschner signed
-        blend.  Composition uses the same DNF as the untrimmed stump.
+        Returns each primitive's raw untrimmed signed distance and
+        composes via the stump's DNF.  Plane / cylinder / sphere /
+        cone / torus primitives all participate as half-space
+        ingredients per ADR-0019.
         """
 
         def _single(query: Float[Array, 3]) -> Float[Array, ""]:
-            sdfs = jnp.stack(
-                [_dispatch_frame_sdf(f, query, self.sharpness) for f in self.frames]
-            )
+            sdfs = jnp.stack([prim.sdf(query) for prim in self.primitives])
             return _evaluate_dnf_sdf(sdfs, self.intersection_matrix, self.union_mask)
 
         if x.ndim == 1:
@@ -164,7 +131,7 @@ class TrimmedCSGStump(eqx.Module):
         lo: Float[Array, 3] | None = None,
         hi: Float[Array, 3] | None = None,
     ) -> Float[Array, ""]:
-        """Differentiable volume via grid integration of the trim-aware SDF.
+        """Differentiable volume via grid integration of the composite SDF.
 
         Falls back on the bounding box captured at construction time
         when ``lo`` or ``hi`` is not supplied; raises if neither the
@@ -222,9 +189,10 @@ def enrich_with_trim_frames(
     """Build a :class:`TrimmedCSGStump` from a reconstructed stump.
 
     For each primitive in ``stump``, extract the trim frame of its
-    source face from ``shape`` using :func:`extract_*_trim_frame`.
-    The primitive's ``face_ids`` must be a single-face list (as
-    produced by :func:`reconstruct_csg_stump` before
+    source face from ``shape`` so the BSpline-patch path described in
+    ADR-0018 / ADR-0019 has its per-slot frame ready.  The primitive's
+    ``face_ids`` must be a single-face list (as produced by
+    :func:`reconstruct_csg_stump` before
     :func:`group_stump_primitives`); grouped primitives from
     :func:`group_stump_primitives` are not supported because a single
     frame cannot represent multiple faces.
@@ -233,8 +201,9 @@ def enrich_with_trim_frames(
         stump: An ungrouped CSG-Stump.
         shape: The OCCT shape the stump was reconstructed from.
         max_vertices: Trim-polygon padding capacity per face.
-        sharpness: Sigmoid sharpness for every primitive's trim
-            indicator.
+        sharpness: Sigmoid sharpness for the trim indicator; used by
+            future Marschner-based dispatches (BSpline) and stored
+            on the stump for that purpose.
 
     Returns:
         A :class:`TrimmedCSGStump` with the same topology as ``stump``.
@@ -246,7 +215,6 @@ def enrich_with_trim_frames(
     all_faces = _iter_faces(shape)
 
     frames: list[Any] = []
-    reversed_slots: list[int] = []
     for prim_idx, face_ids in enumerate(stump.face_ids):
         if len(face_ids) != 1:
             raise ValueError(
@@ -262,18 +230,8 @@ def enrich_with_trim_frames(
                 f"type {type_name}"
             )
         frames.append(frame)
-        # Frames store the outward-pointing normal (planes, flipped
-        # for REVERSED faces) or a signed-flipped radial distance
-        # (curved surfaces with sign_flip == -1).  Both negate the
-        # primitive's raw OCCT signed distance relative to the
-        # CSGStump's intersection matrix convention, so the matching
-        # column is negated to preserve the DNF semantics.
-        if face.Orientation() != TopAbs_FORWARD:
-            reversed_slots.append(prim_idx)
 
     matrix = np.asarray(stump.intersection_matrix, dtype=np.float64).copy()
-    for slot in reversed_slots:
-        matrix[:, slot] = -matrix[:, slot]
 
     # Prefer the bounding box already carried by the stump (OCCT
     # metadata derived from the shape), since ``_primitives_bounds``
@@ -288,6 +246,7 @@ def enrich_with_trim_frames(
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="A JAX array is being set as static")
         return TrimmedCSGStump(
+            primitives=tuple(stump.primitives),
             frames=tuple(frames),
             intersection_matrix=matrix,
             union_mask=np.asarray(stump.union_mask),
