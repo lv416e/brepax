@@ -34,7 +34,6 @@ SDF that :class:`DifferentiableCSGStump` consumes.
 from __future__ import annotations
 
 import warnings
-from typing import Any
 
 import equinox as eqx
 import jax
@@ -68,6 +67,7 @@ from brepax.brep.trim_frame import (
     extract_sphere_trim_frame,
     extract_torus_trim_frame,
 )
+from brepax.primitives._base import Primitive
 
 # Union of every supported trim-frame type.
 TrimFrame = (
@@ -97,8 +97,8 @@ class TrimmedCSGStump(eqx.Module):
     plane ``normal`` / ``offset``, etc.).
     """
 
-    primitives: tuple[Any, ...]
-    frames: tuple[Any, ...]
+    primitives: tuple[Primitive, ...]
+    frames: tuple[TrimFrame, ...]
     intersection_matrix: np.ndarray = eqx.field(static=True)
     union_mask: np.ndarray = eqx.field(static=True)
     bbox_lo: Float[Array, 3] | None = eqx.field(default=None)
@@ -164,7 +164,7 @@ def _iter_faces(shape: TopoDS_Shape) -> list[TopoDS_Face]:
     return faces
 
 
-def _extract_frame_for_face(face: TopoDS_Face, max_vertices: int) -> Any:
+def _extract_frame_for_face(face: TopoDS_Face, max_vertices: int) -> TrimFrame | None:
     surf_type = BRepAdaptor_Surface(face).GetType()
     if surf_type == GeomAbs_Plane:
         return extract_plane_trim_frame(face, max_vertices=max_vertices)
@@ -214,7 +214,7 @@ def enrich_with_trim_frames(
     """
     all_faces = _iter_faces(shape)
 
-    frames: list[Any] = []
+    frames: list[TrimFrame] = []
     for prim_idx, face_ids in enumerate(stump.face_ids):
         if len(face_ids) != 1:
             raise ValueError(
