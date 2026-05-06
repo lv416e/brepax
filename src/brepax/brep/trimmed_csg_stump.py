@@ -78,6 +78,11 @@ TrimFrame = (
     | TorusTrimFrame
 )
 
+# Sigmoid sharpness for the Marschner trim indicator (ADR-0018);
+# consumed by the future BSpline-patch dispatch and carried on the
+# stump for that integration.
+DEFAULT_TRIM_SHARPNESS: float = 200.0
+
 
 class TrimmedCSGStump(eqx.Module):
     """CSG-Stump enriched with per-face trim metadata.
@@ -103,7 +108,7 @@ class TrimmedCSGStump(eqx.Module):
     union_mask: np.ndarray = eqx.field(static=True)
     bbox_lo: Float[Array, 3] | None = eqx.field(default=None)
     bbox_hi: Float[Array, 3] | None = eqx.field(default=None)
-    sharpness: float = eqx.field(static=True, default=200.0)
+    sharpness: float = eqx.field(static=True, default=DEFAULT_TRIM_SHARPNESS)
 
     def sdf(self, x: Float[Array, "... 3"]) -> Float[Array, ...]:
         """Composite CSG SDF.
@@ -184,7 +189,7 @@ def enrich_with_trim_frames(
     shape: TopoDS_Shape,
     *,
     max_vertices: int = 64,
-    sharpness: float = 200.0,
+    sharpness: float = DEFAULT_TRIM_SHARPNESS,
 ) -> TrimmedCSGStump:
     """Build a :class:`TrimmedCSGStump` from a reconstructed stump.
 
