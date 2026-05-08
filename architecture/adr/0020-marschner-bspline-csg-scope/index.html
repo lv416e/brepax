@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0019-marschner-composition-scope/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0020-marschner-bspline-csg-scope/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>ADR-0019: Marschner trim-aware composition scope - BRepAX</title>
+        <title>ADR-0020: Marschner trim-aware composition is also out of scope for BSpline CSG-Stump primitives - BRepAX</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0019-marschner-trim-aware-composition-scope" class="md-skip">
+        <a href="#adr-0020-marschner-trim-aware-composition-is-also-out-of-scope-for-bspline-csg-stump-primitives" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0019: Marschner trim-aware composition scope
+              ADR-0020: Marschner trim-aware composition is also out of scope for BSpline CSG-Stump primitives
             
           </span>
         </div>
@@ -1707,173 +1707,180 @@
   
 
 
-<h1 id="adr-0019-marschner-trim-aware-composition-scope">ADR-0019: Marschner trim-aware composition scope<a class="headerlink" href="#adr-0019-marschner-trim-aware-composition-scope" title="Permanent link">&para;</a></h1>
+<h1 id="adr-0020-marschner-trim-aware-composition-is-also-out-of-scope-for-bspline-csg-stump-primitives">ADR-0020: Marschner trim-aware composition is also out of scope for BSpline CSG-Stump primitives<a class="headerlink" href="#adr-0020-marschner-trim-aware-composition-is-also-out-of-scope-for-bspline-csg-stump-primitives" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>ADR-0018 fixes the composition formula</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>d_T(p) = chi_T(pi_S(p)) * d_S(p)
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>       + (1 - chi_T(pi_S(p))) * d_partial(p)
-</code></pre></div>
-<p>with <code>d_S</code> signed and <code>d_partial</code> non-negative.  The formula and its
-four sub-decisions (hard min, untrimmed knot domain, sign by dropping
-<code>abs</code>, frame as composition argument) are mathematically sound and
-verified end-to-end on a single trimmed plane face against
-<code>BRepExtrema_DistShapeShape</code>.</p>
-<p>The implementation that wired <code>d_T</code> into <code>TrimmedCSGStump</code> substituted
-the Marschner blend for every curved analytical primitive (cylinder,
-sphere, cone, torus) inside the CSG-Stump DNF composition, while
-keeping plane primitives on their raw half-space SDF.  A baseline
-benchmark on four analytical fixtures (<code>sample_box</code>, <code>sample_cylinder</code>,
-<code>box_with_holes</code>, <code>l_bracket</code>) measured the trim-aware composite
-against OCCT analytic ground truth at 64-cube grid resolution and
-showed:</p>
+<p>ADR-0019 corrected the scope of the Marschner trim-aware composition
+defined in ADR-0018: every analytical primitive (plane, cylinder,
+sphere, cone, torus) inside a CSG-Stump must contribute its raw
+untrimmed signed distance to the DNF.  Substituting the Marschner
+blend (<code>d_T = chi_T * d_S + (1 - chi_T) * d_partial</code>) breaks the DNF
+because outside the trim parameter range <code>chi_T -&gt; 0</code> and
+<code>d_T -&gt; d_partial &gt;= 0</code>, classifying the query as outside the trimmed
+primitive even when the analytical half-space would correctly classify
+it as inside.</p>
+<p>ADR-0019 left BSpline primitives outside its scope, on the assumption
+that "BSpline patches are finite in parameter space, so the untrimmed
+extension is the phantom source (ADR-0016, Linkrods +219%) and the
+Marschner blend is the right replacement".  The trim-aware path
+implemented for BSpline slots in the follow-up wired the Marschner
+blend into the per-slot SDF inside <code>TrimmedCSGStump</code>.</p>
+<p>A measurement on the Linkrods fixture (37 primitives reconstructed
+from the OCCT B-Rep, of which 18 are BSpline) under that wiring
+collapsed the volume catastrophically:</p>
 <table>
 <thead>
 <tr>
-<th>Model</th>
-<th>V_direct error</th>
-<th>V_trim_aware error</th>
+<th>Resolution</th>
+<th>V_OCCT</th>
+<th>V_trim_aware (BSpline Marschner)</th>
+<th>Error</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>sample_box</code> (planes only)</td>
-<td>-0.25%</td>
-<td>-0.25%</td>
+<td>8</td>
+<td>3.847</td>
+<td>0.0214</td>
+<td>-99.45%</td>
 </tr>
 <tr>
-<td><code>sample_cylinder</code> (1 cyl + 2 caps)</td>
-<td>+0.89%</td>
-<td>-0.81%</td>
-</tr>
-<tr>
-<td><code>box_with_holes</code> (6 planes + 2 holes)</td>
-<td>+0.10%</td>
-<td>-3.30%</td>
-</tr>
-<tr>
-<td><code>l_bracket</code> (planes only)</td>
-<td>-0.44%</td>
-<td>-0.44%</td>
+<td>16</td>
+<td>3.847</td>
+<td>0.0001</td>
+<td>-100.00%</td>
 </tr>
 </tbody>
 </table>
-<p>Plane-only fixtures are bit-identical between the two paths, confirming
-the dispatch wiring is sound for that surface type.  The two fixtures
-that exercise curved primitives degrade under the trim-aware path:
-<code>box_with_holes</code> collapses from a near-zero direct error to -3.30%.</p>
-<p>Isolation experiments narrowed the cause to a category error in the
-substitution itself, not a numerical or sign bug:</p>
+<p>The CSG-Stump direct path on Linkrods reports a +31.6% phantom
+(memory <code>project_bspline_halfspace.md</code>); the +219% number that
+ADR-0018 cited is a different metric (GWN-signed-min-dist path,
+since abandoned in favour of GWN-only) and does not reflect the
+CSG-Stump direct path's behaviour.  The motivation for applying
+Marschner inside the CSG-Stump DNF therefore confused two failure
+modes from different paths.</p>
+<p>The Linkrods collapse is treated here as a <strong>counterexample</strong> to the
+hypothesis that the Marschner blend is a valid per-primitive ingredient
+inside the CSG-Stump DNF.  A counterexample of this magnitude (-99% on
+volume) is by itself sufficient grounds to reject the hypothesis and
+roll the BSpline path back to the raw signed distance, even without a
+fully isolated causal mechanism.</p>
+<p>The following mechanism is <strong>consistent</strong> with the observation and
+with the analytical analysis recorded in ADR-0019 — but it has not
+been confirmed by a slot-level isolation experiment (per-query
+chi_T / d_partial / d_T traces with controlled inputs), so it is
+stated as a working hypothesis rather than a proven cause:</p>
 <ul>
-<li>The CSG-Stump DNF treats every primitive's signed distance as a
-  <em>half-space ingredient</em>.  A box is the intersection of six plane
-  half-spaces; a cylindrical hole is the intersection of an outer
-  half-space (<code>d_cylinder &gt; 0</code>) with the surrounding plane
-  half-spaces.  The untrimmed primitive SDF <em>is</em> that ingredient and
-  is correct for any analytical primitive, regardless of whether the
-  face is trimmed.</li>
-<li><code>d_T(p)</code> is not a half-space SDF.  It is the signed distance to the
-  trimmed face's effective surface, which is finite.  Outside the
-  trim parameter range, <code>chi_T -&gt; 0</code> and <code>d_T -&gt; d_partial &gt;= 0</code>,
-  classifying the query as outside the trimmed primitive even when
-  the analytical half-space would correctly classify it as inside.
-  Substituted into the DNF, this collapses entire half-spaces to
-  thin shells and breaks the composition.</li>
-<li>The plane non-asymmetry recorded in the original trimmed-stump
-  module docstring ("the untrimmed half-space is <em>already</em> the
-  correct CSG ingredient") generalises to every analytical primitive.
-  Plane was not the special case; it was the only case implemented
-  correctly by accident, because the implementation kept the raw
-  half-space distance for that one surface type.</li>
+<li>The CSG-Stump's DNF treats every primitive's signed distance as a
+  half-space ingredient.  A multi-face closed solid is the
+  intersection of half-spaces — for every face, the signed distance
+  carries information about which side of the surface the query
+  lies on, even at distances much larger than the face's spatial
+  extent.</li>
+<li>The Marschner blend's <code>d_T(p)</code> represents the signed distance to a
+  single trimmed face's effective surface, not to its half-space.
+  Outside the trim parameter range it collapses to the unsigned
+  distance to the trim-boundary polyline, which is by construction
+  non-negative.</li>
+<li>For a query at the centre of a multi-face solid, the foot of
+  perpendicular onto BSpline face k may legitimately land outside
+  face k's trim polygon, especially when the solid contains slender
+  features or many faces sharing the same parametric surface.  Under
+  this hypothesis the Marschner blend would return <code>d_partial &gt;= 0</code>
+  for face k, which the DNF would interpret as "outside the trimmed
+  primitive k", flipping the intersection-cell row to "outside the
+  solid" for queries the analytical half-space would have placed
+  inside.</li>
+<li>BSpline patches do not obviously change this picture.  Their
+  untrimmed surface is finite in parameter, but the underlying
+  mathematical surface still extends across the patch (and beyond,
+  on its parametric extension); the CSG-Stump primitive's role is to
+  expose the half-space sign of that surface.</li>
 </ul>
-<p>The asymmetry that <em>does</em> exist in the CSG-Stump's needs:</p>
-<ul>
-<li>Analytical primitives (plane, cylinder, sphere, cone, torus) all
-  have well-defined infinite half-spaces.  The untrimmed analytic
-  signed distance is the correct CSG ingredient regardless of trim.</li>
-<li>BSpline patches are <em>finite</em> in their parameter domain.  Their
-  untrimmed signed distance loses geometric meaning past the patch
-  boundary, and the half-space concept does not extend.  This is the
-  case ADR-0016 documented as "BSpline half-space limitation" and
-  the case Linkrods (+219% on volume via raw <code>abs(BSpline SDF)</code>)
-  empirically demonstrated.  The Marschner blend bypasses the
-  half-space concept by composing with <code>d_partial</code>, recovering a
-  signed quantity that classifies queries outside the patch as
-  outside the primitive.</li>
-</ul>
-<p>ADR-0018's motivation paragraph cites Linkrods explicitly, so the
-intent was always BSpline-focused; what was missing was a written
-boundary stating that analytical primitives keep their raw SDF.</p>
+<p>Confirming this mechanism with a per-slot trace is left as future
+work for any caller who wishes to revisit the Marschner-as-DNF-
+ingredient direction; the present ADR's decision does not depend on
+that confirmation.</p>
+<p>Independent of the mechanism, the plane non-asymmetry recorded in the
+original <code>TrimmedCSGStump</code> module docstring ("the untrimmed half-space
+is <em>already</em> the correct CSG ingredient") and extended in ADR-0019 to
+all analytical primitives is treated here as the working rule for
+BSpline as well: every primitive type, including BSpline, exposes the
+untrimmed signed distance inside the CSG-Stump DNF.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>The Marschner trim-aware composition (<code>brep/trim_sdf.py:trim_aware_sdf</code>)
-and its per-primitive wrappers (<code>brep/trim_frame.py</code>'s
-<code>*_face_sdf_from_frame</code>) are reserved for <strong>two use cases</strong>:</p>
+<p>The Marschner trim-aware composition is reserved for <strong>two use
+cases</strong>, unchanged from ADR-0019:</p>
 <ol>
-<li><strong>Standalone trimmed-face distance queries.</strong>  Computing the
-   signed distance from a query point to a single trimmed face, for
-   uses such as mesh-SDF replacement, OCCT distance comparison, or
-   point-to-shell queries that operate on one face at a time.
-   Verified against <code>BRepExtrema_DistShapeShape</code> on plane in PR #67;
-   sphere / cylinder / cone / torus wrappers extend the same
-   semantics.</li>
-<li><strong>BSpline-patch composition inside a CSG-Stump.</strong>  When a future
-   PR wires BSpline primitives into the trim-aware composition,
-   their dispatch path uses <code>trim_aware_sdf</code> because BSpline patches
-   are finite in parameter and their untrimmed extension is the
-   phantom source.</li>
+<li>Standalone trimmed-face distance queries (mesh-SDF replacement,
+   OCCT distance comparison) handled by <code>brep/trim_frame.py</code>'s
+   <code>*_face_sdf_from_frame</code> wrappers.  This includes the BSpline
+   wrapper <code>bspline_face_sdf_from_frame</code>, which is unaffected by
+   this ADR and continues to use the Marschner formula.</li>
+<li>Future composition strategies that don't require half-space
+   semantics (e.g. GWN, where each face contributes a winding-number
+   sample rather than a half-space ingredient).</li>
 </ol>
 <p>The Marschner trim-aware composition is <strong>not</strong> used as the
-per-primitive SDF inside <code>TrimmedCSGStump</code> for analytical primitives.
-Every analytical slot returns its raw <code>primitive.sdf(query)</code>, the
-same SDF that <code>DifferentiableCSGStump</code> uses.  This makes
-<code>TrimmedCSGStump</code> analytically equivalent to <code>DifferentiableCSGStump</code>
-on analytical-only models; the class continues to exist as the entry
-point for the BSpline path that ADR-0018 motivates.</p>
-<p>The trim-frame data (<code>PlaneTrimFrame</code>, <code>CylinderTrimFrame</code>,
-<code>SphereTrimFrame</code>, <code>ConeTrimFrame</code>, <code>TorusTrimFrame</code>) is still
-extracted at face-reconstruction time and stored on the
-<code>TrimmedCSGStump</code>, both because the standalone-face use case (1)
-needs it and because the BSpline integration (2) is the next
-implementation step and will need a uniform per-slot frame slot.</p>
-<p>The intersection-matrix column flip that compensated for the
-dispatch's sign-flipping of REVERSED faces is removed: with raw
-analytical primitives in every slot, the original
-<code>stump.intersection_matrix</code> is the correct DNF coefficient matrix
-without modification.</p>
+per-primitive SDF inside <code>TrimmedCSGStump</code> for any primitive type,
+analytical or BSpline.  Every slot returns its raw
+<code>primitive.sdf(query)</code>, the same SDF that
+<code>DifferentiableCSGStump</code> uses.  This makes <code>TrimmedCSGStump</code>
+analytically equivalent to <code>DifferentiableCSGStump</code> on every fixture;
+the class continues to exist as the entry point for trim-aware
+composition because it carries the per-face trim frame data and the
+build pipeline (<code>enrich_with_trim_frames</code>) already extracts it from
+OCCT.</p>
+<p>The trim-frame data — <code>PlaneTrimFrame</code>, <code>CylinderTrimFrame</code>,
+<code>SphereTrimFrame</code>, <code>ConeTrimFrame</code>, <code>TorusTrimFrame</code>, and
+<code>BSplineTrimFrame</code> — continues to be extracted at face-reconstruction
+time and stored on the <code>TrimmedCSGStump</code>.  The standalone-face use
+case (1) consumes them, and the future composition use case (2) will
+consume them without re-extracting.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>TrimmedCSGStump</code> on analytical-only models is bit-equivalent to
-  <code>DifferentiableCSGStump</code> on the same grid.  The per-model gates in
-  the trim-baseline benchmark collapse to "trim-aware path matches
-  untrimmed path on analytical models" rather than "trim-aware path
-  is closer to OCCT GT".  The actual phantom-reduction gate moves to
-  the BSpline integration that follows.</li>
-<li>The plane non-asymmetry comment in the trimmed-stump module
-  docstring is rewritten as the general analytical-vs-BSpline
-  asymmetry stated above.</li>
-<li>ADR-0018 stands as the formula's mathematical specification and is
-  not superseded.  Its sub-decisions (hard min, untrimmed knot
-  domain, signed blend, frame as composition argument) remain in
-  effect for the standalone-face and BSpline-patch use cases.</li>
-<li>Gradients through <code>TrimmedCSGStump.sdf</code> flow through primitive
-  parameters (<code>radius</code>, <code>axis</code>, plane <code>normal</code>, etc.) as on
-  <code>DifferentiableCSGStump</code>.  Frame fields (trim polygon vertices,
-  3D polyline samples) are stored but not on the analytical
-  gradient path; they will become differentiable inputs only when
-  the BSpline path lands and a future trim-as-design-variable
-  feature is added.</li>
-<li><code>enrich_with_trim_frames</code> no longer flips intersection-matrix
-  columns based on face orientation; the original matrix is used
-  unchanged.</li>
-<li>The standalone-face wrappers (<code>plane_face_sdf</code>,
-  <code>cylinder_face_sdf</code>, etc.) and their unit tests are unaffected;
-  they continue to verify the Marschner formula against OCCT for
-  use case (1).</li>
-<li>A regression benchmark (<code>tests/benchmarks/test_trim_baseline.py</code>)
-  records the both-paths-match invariant on the four analytical
-  fixtures so any future regression of the analytical path against
-  <code>DifferentiableCSGStump</code> surfaces immediately.</li>
+<li><code>TrimmedCSGStump.sdf</code> no longer dispatches on primitive type.  All
+  primitives return <code>primitive.sdf(query)</code>.</li>
+<li><code>TrimmedCSGStump</code> is bit-equivalent to <code>DifferentiableCSGStump</code> on
+  every fixture, including BSpline-bearing ones.  The unit tests
+  pin this invariant on <code>sample_box</code>, <code>box_with_holes</code>, and
+  <code>nurbs_box</code>; <code>test_trim_baseline</code> extends it to the full benchmark
+  set.</li>
+<li>The Linkrods CSG-Stump direct-path phantom remains unaddressed
+  under this approach.  Memory recorded a +31.6% figure from the
+  v0.4.0 era (<code>project_bspline_halfspace.md</code>); a session-time
+  re-measurement on the current codebase reproduced ~+85% at res=8
+  (the only resolution that fits in memory for this 37-primitive
+  fixture).  Different resolutions and bbox-padding choices give
+  materially different numbers, so any future ADR proposing to
+  attack this phantom should fix the measurement protocol before
+  proposing a strategy.  GWN-based composition and per-face
+  boundary integration on the trim polylines are two of the
+  candidates; both are out of scope for this ADR.</li>
+<li>The "trim-aware metrics" milestone direction this PR was
+  originally framed under is preserved as an open question.  This
+  ADR closes only the Marschner-as-DNF-ingredient hypothesis.  The
+  cheapest first step recorded in the milestone task list — using
+  the existing <code>BSplineSurface.trim_polygon</code> field (populated by
+  <code>_convert_bspline_face</code> since v0.4.0) inside the per-face metric
+  computations — has not been attempted yet and remains the
+  recommended next direction.</li>
+<li>ADR-0018's standalone-face Marschner formula and its
+  per-primitive verifications (PR #67 for plane against
+  <code>BRepExtrema_DistShapeShape</code>) remain in effect.  ADR-0018 is not
+  superseded; this ADR narrows what was implicitly thought to be a
+  CSG-Stump composition use case.</li>
+<li>Gradients through <code>TrimmedCSGStump.sdf</code> flow through every
+  primitive's differentiable parameters (analytical: <code>radius</code>,
+  <code>axis</code>, plane <code>normal</code> / <code>offset</code>; BSpline: <code>control_points</code>,
+  <code>knots_u</code>, <code>knots_v</code>, <code>weights</code>) as on <code>DifferentiableCSGStump</code>.
+  Frame fields (trim polygon vertices, 3D polyline samples) are
+  stored but not on the gradient path.</li>
+<li><code>TrimmedCSGStump</code> keeps the BSpline trim frame because the
+  standalone-face wrapper consumes it and because future
+  composition strategies (GWN, etc.) will reuse the same
+  metadata; re-extracting from OCCT for those callers would
+  duplicate work.</li>
 </ul>
 
 
