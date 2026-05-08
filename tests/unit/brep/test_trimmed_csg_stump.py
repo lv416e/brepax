@@ -1,19 +1,27 @@
 """TrimmedCSGStump end-to-end on real CAD models.
 
-Per ADR-0019, ``TrimmedCSGStump`` on analytical-only models is
-bit-equivalent to ``DifferentiableCSGStump``: every analytical
-primitive contributes its raw untrimmed half-space SDF to the DNF.
-The Marschner trim-aware blend is reserved for the standalone-face
-distance-query use case (handled by ``brep/trim_frame.py``'s
-``*_face_sdf_from_frame`` wrappers and verified separately) and for
-the future BSpline-patch path inside the composition.
+Per ADR-0019 and ADR-0020, ``TrimmedCSGStump`` is bit-equivalent to
+``DifferentiableCSGStump`` on every fixture, analytical or BSpline:
+every primitive contributes its raw untrimmed signed distance to the
+DNF.  The Marschner trim-aware blend is reserved for the standalone-
+face distance-query use case (``brep/trim_frame.py``'s
+``*_face_sdf_from_frame`` family) and for future composition
+strategies; substituting it into the CSG-Stump DNF removes
+legitimate inside regions on multi-face solids (Linkrods volume
+collapses by ~99% when BSpline slots route through Marschner — the
+empirical evidence behind ADR-0020).
 
-These tests pin that invariant: ``sample_box`` and ``box_with_holes``
-both go through the trim-aware composite *and* the untrimmed composite
-on the same grid; their volumes must match within numerical noise.
-The trim frames themselves are extracted and stored on the stump so
-the BSpline integration has its per-slot frame ready, but they do not
-contribute to the analytical SDFs.
+These tests pin the bit-equivalence invariant on three fixtures:
+
+- ``sample_box`` (6 planes): analytical control.
+- ``box_with_holes`` (6 planes + 2 cylinders, REVERSED orientation
+  on cylinders): non-trivial DNF analytical control.
+- ``nurbs_box`` (6 BSpline patches): BSpline regression check.
+
+The trim frames themselves (``BSplineTrimFrame`` and the analytical
+``*TrimFrame`` set) are still extracted and stored on the stump, both
+because the standalone-face wrappers consume them and because future
+composition strategies (e.g. GWN) will consume the same metadata.
 """
 
 from __future__ import annotations
@@ -160,3 +168,144 @@ class TestTrimmedBoxWithHolesMatchesUntrimmed:
         _, _, trimmed = box_with_holes_stump_and_trimmed
         d = float(trimmed.sdf(jnp.array([10.0, 15.0, 25.0])))
         assert d > 0.0, f"above-box query classified as inside: d={d}"
+
+
+@pytest.fixture(scope="module")
+def nurbs_box_stump_and_trimmed() -> tuple:
+    shape = read_step(str(FIXTURES / "nurbs_box.step"))
+    stump = reconstruct_csg_stump(shape)
+    assert stump is not None
+    trimmed = enrich_with_trim_frames(stump, shape)
+    return shape, stump, trimmed
+
+
+class TestTrimmedNurbsBoxMatchesUntrimmed:
+    """nurbs_box: 6 BSpline patches, all under raw primitive SDF.
+
+    Per ADR-0020, BSpline slots in ``TrimmedCSGStump`` use raw
+    ``primitive.sdf(query)`` just like analytical slots.  The trim
+    frames are still extracted (for the standalone-face query path
+    and future composition strategies) but do not contribute to the
+    DNF SDF.  This fixture's role is to lock in the bit-equivalence
+    invariant on a BSpline-bearing solid, so any future regression
+    of the BSpline DNF path against ``DifferentiableCSGStump``
+    surfaces immediately.
+    """
+
+    def test_class_instance(self, nurbs_box_stump_and_trimmed) -> None:
+        _, _, trimmed = nurbs_box_stump_and_trimmed
+        assert isinstance(trimmed, TrimmedCSGStump)
+
+    def test_all_slots_are_bspline_frames(self, nurbs_box_stump_and_trimmed) -> None:
+        from brepax.brep.trim_frame import BSplineTrimFrame
+
+        _, _, trimmed = nurbs_box_stump_and_trimmed
+        for f in trimmed.frames:
+            assert isinstance(f, BSplineTrimFrame)
+
+    def test_volume_matches_untrimmed(self, nurbs_box_stump_and_trimmed) -> None:
+        # Trimmed and untrimmed composites must agree on volume to
+        # within floating-point noise: every BSpline primitive
+        # contributes the same raw SDF in both paths (ADR-0020).
+        shape, stump, trimmed = nurbs_box_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
+        lo, hi = _shape_bounds(shape)
+        # res=24 keeps the test under a minute on BSpline projection.
+        v_untrimmed = float(diff.volume(resolution=24, lo=lo, hi=hi))
+        v_trimmed = float(trimmed.volume(resolution=24, lo=lo, hi=hi))
+        assert abs(v_untrimmed - v_trimmed) < 1e-3
+
+    def test_sdf_signs_match_untrimmed(self, nurbs_box_stump_and_trimmed) -> None:
+        # nurbs_box is the rectangular block [0,10] x [0,8] x [-8,0];
+        # a few interior / exterior queries must agree on sign with
+        # the untrimmed composite (and on value, under ADR-0020).
+        _, stump, trimmed = nurbs_box_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
+        queries = jnp.array(
+            [
+                [5.0, 4.0, -4.0],  # interior
+                [-2.0, 4.0, -4.0],  # outside, away from any face
+                [12.0, 4.0, -4.0],  # outside on +x
+                [5.0, 4.0, 5.0],  # outside on +z
+            ]
+        )
+        d_untrimmed = diff.sdf(queries)
+        d_trimmed = trimmed.sdf(queries)
+        assert jnp.all(jnp.sign(d_untrimmed) == jnp.sign(d_trimmed))
+
+    def test_gradient_flows_through_control_points(
+        self, nurbs_box_stump_and_trimmed
+    ) -> None:
+        # ``primitive.sdf`` on a BSpline runs the unrolled Newton
+        # projection, so jax.grad over a single SDF evaluation must
+        # produce finite gradients on at least one slot's
+        # ``control_points`` field.
+        import jax
+
+        _, _, trimmed = nurbs_box_stump_and_trimmed
+
+        def loss(t):
+            return jnp.sum(t.sdf(jnp.array([5.0, 4.0, -4.0])) ** 2)
+
+        g = jax.grad(loss)(trimmed)
+        assert jnp.all(jnp.isfinite(g.primitives[0].control_points))
+
+
+class TestBitEquivalenceProperty:
+    """Property test pinning ADR-0019 + ADR-0020's central invariant.
+
+    For every fixture and any query in the bbox-padded domain, the
+    ``TrimmedCSGStump`` SDF must equal the ``DifferentiableCSGStump``
+    SDF to floating-point noise.  The earlier per-fixture asserts in
+    ``test_volume_matches_untrimmed`` only check the integral; this
+    test pins the per-query identity, which is the actual invariant
+    ADR-0020 declares.  Any future BSpline composition strategy that
+    breaks this invariant will surface here regardless of whether
+    the change happens to land near the expected volume by chance.
+    """
+
+    @staticmethod
+    def _sample_queries(seed: int, lo, hi, n: int = 64):
+        import numpy as _np
+
+        rng = _np.random.default_rng(seed)
+        lo_np = _np.asarray(lo)
+        hi_np = _np.asarray(hi)
+        pts = rng.uniform(lo_np, hi_np, size=(n, 3)).astype(_np.float32)
+        return jnp.asarray(pts)
+
+    def test_sample_box_bit_equivalence(self, sample_box_stump_and_trimmed) -> None:
+        shape, stump, trimmed = sample_box_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
+        lo, hi = _shape_bounds(shape)
+        queries = self._sample_queries(seed=0, lo=lo, hi=hi)
+        d_direct = diff.sdf(queries)
+        d_trim = trimmed.sdf(queries)
+        # Same DNF + same primitive SDFs => bit-identical to fp32 noise.
+        assert jnp.allclose(d_direct, d_trim, atol=1e-5, rtol=1e-5)
+
+    def test_box_with_holes_bit_equivalence(
+        self, box_with_holes_stump_and_trimmed
+    ) -> None:
+        shape, stump, trimmed = box_with_holes_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
+        lo, hi = _shape_bounds(shape)
+        queries = self._sample_queries(seed=1, lo=lo, hi=hi)
+        d_direct = diff.sdf(queries)
+        d_trim = trimmed.sdf(queries)
+        assert jnp.allclose(d_direct, d_trim, atol=1e-5, rtol=1e-5)
+
+    def test_nurbs_box_bit_equivalence(self, nurbs_box_stump_and_trimmed) -> None:
+        # BSpline path runs the unrolled Newton in both composites; the
+        # invariant pins that the BSpline slot dispatch in
+        # ``TrimmedCSGStump`` does not deviate from the primitive's
+        # own ``.sdf``.
+        shape, stump, trimmed = nurbs_box_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
+        lo, hi = _shape_bounds(shape)
+        # Smaller sample count keeps the test under a minute on BSpline
+        # Newton projection.
+        queries = self._sample_queries(seed=2, lo=lo, hi=hi, n=16)
+        d_direct = diff.sdf(queries)
+        d_trim = trimmed.sdf(queries)
+        assert jnp.allclose(d_direct, d_trim, atol=1e-5, rtol=1e-5)

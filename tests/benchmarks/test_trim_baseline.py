@@ -1,27 +1,25 @@
 """Volume trim baseline against OCCT reference.
 
-Measures the volume on each analytical fixture via two CSG-Stump SDF
-paths and compares against OCCT's analytic reference:
+Measures the volume on each fixture via two CSG-Stump SDF paths and
+compares against OCCT's analytic reference:
 
 - ``sdf_direct``: untrimmed CSG-Stump composite via
-  :class:`DifferentiableCSGStump`. Each primitive contributes its raw
-  half-space SDF.
+  :class:`DifferentiableCSGStump`.  Each primitive contributes its
+  raw signed distance to the DNF.
 - ``sdf_trim``: trim-aware composite via :class:`TrimmedCSGStump`.
-  Per ADR-0019, every analytical primitive (plane, cylinder, sphere,
-  cone, torus) also contributes its raw half-space SDF; the
-  Marschner blend from ADR-0018 is reserved for the standalone-face
-  distance-query use case and for the future BSpline-patch path
-  inside the composition.
+  Per ADR-0019 and ADR-0020 every primitive (analytical *and*
+  BSpline) contributes its raw signed distance — the Marschner
+  trim-aware blend is reserved for the standalone-face distance-
+  query use case and for future composition strategies (e.g. GWN).
+  The trim frames themselves are still extracted and stored on the
+  stump.
 
-On analytical-only fixtures the two columns must agree to within
-floating-point noise. The purpose of this benchmark is to lock that
-invariant in: any drift between ``sdf_direct`` and ``sdf_trim``
-indicates the analytical dispatch has regressed from raw-half-space
-semantics. Phantom reduction over OCCT ground truth, the original
-motivation for ADR-0018, surfaces only when BSpline primitives are
-wired into the trim-aware path; that is a separate measurement on
-fixtures that contain BSpline faces (Linkrods being the worst
-measured case at +219%, ADR-0016).
+On every fixture the two columns must agree to within floating-
+point noise.  Drift indicates the trim-aware composite has regressed
+from raw-half-space semantics in the DNF; that is the only invariant
+this benchmark exists to surface today.  Phantom reduction over OCCT
+ground truth is the subject of a separate composition strategy
+(ADR-0020 consequences) and is not measured here.
 
 Parameters are adaptive per model:
 
@@ -71,6 +69,7 @@ MODELS: list[tuple[str, str]] = [
     ("sample_cylinder", "sample_cylinder.step"),
     ("box_with_holes", "box_with_holes.step"),
     ("l_bracket", "l_bracket.step"),
+    ("nurbs_box", "nurbs_box.step"),
 ]
 
 RESOLUTION = 64
