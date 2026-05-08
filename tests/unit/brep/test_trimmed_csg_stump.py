@@ -249,3 +249,63 @@ class TestTrimmedNurbsBoxMatchesUntrimmed:
 
         g = jax.grad(loss)(trimmed)
         assert jnp.all(jnp.isfinite(g.primitives[0].control_points))
+
+
+class TestBitEquivalenceProperty:
+    """Property test pinning ADR-0019 + ADR-0020's central invariant.
+
+    For every fixture and any query in the bbox-padded domain, the
+    ``TrimmedCSGStump`` SDF must equal the ``DifferentiableCSGStump``
+    SDF to floating-point noise.  The earlier per-fixture asserts in
+    ``test_volume_matches_untrimmed`` only check the integral; this
+    test pins the per-query identity, which is the actual invariant
+    ADR-0020 declares.  Any future BSpline composition strategy that
+    breaks this invariant will surface here regardless of whether
+    the change happens to land near the expected volume by chance.
+    """
+
+    @staticmethod
+    def _sample_queries(seed: int, lo, hi, n: int = 64):
+        import numpy as _np
+
+        rng = _np.random.default_rng(seed)
+        lo_np = _np.asarray(lo)
+        hi_np = _np.asarray(hi)
+        pts = rng.uniform(lo_np, hi_np, size=(n, 3)).astype(_np.float32)
+        return jnp.asarray(pts)
+
+    def test_sample_box_bit_equivalence(self, sample_box_stump_and_trimmed) -> None:
+        shape, stump, trimmed = sample_box_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
+        lo, hi = _shape_bounds(shape)
+        queries = self._sample_queries(seed=0, lo=lo, hi=hi)
+        d_direct = diff.sdf(queries)
+        d_trim = trimmed.sdf(queries)
+        # Same DNF + same primitive SDFs => bit-identical to fp32 noise.
+        assert jnp.allclose(d_direct, d_trim, atol=1e-5, rtol=1e-5)
+
+    def test_box_with_holes_bit_equivalence(
+        self, box_with_holes_stump_and_trimmed
+    ) -> None:
+        shape, stump, trimmed = box_with_holes_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
+        lo, hi = _shape_bounds(shape)
+        queries = self._sample_queries(seed=1, lo=lo, hi=hi)
+        d_direct = diff.sdf(queries)
+        d_trim = trimmed.sdf(queries)
+        assert jnp.allclose(d_direct, d_trim, atol=1e-5, rtol=1e-5)
+
+    def test_nurbs_box_bit_equivalence(self, nurbs_box_stump_and_trimmed) -> None:
+        # BSpline path runs the unrolled Newton in both composites; the
+        # invariant pins that the BSpline slot dispatch in
+        # ``TrimmedCSGStump`` does not deviate from the primitive's
+        # own ``.sdf``.
+        shape, stump, trimmed = nurbs_box_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
+        lo, hi = _shape_bounds(shape)
+        # Smaller sample count keeps the test under a minute on BSpline
+        # Newton projection.
+        queries = self._sample_queries(seed=2, lo=lo, hi=hi, n=16)
+        d_direct = diff.sdf(queries)
+        d_trim = trimmed.sdf(queries)
+        assert jnp.allclose(d_direct, d_trim, atol=1e-5, rtol=1e-5)

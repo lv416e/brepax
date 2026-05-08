@@ -40,8 +40,18 @@ CSG-Stump direct path's behaviour.  The motivation for applying
 Marschner inside the CSG-Stump DNF therefore confused two failure
 modes from different paths.
 
-The mechanism behind the Linkrods volume collapse is the same one
-ADR-0019 documented for analytical primitives, applied to BSpline:
+The Linkrods collapse is treated here as a **counterexample** to the
+hypothesis that the Marschner blend is a valid per-primitive ingredient
+inside the CSG-Stump DNF.  A counterexample of this magnitude (-99% on
+volume) is by itself sufficient grounds to reject the hypothesis and
+roll the BSpline path back to the raw signed distance, even without a
+fully isolated causal mechanism.
+
+The following mechanism is **consistent** with the observation and
+with the analytical analysis recorded in ADR-0019 — but it has not
+been confirmed by a slot-level isolation experiment (per-query
+chi_T / d_partial / d_T traces with controlled inputs), so it is
+stated as a working hypothesis rather than a proven cause:
 
 - The CSG-Stump's DNF treats every primitive's signed distance as a
   half-space ingredient.  A multi-face closed solid is the
@@ -57,23 +67,29 @@ ADR-0019 documented for analytical primitives, applied to BSpline:
 - For a query at the centre of a multi-face solid, the foot of
   perpendicular onto BSpline face k may legitimately land outside
   face k's trim polygon, especially when the solid contains slender
-  features or many faces sharing the same parametric surface.  The
-  Marschner blend then returns `d_partial >= 0` for face k, which
-  the DNF interprets as "outside the trimmed primitive k", and the
-  intersection-cell row evaluates the query as outside the solid
-  even though the analytical half-space would have placed it inside.
-- BSpline patches do not change this picture.  Their untrimmed
-  surface is finite in parameter, but the underlying mathematical
-  surface still extends across the patch (and beyond, on its
-  parametric extension); the CSG-Stump primitive's role is to expose
-  the half-space sign of that surface, and the patch's parametric
-  finiteness is irrelevant to that role.
+  features or many faces sharing the same parametric surface.  Under
+  this hypothesis the Marschner blend would return `d_partial >= 0`
+  for face k, which the DNF would interpret as "outside the trimmed
+  primitive k", flipping the intersection-cell row to "outside the
+  solid" for queries the analytical half-space would have placed
+  inside.
+- BSpline patches do not obviously change this picture.  Their
+  untrimmed surface is finite in parameter, but the underlying
+  mathematical surface still extends across the patch (and beyond,
+  on its parametric extension); the CSG-Stump primitive's role is to
+  expose the half-space sign of that surface.
 
-The plane non-asymmetry recorded in the original `TrimmedCSGStump`
-module docstring ("the untrimmed half-space is *already* the correct
-CSG ingredient") and extended in ADR-0019 to all analytical
-primitives applies uniformly: every primitive type, including BSpline,
-should expose the untrimmed signed distance inside the CSG-Stump DNF.
+Confirming this mechanism with a per-slot trace is left as future
+work for any caller who wishes to revisit the Marschner-as-DNF-
+ingredient direction; the present ADR's decision does not depend on
+that confirmation.
+
+Independent of the mechanism, the plane non-asymmetry recorded in the
+original `TrimmedCSGStump` module docstring ("the untrimmed half-space
+is *already* the correct CSG ingredient") and extended in ADR-0019 to
+all analytical primitives is treated here as the working rule for
+BSpline as well: every primitive type, including BSpline, exposes the
+untrimmed signed distance inside the CSG-Stump DNF.
 
 ## Decision
 
@@ -116,11 +132,25 @@ consume them without re-extracting.
   pin this invariant on `sample_box`, `box_with_holes`, and
   `nurbs_box`; `test_trim_baseline` extends it to the full benchmark
   set.
-- The Linkrods CSG-Stump direct-path phantom (+31.6%) remains
-  unaddressed under this approach.  Reducing that phantom is
-  scope for a future ADR that explores GWN-based composition or
-  per-face boundary integration on the trim polylines, and is
-  tracked separately from the trim-aware composition story.
+- The Linkrods CSG-Stump direct-path phantom remains unaddressed
+  under this approach.  Memory recorded a +31.6% figure from the
+  v0.4.0 era (`project_bspline_halfspace.md`); a session-time
+  re-measurement on the current codebase reproduced ~+85% at res=8
+  (the only resolution that fits in memory for this 37-primitive
+  fixture).  Different resolutions and bbox-padding choices give
+  materially different numbers, so any future ADR proposing to
+  attack this phantom should fix the measurement protocol before
+  proposing a strategy.  GWN-based composition and per-face
+  boundary integration on the trim polylines are two of the
+  candidates; both are out of scope for this ADR.
+- The "trim-aware metrics" milestone direction this PR was
+  originally framed under is preserved as an open question.  This
+  ADR closes only the Marschner-as-DNF-ingredient hypothesis.  The
+  cheapest first step recorded in the milestone task list — using
+  the existing `BSplineSurface.trim_polygon` field (populated by
+  `_convert_bspline_face` since v0.4.0) inside the per-face metric
+  computations — has not been attempted yet and remains the
+  recommended next direction.
 - ADR-0018's standalone-face Marschner formula and its
   per-primitive verifications (PR #67 for plane against
   `BRepExtrema_DistShapeShape`) remain in effect.  ADR-0018 is not
