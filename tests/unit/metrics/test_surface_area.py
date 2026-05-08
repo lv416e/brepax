@@ -250,27 +250,62 @@ class TestSurfaceAreaPerFace:
 
         shape = read_step(str(FIXTURES / "sample_box.step"))
         triangles, params_list = triangulate_shape(shape)
-        n_tris_per_face = jnp.asarray([p["n_triangles"] for p in params_list])
-        offsets = jnp.concatenate(
-            [
-                jnp.zeros((1,), dtype=jnp.int32),
-                jnp.cumsum(n_tris_per_face).astype(jnp.int32),
-            ]
-        )
+        # ``params_list`` carries Python ints; keep them on the host so
+        # the slice bounds do not force a device-to-host sync per face.
+        n_tris_py: list[int] = [int(p["n_triangles"]) for p in params_list]
+        offsets_py: list[int] = [0]
+        for n in n_tris_py:
+            offsets_py.append(offsets_py[-1] + n)
 
         def total_per_face_sum(t: jnp.ndarray) -> jnp.ndarray:
             from brepax.brep.triangulate import mesh_surface_area as _msa
 
             return jnp.stack(
                 [
-                    _msa(
-                        jax.lax.dynamic_slice_in_dim(
-                            t, int(offsets[i]), int(n_tris_per_face[i]), axis=0
-                        )
-                    )
+                    _msa(t[offsets_py[i] : offsets_py[i] + n_tris_py[i]])
                     for i in range(len(params_list))
                 ]
             ).sum()
 
         grad = jax.grad(total_per_face_sum)(triangles)
         assert jnp.all(jnp.isfinite(grad))
+
+    @pytest.mark.parametrize(
+        "fixture",
+        [
+            "sample_box",
+            "sample_cylinder",
+            "sample_sphere",
+            "sample_cone",
+            "sample_torus",
+            "box_with_holes",
+            "box_with_pocket",
+            "box_with_slot",
+            "l_bracket",
+            "nurbs_box",
+        ],
+    )
+    def test_per_face_sum_invariant(self, fixture: str) -> None:
+        """Property: across the entire fixture set, the per-face area
+        sum equals ``mesh_surface_area`` over the flattened triangle
+        array.  Sliced reductions of a polynomial sum must equal the
+        unsliced reduction up to float32 accumulation noise; if a
+        slicing change accidentally drops or duplicates a face's
+        triangles, this test catches it on every fixture without
+        relying on a single curated case.
+
+        Both ``surface_area_per_face`` and ``triangulate_shape`` use the
+        same default mesh deflection so the two paths see identical
+        triangle arrays (verified by the strict 1e-3 tolerance below).
+        """
+        from brepax.brep.triangulate import mesh_surface_area, triangulate_shape
+
+        shape = read_step(str(FIXTURES / f"{fixture}.step"))
+        per_face, _ = surface_area_per_face(shape)
+        triangles, _ = triangulate_shape(shape)
+        total = float(mesh_surface_area(triangles))
+        per_face_sum = float(jnp.sum(per_face))
+        if total > 1e-9:
+            assert abs(per_face_sum - total) / total < 1e-3, (
+                f"{fixture}: per_face_sum={per_face_sum:.4f} vs total={total:.4f}"
+            )

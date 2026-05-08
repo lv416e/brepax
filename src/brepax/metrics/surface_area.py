@@ -30,7 +30,11 @@ from jaxtyping import Array, Float
 
 from brepax._occt.types import TopoDS_Shape
 from brepax.brep.csg_eval import make_grid_3d
-from brepax.brep.triangulate import mesh_surface_area, triangulate_shape
+from brepax.brep.triangulate import (
+    _DEFAULT_DEFLECTION,
+    mesh_surface_area,
+    triangulate_shape,
+)
 
 
 def integrate_sdf_surface_area(
@@ -119,7 +123,7 @@ def surface_area(
 def surface_area_per_face(
     shape: TopoDS_Shape,
     *,
-    deflection: float = 0.5,
+    deflection: float = _DEFAULT_DEFLECTION,
 ) -> tuple[Float[Array, " n_faces"], list[dict[str, object]]]:
     """Compute mesh-based surface area for each face of a shape.
 
@@ -162,22 +166,24 @@ def surface_area_per_face(
         return jnp.zeros((0,)), params_list
 
     # Cumulative triangle offsets per face (no shared edges across face
-    # slices in the global ``triangles`` array).
-    n_tris = jnp.asarray([p["n_triangles"] for p in params_list])
-    offsets = jnp.concatenate(
-        [jnp.zeros((1,), dtype=jnp.int32), jnp.cumsum(n_tris).astype(jnp.int32)]
-    )
+    # slices in the global ``triangles`` array).  ``n_triangles`` is a
+    # Python int on each ``params_list`` entry, so the running offset
+    # stays on the host — using JAX arrays here would force a
+    # device-to-host sync per slice and ``dynamic_slice_in_dim``
+    # requires the slice length to be a static Python int anyway.
+    n_tris_py: list[int] = [int(p["n_triangles"]) for p in params_list]
+    offsets_py: list[int] = [0]
+    for n in n_tris_py:
+        offsets_py.append(offsets_py[-1] + n)
 
     # Face slices may have different triangle counts, so the per-face
-    # reduction is a Python loop over jax.lax.dynamic_slice rather than
-    # a vmap.  The reduction inside each slice is jit-friendly.
+    # reduction is a Python loop over Python slicing rather than a
+    # vmap.  Slicing a JAX array with Python ints is differentiable
+    # without going through ``dynamic_slice``; the reduction inside
+    # each slice is jit-friendly.
     areas = jnp.stack(
         [
-            mesh_surface_area(
-                jax.lax.dynamic_slice_in_dim(
-                    triangles, int(offsets[i]), int(n_tris[i]), axis=0
-                )
-            )
+            mesh_surface_area(triangles[offsets_py[i] : offsets_py[i] + n_tris_py[i]])
             for i in range(n_faces)
         ]
     )
