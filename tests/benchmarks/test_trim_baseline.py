@@ -1,27 +1,32 @@
 """Volume trim baseline against OCCT reference.
 
-Measures the volume on each analytical fixture via two CSG-Stump SDF
-paths and compares against OCCT's analytic reference:
+Measures the volume on each fixture via two CSG-Stump SDF paths and
+compares against OCCT's analytic reference:
 
 - ``sdf_direct``: untrimmed CSG-Stump composite via
   :class:`DifferentiableCSGStump`. Each primitive contributes its raw
-  half-space SDF.
+  signed distance to the DNF.
 - ``sdf_trim``: trim-aware composite via :class:`TrimmedCSGStump`.
-  Per ADR-0019, every analytical primitive (plane, cylinder, sphere,
-  cone, torus) also contributes its raw half-space SDF; the
-  Marschner blend from ADR-0018 is reserved for the standalone-face
-  distance-query use case and for the future BSpline-patch path
-  inside the composition.
+  Per ADR-0019, analytical primitives (plane, cylinder, sphere, cone,
+  torus) contribute the same raw half-space SDF as the direct path;
+  BSpline primitives route through the Marschner trim-aware blend
+  (ADR-0018) so phantom material outside the patch boundary is
+  classified as outside the primitive.
 
-On analytical-only fixtures the two columns must agree to within
-floating-point noise. The purpose of this benchmark is to lock that
-invariant in: any drift between ``sdf_direct`` and ``sdf_trim``
-indicates the analytical dispatch has regressed from raw-half-space
-semantics. Phantom reduction over OCCT ground truth, the original
-motivation for ADR-0018, surfaces only when BSpline primitives are
-wired into the trim-aware path; that is a separate measurement on
-fixtures that contain BSpline faces (Linkrods being the worst
-measured case at +219%, ADR-0016).
+The benchmark covers two regimes:
+
+- **Analytical-only fixtures** (``sample_box``, ``sample_cylinder``,
+  ``box_with_holes``, ``l_bracket``): the two columns must agree to
+  within floating-point noise. Drift here indicates the analytical
+  dispatch has regressed from raw-half-space semantics.
+- **BSpline-bearing fixtures** (``nurbs_box``): the trim-aware
+  composite routes through the Marschner blend. ``nurbs_box`` is a
+  rectangular block whose six BSpline patches coincide with the
+  full knot domain; the trim curves match the patch boundaries, so
+  the headline phantom reduction is small here. The fixture's role
+  is end-to-end wiring sanity at full benchmark resolution; bigger
+  phantom-reduction fixtures (Linkrods) are tracked separately and
+  added once their compile/runtime cost is bounded.
 
 Parameters are adaptive per model:
 
@@ -71,6 +76,7 @@ MODELS: list[tuple[str, str]] = [
     ("sample_cylinder", "sample_cylinder.step"),
     ("box_with_holes", "box_with_holes.step"),
     ("l_bracket", "l_bracket.step"),
+    ("nurbs_box", "nurbs_box.step"),
 ]
 
 RESOLUTION = 64

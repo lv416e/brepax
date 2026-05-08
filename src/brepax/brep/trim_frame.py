@@ -22,8 +22,9 @@ extract once, then JIT a grid/batch evaluation of the composition.
 
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Array, Float
@@ -33,6 +34,7 @@ from brepax._occt.backend import (
     BRepAdaptor_Surface,
     BRepTools,
     BRepTools_WireExplorer,
+    GeomAbs_BSplineSurface,
     GeomAbs_Cone,
     GeomAbs_Cylinder,
     GeomAbs_Plane,
@@ -42,6 +44,11 @@ from brepax._occt.backend import (
 )
 from brepax._occt.types import TopoDS_Face
 from brepax.brep.trim_sdf import trim_aware_sdf
+from brepax.nurbs.evaluate import evaluate_surface
+from brepax.nurbs.projection import closest_point_and_foot
+
+if TYPE_CHECKING:
+    from brepax.primitives.bspline_surface import BSplineSurface
 
 _SAMPLES_PER_EDGE = 8
 
@@ -279,6 +286,41 @@ class CylinderTrimFrame(NamedTuple):
     y_dir: Float[Array, 3]
     radius: Float[Array, ""]
     sign_flip: Float[Array, ""]
+    polygon_uv: Float[Array, "n 2"]
+    polyline_3d: Float[Array, "n 3"]
+    mask: Float[Array, ...]
+
+
+class BSplineTrimFrame(NamedTuple):
+    """Marschner-composition inputs for a BSpline face.
+
+    BSpline patches are finite in their parameter domain, so the
+    untrimmed signed distance is the source of phantom material
+    outside the trim region (ADR-0016, Linkrods +219%).  The Marschner
+    blend bypasses the half-space concept by composing with
+    ``d_partial``, recovering a signed quantity that classifies queries
+    outside the patch as outside the primitive.
+
+    Unlike the analytical frames, this frame does not duplicate the
+    primitive's surface parameters (control points, knots, weights) —
+    those live on the :class:`BSplineSurface` primitive and are passed
+    alongside the frame to :func:`bspline_face_sdf_from_frame`.  The
+    frame stores only the per-face data that the analytical pattern
+    derives from the geometric parameters: the trim polygon in UV, its
+    3D embedding, and the validity mask.
+
+    ``polyline_3d[i] == evaluate_surface(polygon_uv[i])`` holds for
+    every valid slot ``i`` (``mask[i] == 1.0``); the analytical
+    frame's "polyline_3d follows from origin + frame_u/v" identity is
+    replaced by surface evaluation here.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_bspline_trim_frame
+        >>> # tf = extract_bspline_trim_frame(bspline_face)
+        >>> # assert tf.polygon_uv.shape == (64, 2)
+        >>> # assert tf.polyline_3d.shape == (64, 3)
+    """
+
     polygon_uv: Float[Array, "n 2"]
     polyline_3d: Float[Array, "n 3"]
     mask: Float[Array, ...]
@@ -1258,16 +1300,261 @@ def cone_face_sdf(
     return cone_face_sdf_from_frame(frame, query, sharpness=sharpness)
 
 
+def extract_bspline_trim_frame(
+    face: TopoDS_Face,
+    max_vertices: int = 64,
+) -> BSplineTrimFrame | None:
+    """Build Marschner-composition inputs for a BSpline face.
+
+    Samples the face's outer wire in 2D parameter space, then evaluates
+    the underlying B-spline surface at each polygon vertex to obtain
+    the matching 3D polyline.  The surface parameters themselves
+    (control points, knots, weights) are not stored on the frame
+    because they already live on the :class:`BSplineSurface`
+    primitive; the composition wrapper takes both the frame and the
+    primitive.
+
+    Args:
+        face: OCCT face whose underlying surface must be
+            ``GeomAbs_BSplineSurface``; any other surface type returns
+            ``None``.
+        max_vertices: Fixed polygon capacity after padding.  Raises
+            when the actual sample count exceeds this capacity.
+
+    Returns:
+        :class:`BSplineTrimFrame`, or ``None`` when the face is not a
+        BSpline or has no outer wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import extract_bspline_trim_frame
+        >>> # tf = extract_bspline_trim_frame(bspline_face)
+        >>> # assert tf is not None
+        >>> # assert tf.polygon_uv.shape == (64, 2)
+        >>> # assert tf.polyline_3d.shape == (64, 3)
+    """
+    adaptor = BRepAdaptor_Surface(face)
+    if adaptor.GetType() != GeomAbs_BSplineSurface:
+        return None
+
+    sampled = _sample_outer_wire_uv(face, max_vertices)
+    if sampled is None:
+        return None
+    polygon_uv, mask = sampled
+
+    # Evaluate the underlying B-spline at each polygon vertex.  Done
+    # once at extraction time so the per-query composition does not
+    # pay for re-evaluation of the trim polyline.
+    bspl = adaptor.BSpline()
+    is_rational = bspl.IsURational() or bspl.IsVRational()
+    n_u = bspl.NbUPoles()
+    n_v = bspl.NbVPoles()
+    deg_u = bspl.UDegree()
+    deg_v = bspl.VDegree()
+
+    poles = np.zeros((n_u, n_v, 3))
+    for i in range(1, n_u + 1):
+        for j in range(1, n_v + 1):
+            pt = bspl.Pole(i, j)
+            poles[i - 1, j - 1] = [pt.X(), pt.Y(), pt.Z()]
+
+    from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
+
+    uk = TColStd_Array1OfReal(1, bspl.NbUKnots())
+    um = TColStd_Array1OfInteger(1, bspl.NbUKnots())
+    bspl.UKnots(uk)
+    bspl.UMultiplicities(um)
+    u_knots_unique = [uk.Value(i) for i in range(1, bspl.NbUKnots() + 1)]
+    u_mults = [um.Value(i) for i in range(1, bspl.NbUKnots() + 1)]
+    knots_u_np = np.repeat(u_knots_unique, u_mults)
+
+    vk = TColStd_Array1OfReal(1, bspl.NbVKnots())
+    vm = TColStd_Array1OfInteger(1, bspl.NbVKnots())
+    bspl.VKnots(vk)
+    bspl.VMultiplicities(vm)
+    v_knots_unique = [vk.Value(i) for i in range(1, bspl.NbVKnots() + 1)]
+    v_mults = [vm.Value(i) for i in range(1, bspl.NbVKnots() + 1)]
+    knots_v_np = np.repeat(v_knots_unique, v_mults)
+
+    weights_np = None
+    if is_rational:
+        weights_np = np.zeros((n_u, n_v))
+        for i in range(1, n_u + 1):
+            for j in range(1, n_v + 1):
+                weights_np[i - 1, j - 1] = bspl.Weight(i, j)
+
+    cp = jnp.asarray(poles)
+    knots_u = jnp.asarray(knots_u_np)
+    knots_v = jnp.asarray(knots_v_np)
+    weights = jnp.asarray(weights_np) if weights_np is not None else None
+
+    def _eval(uv: jnp.ndarray) -> jnp.ndarray:
+        return evaluate_surface(
+            cp, knots_u, knots_v, deg_u, deg_v, uv[0], uv[1], weights
+        )
+
+    polyline_3d = jax.vmap(_eval)(polygon_uv)
+    # Padded slots have polygon_uv == 0 and could land anywhere on the
+    # surface; mask them to zero so the polyline distance reduction
+    # ignores them via the same mask channel.
+    polyline_3d = polyline_3d * mask[:, None]
+
+    return BSplineTrimFrame(
+        polygon_uv=polygon_uv,
+        polyline_3d=polyline_3d,
+        mask=mask,
+    )
+
+
+def bspline_face_sdf_from_frame(
+    frame: BSplineTrimFrame,
+    primitive: BSplineSurface,
+    query: Float[Array, 3],
+    sharpness: float = 200.0,
+) -> Float[Array, ""]:
+    """Trim-aware signed distance to a BSpline face.
+
+    Pure JAX, jittable.  Inlines the projection-and-sign portion of
+    ``bspline_sdf`` so the foot-of-perpendicular UV is reused for the
+    trim indicator without paying for a second Newton.  Sign uses the
+    same coarse-grid normal source as the primitive's untrimmed SDF
+    (set up by :func:`brepax.brep.convert._convert_bspline_face`),
+    keeping the CSG-Stump's PMC sign vector consistent before and
+    after the Marschner blend.
+
+    The projection is performed on the **untrimmed** knot domain
+    (``param_u_range=None``, ``param_v_range=None``) per ADR-0018
+    sub-decision 2: clamping to the trim sub-range collapses the foot
+    onto the trim boundary for every outside query and defeats the
+    trim indicator.
+
+    Args:
+        frame: Extracted BSpline-face data from
+            :func:`extract_bspline_trim_frame`.
+        primitive: The :class:`BSplineSurface` primitive whose
+            ``control_points`` / ``knots_*`` / ``weights`` /
+            ``coarse_*`` fields are read.
+        query: 3D query point, shape ``(3,)``.
+        sharpness: Trim-indicator sigmoid sharpness; forwarded to
+            ``trim_aware_sdf``.
+
+    Returns:
+        Signed scalar distance.  Negative strictly inside the trimmed
+        face's half-space (per the primitive's coarse-normal sign
+        convention); positive outside, including the phantom region
+        where the foot UV falls outside the trim polygon.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import (
+        ...     bspline_face_sdf_from_frame,
+        ...     extract_bspline_trim_frame,
+        ... )
+        >>> # tf = extract_bspline_trim_frame(bspline_face)
+        >>> # primitive = BSplineSurface(...)
+        >>> # d = bspline_face_sdf_from_frame(tf, primitive, jnp.array([0., 0., 1.]))
+    """
+    foot, u_opt, v_opt = closest_point_and_foot(
+        query,
+        primitive.control_points,
+        primitive.knots_u,
+        primitive.knots_v,
+        primitive.degree_u,
+        primitive.degree_v,
+        weights=primitive.weights,
+        # Untrimmed knot domain so the foot can land anywhere on the
+        # mathematical surface; chi_T then decides in/out trim.
+        param_u_range=None,
+        param_v_range=None,
+    )
+    diff = query - foot
+    # safe-square-then-sqrt: keep the VJP of |diff| finite when the
+    # query coincides with its foot (zero-norm).  Pattern shared with
+    # the analytical wrappers.
+    dist_sq = jnp.sum(diff**2)
+    is_off = dist_sq > 1e-24
+    safe_sq = jnp.where(is_off, dist_sq, 1.0)
+    safe_norm = jnp.sqrt(safe_sq)
+    dist = jnp.where(is_off, safe_norm, 0.0)
+
+    # Sign from the primitive's coarse-grid normals when available
+    # (orientation-corrected at construction).  The fallback uses the
+    # local Newton normal scaled by sign_flip.
+    if primitive.coarse_positions is not None and primitive.coarse_normals is not None:
+        dists_sq = jnp.sum((query - primitive.coarse_positions) ** 2, axis=-1)
+        best = jax.lax.stop_gradient(jnp.argmin(dists_sq))
+        nearest_nrm = primitive.coarse_normals[best]
+        sign = jnp.sign(jnp.dot(query - primitive.coarse_positions[best], nearest_nrm))
+    else:
+        from brepax.nurbs.evaluate import evaluate_surface_derivs
+
+        _, du, dv = evaluate_surface_derivs(
+            primitive.control_points,
+            primitive.knots_u,
+            primitive.knots_v,
+            primitive.degree_u,
+            primitive.degree_v,
+            u_opt,
+            v_opt,
+            primitive.weights,
+        )
+        normal = jnp.cross(du, dv)
+        normal = normal / (jnp.linalg.norm(normal) + 1e-10)
+        sign = jnp.sign(jnp.dot(diff, normal)) * primitive.sign_flip
+
+    d_s = sign * dist
+    foot_uv = jnp.stack([u_opt, v_opt])
+
+    return trim_aware_sdf(
+        query,
+        d_s,
+        foot_uv,
+        frame.polygon_uv,
+        frame.mask,
+        frame.polyline_3d,
+        frame.mask,
+        sharpness=sharpness,
+    )
+
+
+def bspline_face_sdf(
+    face: TopoDS_Face,
+    primitive: BSplineSurface,
+    query: Float[Array, 3],
+    max_vertices: int = 64,
+    sharpness: float = 200.0,
+) -> Float[Array, ""] | None:
+    """Convenience wrapper: extract the frame and compose in one call.
+
+    Intended for one-off evaluations.  For grids or batches, extract
+    the frame once via :func:`extract_bspline_trim_frame` and JIT the
+    composition over queries via :func:`bspline_face_sdf_from_frame`.
+
+    Returns ``None`` when the face is not a BSpline or has no outer
+    wire.
+
+    Examples:
+        >>> from brepax.brep.trim_frame import bspline_face_sdf
+        >>> # d = bspline_face_sdf(face, primitive, jnp.array([0., 0., 1.]))
+    """
+    frame = extract_bspline_trim_frame(face, max_vertices=max_vertices)
+    if frame is None:
+        return None
+    return bspline_face_sdf_from_frame(frame, primitive, query, sharpness=sharpness)
+
+
 __all__ = [
+    "BSplineTrimFrame",
     "ConeTrimFrame",
     "CylinderTrimFrame",
     "PlaneTrimFrame",
     "SphereTrimFrame",
     "TorusTrimFrame",
+    "bspline_face_sdf",
+    "bspline_face_sdf_from_frame",
     "cone_face_sdf",
     "cone_face_sdf_from_frame",
     "cylinder_face_sdf",
     "cylinder_face_sdf_from_frame",
+    "extract_bspline_trim_frame",
     "extract_cone_trim_frame",
     "extract_cylinder_trim_frame",
     "extract_plane_trim_frame",

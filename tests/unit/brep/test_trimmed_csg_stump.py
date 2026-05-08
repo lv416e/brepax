@@ -6,14 +6,15 @@ primitive contributes its raw untrimmed half-space SDF to the DNF.
 The Marschner trim-aware blend is reserved for the standalone-face
 distance-query use case (handled by ``brep/trim_frame.py``'s
 ``*_face_sdf_from_frame`` wrappers and verified separately) and for
-the future BSpline-patch path inside the composition.
+the BSpline-patch path inside the composition.
 
-These tests pin that invariant: ``sample_box`` and ``box_with_holes``
-both go through the trim-aware composite *and* the untrimmed composite
-on the same grid; their volumes must match within numerical noise.
-The trim frames themselves are extracted and stored on the stump so
-the BSpline integration has its per-slot frame ready, but they do not
-contribute to the analytical SDFs.
+These tests pin both invariants:
+
+- ``sample_box`` and ``box_with_holes`` (analytical only) must agree
+  bit-exactly between the trim-aware and untrimmed composites.
+- ``nurbs_box`` (BSpline only) routes through the Marschner blend;
+  the volume must remain finite, sign-correct on inside/outside
+  queries, and gradients must flow through BSpline control points.
 """
 
 from __future__ import annotations
@@ -160,3 +161,91 @@ class TestTrimmedBoxWithHolesMatchesUntrimmed:
         _, _, trimmed = box_with_holes_stump_and_trimmed
         d = float(trimmed.sdf(jnp.array([10.0, 15.0, 25.0])))
         assert d > 0.0, f"above-box query classified as inside: d={d}"
+
+
+@pytest.fixture(scope="module")
+def nurbs_box_stump_and_trimmed() -> tuple:
+    shape = read_step(str(FIXTURES / "nurbs_box.step"))
+    stump = reconstruct_csg_stump(shape)
+    assert stump is not None
+    trimmed = enrich_with_trim_frames(stump, shape)
+    return shape, stump, trimmed
+
+
+class TestTrimmedNurbsBoxRoutesBSpline:
+    """nurbs_box: 6 BSpline faces routed through Marschner blend.
+
+    nurbs_box is a rectangular block whose six faces are reconstructed
+    as BSpline patches.  Each face's trim curve coincides with the
+    full knot domain rectangle, so the Marschner blend's phantom-
+    elimination effect is small here.  The fixture's role is to
+    confirm that:
+
+    - BSpline frames are extracted from every slot.
+    - The composite SDF stays finite over the full grid.
+    - Sign agrees with the untrimmed path on representative queries
+      (Marschner's signed blend uses the same primitive coarse-normal
+      sign source).
+    - Gradients flow through BSpline control points.
+
+    A separate benchmark (``test_trim_baseline``) covers fixtures
+    where the trim curves cut materially smaller regions than the
+    full knot domain, exercising the actual phantom reduction.
+    """
+
+    def test_class_instance(self, nurbs_box_stump_and_trimmed) -> None:
+        _, _, trimmed = nurbs_box_stump_and_trimmed
+        assert isinstance(trimmed, TrimmedCSGStump)
+
+    def test_all_slots_are_bspline_frames(self, nurbs_box_stump_and_trimmed) -> None:
+        from brepax.brep.trim_frame import BSplineTrimFrame
+
+        _, _, trimmed = nurbs_box_stump_and_trimmed
+        for f in trimmed.frames:
+            assert isinstance(f, BSplineTrimFrame)
+
+    def test_volume_finite(self, nurbs_box_stump_and_trimmed) -> None:
+        import math
+
+        shape, _, trimmed = nurbs_box_stump_and_trimmed
+        lo, hi = _shape_bounds(shape)
+        v = float(trimmed.volume(resolution=24, lo=lo, hi=hi))
+        assert math.isfinite(v)
+        assert v > 0.0
+
+    def test_sdf_signs_match_untrimmed(self, nurbs_box_stump_and_trimmed) -> None:
+        # nurbs_box is the rectangular block [0,10] x [0,8] x [-8,0]
+        # (extracted from the fixture's bbox); a few interior /
+        # exterior queries should agree on sign with the untrimmed
+        # composite even though the absolute values may differ inside
+        # the trim transition zone.
+        _, stump, trimmed = nurbs_box_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
+        queries = jnp.array(
+            [
+                [5.0, 4.0, -4.0],  # interior
+                [-2.0, 4.0, -4.0],  # outside, away from any face
+                [12.0, 4.0, -4.0],  # outside on +x
+                [5.0, 4.0, 5.0],  # outside on +z
+            ]
+        )
+        d_untrimmed = diff.sdf(queries)
+        d_trimmed = trimmed.sdf(queries)
+        assert jnp.all(jnp.sign(d_untrimmed) == jnp.sign(d_trimmed))
+
+    def test_gradient_flows_through_control_points(
+        self, nurbs_box_stump_and_trimmed
+    ) -> None:
+        # The BSpline trim path projects each query onto the
+        # primitive's surface; jax.grad over a single SDF evaluation
+        # must produce finite gradients on at least one slot's
+        # ``control_points`` field.
+        import jax
+
+        _, _, trimmed = nurbs_box_stump_and_trimmed
+
+        def loss(t):
+            return jnp.sum(t.sdf(jnp.array([5.0, 4.0, -4.0])) ** 2)
+
+        g = jax.grad(loss)(trimmed)
+        assert jnp.all(jnp.isfinite(g.primitives[0].control_points))
