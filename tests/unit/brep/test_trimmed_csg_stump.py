@@ -1,15 +1,19 @@
 """TrimmedCSGStump end-to-end on real CAD models.
 
-sample_box: analytic only (6 planes) and NO phantom — trim-aware
-composition must not change the result.  This locks in that the
-dispatch machinery and the DNF composition carry the same signs as
-the untrimmed stump.
+Per ADR-0019, ``TrimmedCSGStump`` on analytical-only models is
+bit-equivalent to ``DifferentiableCSGStump``: every analytical
+primitive contributes its raw untrimmed half-space SDF to the DNF.
+The Marschner trim-aware blend is reserved for the standalone-face
+distance-query use case (handled by ``brep/trim_frame.py``'s
+``*_face_sdf_from_frame`` wrappers and verified separately) and for
+the future BSpline-patch path inside the composition.
 
-box_with_holes: 6 planes + 2 cylindrical holes; the cylinder faces
-produce phantom material axially outside the box under the untrimmed
-primitive.  Marschner flips this to outside, and the resulting
-volume should be measurably closer to OCCT than the untrimmed stump's
-volume on the same grid.
+These tests pin that invariant: ``sample_box`` and ``box_with_holes``
+both go through the trim-aware composite *and* the untrimmed composite
+on the same grid; their volumes must match within numerical noise.
+The trim frames themselves are extracted and stored on the stump so
+the BSpline integration has its per-slot frame ready, but they do not
+contribute to the analytical SDFs.
 """
 
 from __future__ import annotations
@@ -58,7 +62,7 @@ def box_with_holes_stump_and_trimmed() -> tuple:
 
 
 class TestTrimmedSampleBoxMatchesUntrimmed:
-    """sample_box has no phantom — trimmed volume must equal untrimmed."""
+    """sample_box: trimmed and untrimmed composites are bit-equivalent."""
 
     def test_class_instance(self, sample_box_stump_and_trimmed) -> None:
         _, _, trimmed = sample_box_stump_and_trimmed
@@ -67,6 +71,10 @@ class TestTrimmedSampleBoxMatchesUntrimmed:
     def test_frames_match_primitive_count(self, sample_box_stump_and_trimmed) -> None:
         _, stump, trimmed = sample_box_stump_and_trimmed
         assert len(trimmed.frames) == len(stump.primitives)
+
+    def test_primitives_match_stump(self, sample_box_stump_and_trimmed) -> None:
+        _, stump, trimmed = sample_box_stump_and_trimmed
+        assert len(trimmed.primitives) == len(stump.primitives)
 
     def test_volume_uses_stored_bounds_when_unspecified(
         self, sample_box_stump_and_trimmed
@@ -77,9 +85,12 @@ class TestTrimmedSampleBoxMatchesUntrimmed:
         v = float(trimmed.volume(resolution=32))
         assert v > 0.0
 
-    def test_gradient_flows_through_frames(self, sample_box_stump_and_trimmed) -> None:
-        # TrimmedCSGStump is an eqx.Module; gradients of sdf w.r.t.
-        # frame parameters (e.g. plane normals) should be finite.
+    def test_gradient_flows_through_primitives(
+        self, sample_box_stump_and_trimmed
+    ) -> None:
+        # Analytical primitives carry the differentiable parameters
+        # (radius, axis, plane normal/offset).  jax.grad of an SDF
+        # objective must produce finite gradients on those fields.
         import jax
 
         _, _, trimmed = sample_box_stump_and_trimmed
@@ -88,14 +99,14 @@ class TestTrimmedSampleBoxMatchesUntrimmed:
             return jnp.sum(t.sdf(jnp.array([5.0, 10.0, 15.0])) ** 2)
 
         g = jax.grad(loss)(trimmed)
-        # Every frame has a differentiable JAX field; confirm at
-        # least one primitive frame's normal received a finite grad.
-        assert jnp.all(jnp.isfinite(g.frames[0].normal))
+        # Plane primitives expose ``normal`` and ``offset`` as JAX
+        # arrays.  Confirm at least one slot received a finite grad.
+        assert jnp.all(jnp.isfinite(g.primitives[0].normal))
 
     def test_sdf_signs_match_untrimmed(self, sample_box_stump_and_trimmed) -> None:
-        # sample_box: inside the box => both SDFs negative; outside
-        # => both positive.  Magnitude may differ slightly because of
-        # the sigmoid transition, but sign must match.
+        # Inside the box => both SDFs negative; outside => both
+        # positive.  Under ADR-0019 they agree exactly; sign equality
+        # is the weakest check that still confirms wiring sanity.
         _, stump, trimmed = sample_box_stump_and_trimmed
         diff = stump_to_differentiable(stump)
         queries = jnp.array(
@@ -110,64 +121,42 @@ class TestTrimmedSampleBoxMatchesUntrimmed:
         d_trimmed = trimmed.sdf(queries)
         assert jnp.all(jnp.sign(d_untrimmed) == jnp.sign(d_trimmed))
 
-    def test_volume_matches_untrimmed_within_sigmoid_slack(
-        self, sample_box_stump_and_trimmed
-    ) -> None:
-        # sample_box is a 10x20x30 box; GT volume 6000.  The trimmed
-        # composite on the same grid should land on the same volume
-        # as the untrimmed stump because planes never generate
-        # phantom (their half-space is the solid's half-space).
+    def test_volume_matches_untrimmed(self, sample_box_stump_and_trimmed) -> None:
+        # Trimmed and untrimmed composites must agree on volume to
+        # within floating-point noise: every analytical primitive
+        # contributes the same raw SDF in both paths (ADR-0019).
         shape, stump, trimmed = sample_box_stump_and_trimmed
         diff = stump_to_differentiable(stump)
         lo, hi = _shape_bounds(shape)
         v_untrimmed = float(diff.volume(resolution=48, lo=lo, hi=hi))
         v_trimmed = float(trimmed.volume(resolution=48, lo=lo, hi=hi))
-        # Both paths use the same grid and sigmoid, so equality up to
-        # a small drift from the trim-indicator transition is
-        # expected.  1 unit ~ 0.02% of 6000.
-        assert abs(v_untrimmed - v_trimmed) < 1.0
+        assert abs(v_untrimmed - v_trimmed) < 1e-3
 
 
-class TestTrimmedBoxWithHolesReducesPhantom:
-    """Cylindrical holes produce phantom under the untrimmed path.
+class TestTrimmedBoxWithHolesMatchesUntrimmed:
+    """box_with_holes: planes plus cylindrical holes, all analytical.
 
-    The untrimmed CSG-Stump composite on ``box_with_holes`` reports a
-    volume that is larger than the true volume because each hole's
-    infinite cylinder extends phantom-filled "inside material" past
-    the box's top and bottom faces.  The trim-aware composite flips
-    those regions to outside, giving a volume closer to OCCT GT.
+    Under ADR-0019 every primitive uses its raw untrimmed half-space
+    SDF, so the trimmed composite agrees bit-exactly with the
+    untrimmed composite on this fixture too.  The fixture is kept in
+    the test set because it exercises a non-trivial DNF with
+    cylinder slots whose face orientation is REVERSED, ensuring no
+    sign or matrix-flip artefacts have crept back in.
     """
 
-    def test_volume_differs_from_untrimmed(
-        self, box_with_holes_stump_and_trimmed
-    ) -> None:
-        # box_with_holes has two hole cylinders.  The trim-aware path
-        # routes those through Marschner while the untrimmed path does
-        # not, so their grid-integrated volumes must differ by more
-        # than the shared plane-based integration noise.  Whether the
-        # trim-aware integration is *closer* to OCCT is a separate
-        # measurement that depends on the interplay of phantom
-        # elimination and polyline / seam discretisation; the
-        # quantitative before/after comparison belongs in the
-        # benchmark (PR D).
+    def test_volume_matches_untrimmed(self, box_with_holes_stump_and_trimmed) -> None:
         shape, stump, trimmed = box_with_holes_stump_and_trimmed
         diff = stump_to_differentiable(stump)
         lo, hi = _shape_bounds(shape)
         v_untrimmed = float(diff.volume(resolution=48, lo=lo, hi=hi))
         v_trimmed = float(trimmed.volume(resolution=48, lo=lo, hi=hi))
-        assert abs(v_untrimmed - v_trimmed) > 1.0, (
-            f"trim-aware path did not activate: v_trimmed={v_trimmed:.2f} "
-            f"matches v_untrimmed={v_untrimmed:.2f}"
-        )
+        assert abs(v_untrimmed - v_trimmed) < 1e-3
 
-    def test_sdf_flips_inside_phantom_region(
-        self, box_with_holes_stump_and_trimmed
-    ) -> None:
-        # box_with_holes has through-holes at (10, 15) and (30, 15)
-        # from z=0 to z=20 (origin z=-1, V in [1, 21]).  A query
-        # directly above the box (z=25) on the hole's axis should be
-        # classified as outside by the trim-aware stump regardless of
-        # what the untrimmed path says.
+    def test_above_box_query_is_outside(self, box_with_holes_stump_and_trimmed) -> None:
+        # box_with_holes is the rectangular block [0,40] x [0,30] x
+        # [0,20].  A query directly above the top face (z=25) must be
+        # classified as outside by the trim-aware composite via the
+        # box's top-plane half-space, irrespective of cylinder slots.
         _, _, trimmed = box_with_holes_stump_and_trimmed
         d = float(trimmed.sdf(jnp.array([10.0, 15.0, 25.0])))
         assert d > 0.0, f"above-box query classified as inside: d={d}"
