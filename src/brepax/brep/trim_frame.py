@@ -47,7 +47,7 @@ from brepax._occt.backend import (
 from brepax._occt.types import TopoDS_Face
 from brepax.brep.trim_sdf import trim_aware_sdf
 from brepax.nurbs.evaluate import evaluate_surface, evaluate_surface_derivs
-from brepax.nurbs.projection import closest_point_and_foot
+from brepax.nurbs.projection import _COARSE_GRID, closest_point_and_foot
 
 if TYPE_CHECKING:
     from brepax.primitives.bspline_surface import BSplineSurface
@@ -1469,8 +1469,6 @@ def bspline_face_sdf_from_frame(
     # precomputed at primitive construction; the (u, v) grid that
     # produced it is reconstructed here from the knot vectors using
     # the same convention as ``_precompute_coarse_grid``.
-    from brepax.nurbs.projection import _COARSE_GRID
-
     if primitive.coarse_positions is not None:
         u_lo_k = primitive.knots_u[primitive.degree_u]
         u_hi_k = primitive.knots_u[-primitive.degree_u - 1]
@@ -1533,8 +1531,20 @@ def bspline_face_sdf_from_frame(
             v_opt,
             primitive.weights,
         )
-        normal = jnp.cross(du, dv)
-        normal = normal / (jnp.linalg.norm(normal) + _EPS_NORM_BSPLINE)
+        normal_raw = jnp.cross(du, dv)
+        # Safe-norm pattern: dividing by ``norm + eps`` keeps the value
+        # finite at degenerate (e.g. C0 ridge / Newton fixed at apex)
+        # configurations but ``jnp.linalg.norm`` itself has an
+        # undefined gradient at zero, so a NaN can leak through the
+        # untaken branch of any downstream ``jnp.where``.  Compute the
+        # squared norm, gate it with ``where``, and only then sqrt; the
+        # un-normalised path returns the zero vector and the sign
+        # vanishes for that query rather than poisoning the VJP.
+        norm_sq = jnp.sum(normal_raw**2)
+        is_off = norm_sq > _EPS_NORM_BSPLINE
+        safe_norm_sq = jnp.where(is_off, norm_sq, 1.0)
+        safe_norm = jnp.sqrt(safe_norm_sq)
+        normal = jnp.where(is_off, normal_raw / safe_norm, jnp.zeros_like(normal_raw))
         sign = jnp.sign(jnp.dot(diff, normal)) * primitive.sign_flip
 
     d_s = sign * dist
