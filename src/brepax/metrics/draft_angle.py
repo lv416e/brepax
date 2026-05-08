@@ -1,14 +1,27 @@
-"""Differentiable draft angle violation via SDF surface integration.
+"""Differentiable draft angle metrics.
 
-Draft angle is the angle between a surface normal and the mold pull
-direction.  Surfaces with draft angle below a manufacturing threshold
-cause ejection problems.  This module computes the surface area that
-violates a minimum draft angle requirement.
+Draft angle = ``arcsin(|unit_normal . mold_direction|)``.  A surface
+parallel to the mold pull direction (vertical wall ejected vertically)
+has zero draft and causes ejection drag; a surface perpendicular to
+the pull direction has 90 degrees of draft and ejects cleanly.
 
-The surface normal is estimated from the SDF gradient via central
-finite differences (avoiding NaN at degenerate SDF points).  The
-violation condition and surface membership both use sigmoid indicators,
-consistent with the volume, surface area, and wall thickness metrics.
+Two paths are exposed:
+
+- The SDF-based volume/surface integration in
+  :func:`integrate_sdf_draft_angle_violation` /
+  :func:`draft_angle_violation` reports the *surface area* that
+  violates a minimum draft angle, integrated over a sigmoid surface
+  delta on a 3D grid.  Suited to global DFM constraint terms in
+  optimisation losses.
+- The face-level mesh path in :func:`min_draft_angle_per_face`
+  reports the worst-case draft angle for each face's tessellation,
+  trim-aware via OCCT BRepMesh.  Suited to face-by-face inspection
+  and to constraint terms expressed per face.
+
+The surface normal in the SDF path is estimated from the SDF gradient
+via central finite differences (avoiding NaN at degenerate SDF
+points).  The face-level path computes per-triangle normals from
+``cross(e1, e2)`` directly.
 """
 
 from __future__ import annotations
@@ -19,7 +32,9 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from brepax._occt.types import TopoDS_Shape
 from brepax.brep.csg_eval import make_grid_3d
+from brepax.brep.triangulate import _DEFAULT_DEFLECTION, triangulate_shape
 
 
 def _grid_normals(
@@ -160,7 +175,112 @@ def draft_angle_violation(
     )
 
 
+_EPS_SQ_TRI_NORMAL = 1e-24
+# arcsin saturates at 1.0; pull just inside the unit interval so the
+# autodiff branch stays finite at exactly perpendicular surfaces.
+_ASIN_CLIP = 1.0 - 1e-7
+
+
+def _per_triangle_draft_angle(
+    triangle: Float[Array, "3 3"],
+    mold_direction: Float[Array, 3],
+) -> Float[Array, ""]:
+    """Draft angle of a single triangle in radians.
+
+    ``draft_angle = arcsin(|unit_normal . mold_direction|)``.  The
+    safe-square-then-sqrt pattern is used because zero-area triangles
+    (a degenerate but legal artefact of OCCT BRepMesh on slivers) have
+    an undefined gradient through ``cross(e1, e2) / |...|``.  Such
+    triangles return zero draft, which is the conservative answer for
+    a "min draft angle" reduction (they cannot be the only triangle
+    on a non-degenerate face, so the min stays meaningful).
+    """
+    e1 = triangle[1] - triangle[0]
+    e2 = triangle[2] - triangle[0]
+    cross = jnp.cross(e1, e2)
+    norm_sq = jnp.sum(cross**2)
+    is_off = norm_sq > _EPS_SQ_TRI_NORMAL
+    safe_normal = jnp.where(
+        is_off,
+        cross / jnp.sqrt(norm_sq + _EPS_SQ_TRI_NORMAL),
+        jnp.zeros_like(cross),
+    )
+    sin_d = jnp.where(is_off, jnp.abs(jnp.sum(safe_normal * mold_direction)), 0.0)
+    sin_d = jnp.clip(sin_d, 0.0, _ASIN_CLIP)
+    return jnp.arcsin(sin_d)
+
+
+def min_draft_angle_per_face(
+    shape: TopoDS_Shape,
+    mold_direction: Float[Array, 3],
+    *,
+    deflection: float = _DEFAULT_DEFLECTION,
+) -> tuple[Float[Array, " n_faces"], list[dict[str, object]]]:
+    """Worst-case draft angle for each face of a shape, in radians.
+
+    Tessellates ``shape`` once via
+    :func:`~brepax.brep.triangulate.triangulate_shape`, computes the
+    draft angle per triangle, and reduces with ``min`` over each
+    face's triangle slice.  The ``min`` is the worst-case draft angle
+    on the face — the angle that determines whether the face is a DFM
+    violation under a given threshold.
+
+    Trim awareness is delegated to OCCT's BRepMesh (the triangulation
+    only covers the trimmed region).  The reduction is differentiable
+    via ``jax.grad`` through the JAX-side vertex re-evaluation in
+    ``triangulate_shape``; ``min`` has the standard subgradient at
+    ties.
+
+    Args:
+        shape: An OCCT topological shape.  Faces are iterated in the
+            same per-Solid order as
+            :func:`~brepax.brep.triangulate.triangulate_shape`.
+        mold_direction: 3D mold pull direction.  Need not be a unit
+            vector; it is normalised internally.
+        deflection: Mesh deflection passed to OCCT BRepMesh.  Default
+            matches ``triangulate_shape``'s own default so the per-face
+            sum invariant of ``surface_area_per_face`` carries over.
+
+    Returns:
+        Tuple ``(angles, params_list)`` where ``angles`` has shape
+        ``(n_faces,)`` with the worst-case (minimum) draft angle in
+        radians for each face in traversal order, and ``params_list``
+        is the list returned by
+        :func:`~brepax.brep.triangulate.triangulate_shape`.
+
+    Examples:
+        >>> import jax.numpy as jnp
+        >>> from brepax.io.step import read_step
+        >>> from brepax.metrics.draft_angle import min_draft_angle_per_face
+        >>> # shape = read_step("part.step")
+        >>> # mold = jnp.array([0.0, 0.0, 1.0])
+        >>> # angles, _ = min_draft_angle_per_face(shape, mold)
+        >>> # # angles[i] is in [0, pi/2]; 0 = wall parallel to ejection,
+        >>> # # pi/2 = surface perpendicular to ejection.
+    """
+    triangles, params_list = triangulate_shape(shape, deflection=deflection)
+    n_faces = len(params_list)
+    if n_faces == 0:
+        return jnp.zeros((0,)), params_list
+
+    n_tris_py: list[int] = [int(p["n_triangles"]) for p in params_list]
+    offsets_py: list[int] = [0]
+    for n in n_tris_py:
+        offsets_py.append(offsets_py[-1] + n)
+
+    mold_dir = mold_direction / (jnp.linalg.norm(mold_direction) + 1e-30)
+    drafts = jax.vmap(lambda tri: _per_triangle_draft_angle(tri, mold_dir))(triangles)
+
+    return jnp.stack(
+        [
+            jnp.min(drafts[offsets_py[i] : offsets_py[i] + n_tris_py[i]])
+            for i in range(n_faces)
+        ]
+    ), params_list
+
+
 __all__ = [
     "draft_angle_violation",
     "integrate_sdf_draft_angle_violation",
+    "min_draft_angle_per_face",
 ]

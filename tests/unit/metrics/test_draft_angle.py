@@ -142,3 +142,133 @@ class TestDraftAngleViolation:
         assert float(violation) < float(total_area), (
             f"violation={float(violation):.2f} should be partial, not total"
         )
+
+
+class TestMinDraftAnglePerFace:
+    """Per-face minimum draft angle against analytical / OCCT geometry.
+
+    The M6.1 milestone gate clause "Trim-aware face-level metrics"
+    requires each face-level metric to be exposed and verified. For
+    draft angle the per-face value is the worst-case (minimum) angle
+    between the face's surface normal and the mold pull direction's
+    perpendicular plane: ``arcsin(|n . mold|)``.
+
+    Trim awareness comes from OCCT BRepMesh; the verification here is
+    geometric (the analytical primitives have known per-face draft
+    angles for axis-aligned mold directions).
+    """
+
+    @staticmethod
+    def _read(name: str):
+        from pathlib import Path
+
+        from brepax.io.step import read_step
+
+        fixtures_dir = Path(__file__).resolve().parents[2] / "fixtures"
+        return read_step(str(fixtures_dir / f"{name}.step"))
+
+    def test_sample_box_axis_aligned(self) -> None:
+        """``sample_box`` faces are axis-aligned planes.  For mold = +Z,
+        4 side faces give draft 0 and 2 cap faces give draft pi/2."""
+        from brepax.metrics.draft_angle import min_draft_angle_per_face
+
+        shape = self._read("sample_box")
+        mold = jnp.array([0.0, 0.0, 1.0])
+        angles, params = min_draft_angle_per_face(shape, mold)
+
+        assert angles.shape == (len(params),) == (6,)
+
+        # Sort to check the multiset matches: 4 zeros + 2 pi/2.
+        sorted_angles = jnp.sort(angles)
+        sorted_deg = jnp.rad2deg(sorted_angles)
+        # 4 side faces near 0 degrees, 2 cap faces near 90 degrees.
+        assert jnp.all(sorted_deg[:4] < 0.5), (
+            f"expected 4 side faces ~0 deg, got sorted_deg={sorted_deg}"
+        )
+        assert jnp.all(sorted_deg[4:] > 89.5), (
+            f"expected 2 cap faces ~90 deg, got sorted_deg={sorted_deg}"
+        )
+
+    def test_mold_direction_is_normalised(self) -> None:
+        """A non-unit mold direction should give the same answer as its
+        unit version (the function normalises internally)."""
+        from brepax.metrics.draft_angle import min_draft_angle_per_face
+
+        shape = self._read("sample_box")
+        mold_unit = jnp.array([0.0, 0.0, 1.0])
+        mold_scaled = jnp.array([0.0, 0.0, 7.5])
+        a1, _ = min_draft_angle_per_face(shape, mold_unit)
+        a2, _ = min_draft_angle_per_face(shape, mold_scaled)
+        assert jnp.allclose(a1, a2, atol=1e-6)
+
+    def test_axis_swap_relabels_faces(self) -> None:
+        """Switching mold from +Z to +X relabels which faces are caps:
+        the +X / -X side faces become caps, the +Z / -Z cap faces
+        become sides.  The multiset of per-face draft angles must
+        contain four zeros and two pi/2 in either case."""
+        from brepax.metrics.draft_angle import min_draft_angle_per_face
+
+        shape = self._read("sample_box")
+        for mold in (jnp.array([1.0, 0.0, 0.0]), jnp.array([0.0, 1.0, 0.0])):
+            angles, _ = min_draft_angle_per_face(shape, mold)
+            sorted_deg = jnp.rad2deg(jnp.sort(angles))
+            assert jnp.all(sorted_deg[:4] < 0.5)
+            assert jnp.all(sorted_deg[4:] > 89.5)
+
+    def test_finite_and_in_range_on_all_fixtures(self) -> None:
+        """Smoke property: every per-face angle is in ``[0, pi/2]`` on
+        every fixture in the standard set, regardless of fixture
+        geometry."""
+        from brepax.metrics.draft_angle import min_draft_angle_per_face
+
+        fixtures = [
+            "sample_box",
+            "sample_cylinder",
+            "sample_sphere",
+            "sample_cone",
+            "sample_torus",
+            "box_with_holes",
+            "box_with_pocket",
+            "box_with_slot",
+            "l_bracket",
+            "nurbs_box",
+        ]
+        mold = jnp.array([0.0, 0.0, 1.0])
+        for name in fixtures:
+            shape = self._read(name)
+            angles, params = min_draft_angle_per_face(shape, mold)
+            assert angles.shape == (len(params),)
+            assert jnp.all(jnp.isfinite(angles)), f"{name}: NaN angles"
+            # arcsin output is in [0, pi/2]; allow tiny clip overshoot.
+            assert jnp.all(angles >= 0.0), f"{name}: negative angles"
+            assert jnp.all(angles <= jnp.pi / 2 + 1e-5), f"{name}: angles > pi/2"
+
+    def test_gradient_flows_through_triangles(self) -> None:
+        """``jax.grad`` of a per-face angle sum must produce finite
+        gradients on triangle vertices (the same vertex array
+        ``triangulate_shape`` produces and ``divergence_volume`` reduces
+        over)."""
+        from brepax.brep.triangulate import triangulate_shape
+        from brepax.metrics.draft_angle import _per_triangle_draft_angle
+
+        shape = self._read("sample_box")
+        triangles, params_list = triangulate_shape(shape)
+        n_tris_py = [int(p["n_triangles"]) for p in params_list]
+        offsets_py = [0]
+        for n in n_tris_py:
+            offsets_py.append(offsets_py[-1] + n)
+
+        mold = jnp.array([0.0, 0.0, 1.0])
+
+        def loss(t: jnp.ndarray) -> jnp.ndarray:
+            drafts = jax.vmap(lambda tri: _per_triangle_draft_angle(tri, mold))(t)
+            per_face = jnp.stack(
+                [
+                    jnp.min(drafts[offsets_py[i] : offsets_py[i] + n_tris_py[i]])
+                    for i in range(len(params_list))
+                ]
+            )
+            return jnp.sum(per_face)
+
+        g = jax.grad(loss)(triangles)
+        assert jnp.all(jnp.isfinite(g))
