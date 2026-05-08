@@ -665,6 +665,7 @@ def triangulate_shape(
                     "us": us_np,
                     "vs": vs_np,
                     "n_points": n_nodes,
+                    "n_triangles": int(n_tris),
                     "conn": conn,
                 }
             )
@@ -718,10 +719,17 @@ def triangulate_shape(
     all_positions = jnp.concatenate(positions_per_face, axis=0)
     triangles: jnp.ndarray = all_positions[global_conn]
 
-    # params_list preserves traversal order, with surface_type included so
-    # downstream tooling can distinguish batched groupings.
+    # params_list preserves traversal order, with surface_type and the
+    # per-face triangle count included so downstream tooling can both
+    # distinguish batched groupings and slice ``triangles`` per face
+    # for face-level metrics (e.g. ``surface_area_per_face``).
     all_params = [
-        {"surface_type": rec["surface_type"], **rec["params"]} for rec in face_records
+        {
+            "surface_type": rec["surface_type"],
+            "n_triangles": rec["n_triangles"],
+            **rec["params"],
+        }
+        for rec in face_records
     ]
 
     return triangles, all_params
