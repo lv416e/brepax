@@ -14,7 +14,11 @@ from brepax.metrics.inertia import (
     integrate_sdf_moment_of_inertia,
     moment_of_inertia,
 )
-from brepax.metrics.surface_area import integrate_sdf_surface_area, surface_area
+from brepax.metrics.surface_area import (
+    integrate_sdf_surface_area,
+    surface_area,
+    surface_area_per_face,
+)
 from brepax.metrics.wall_thickness import (
     integrate_sdf_min_wall_thickness,
     integrate_sdf_thin_wall_volume,
@@ -36,5 +40,6 @@ __all__ = [
     "min_wall_thickness",
     "moment_of_inertia",
     "surface_area",
+    "surface_area_per_face",
     "thin_wall_volume",
 ]
