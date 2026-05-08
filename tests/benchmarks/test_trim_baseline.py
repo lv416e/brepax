@@ -4,29 +4,22 @@ Measures the volume on each fixture via two CSG-Stump SDF paths and
 compares against OCCT's analytic reference:
 
 - ``sdf_direct``: untrimmed CSG-Stump composite via
-  :class:`DifferentiableCSGStump`. Each primitive contributes its raw
-  signed distance to the DNF.
+  :class:`DifferentiableCSGStump`.  Each primitive contributes its
+  raw signed distance to the DNF.
 - ``sdf_trim``: trim-aware composite via :class:`TrimmedCSGStump`.
-  Per ADR-0019, analytical primitives (plane, cylinder, sphere, cone,
-  torus) contribute the same raw half-space SDF as the direct path;
-  BSpline primitives route through the Marschner trim-aware blend
-  (ADR-0018) so phantom material outside the patch boundary is
-  classified as outside the primitive.
+  Per ADR-0019 and ADR-0020 every primitive (analytical *and*
+  BSpline) contributes its raw signed distance — the Marschner
+  trim-aware blend is reserved for the standalone-face distance-
+  query use case and for future composition strategies (e.g. GWN).
+  The trim frames themselves are still extracted and stored on the
+  stump.
 
-The benchmark covers two regimes:
-
-- **Analytical-only fixtures** (``sample_box``, ``sample_cylinder``,
-  ``box_with_holes``, ``l_bracket``): the two columns must agree to
-  within floating-point noise. Drift here indicates the analytical
-  dispatch has regressed from raw-half-space semantics.
-- **BSpline-bearing fixtures** (``nurbs_box``): the trim-aware
-  composite routes through the Marschner blend. ``nurbs_box`` is a
-  rectangular block whose six BSpline patches coincide with the
-  full knot domain; the trim curves match the patch boundaries, so
-  the headline phantom reduction is small here. The fixture's role
-  is end-to-end wiring sanity at full benchmark resolution; bigger
-  phantom-reduction fixtures (Linkrods) are tracked separately and
-  added once their compile/runtime cost is bounded.
+On every fixture the two columns must agree to within floating-
+point noise.  Drift indicates the trim-aware composite has regressed
+from raw-half-space semantics in the DNF; that is the only invariant
+this benchmark exists to surface today.  Phantom reduction over OCCT
+ground truth is the subject of a separate composition strategy
+(ADR-0020 consequences) and is not measured here.
 
 Parameters are adaptive per model:
 

@@ -1,20 +1,27 @@
 """TrimmedCSGStump end-to-end on real CAD models.
 
-Per ADR-0019, ``TrimmedCSGStump`` on analytical-only models is
-bit-equivalent to ``DifferentiableCSGStump``: every analytical
-primitive contributes its raw untrimmed half-space SDF to the DNF.
-The Marschner trim-aware blend is reserved for the standalone-face
-distance-query use case (handled by ``brep/trim_frame.py``'s
-``*_face_sdf_from_frame`` wrappers and verified separately) and for
-the BSpline-patch path inside the composition.
+Per ADR-0019 and ADR-0020, ``TrimmedCSGStump`` is bit-equivalent to
+``DifferentiableCSGStump`` on every fixture, analytical or BSpline:
+every primitive contributes its raw untrimmed signed distance to the
+DNF.  The Marschner trim-aware blend is reserved for the standalone-
+face distance-query use case (``brep/trim_frame.py``'s
+``*_face_sdf_from_frame`` family) and for future composition
+strategies; substituting it into the CSG-Stump DNF removes
+legitimate inside regions on multi-face solids (Linkrods volume
+collapses by ~99% when BSpline slots route through Marschner — the
+empirical evidence behind ADR-0020).
 
-These tests pin both invariants:
+These tests pin the bit-equivalence invariant on three fixtures:
 
-- ``sample_box`` and ``box_with_holes`` (analytical only) must agree
-  bit-exactly between the trim-aware and untrimmed composites.
-- ``nurbs_box`` (BSpline only) routes through the Marschner blend;
-  the volume must remain finite, sign-correct on inside/outside
-  queries, and gradients must flow through BSpline control points.
+- ``sample_box`` (6 planes): analytical control.
+- ``box_with_holes`` (6 planes + 2 cylinders, REVERSED orientation
+  on cylinders): non-trivial DNF analytical control.
+- ``nurbs_box`` (6 BSpline patches): BSpline regression check.
+
+The trim frames themselves (``BSplineTrimFrame`` and the analytical
+``*TrimFrame`` set) are still extracted and stored on the stump, both
+because the standalone-face wrappers consume them and because future
+composition strategies (e.g. GWN) will consume the same metadata.
 """
 
 from __future__ import annotations
@@ -172,25 +179,17 @@ def nurbs_box_stump_and_trimmed() -> tuple:
     return shape, stump, trimmed
 
 
-class TestTrimmedNurbsBoxRoutesBSpline:
-    """nurbs_box: 6 BSpline faces routed through Marschner blend.
+class TestTrimmedNurbsBoxMatchesUntrimmed:
+    """nurbs_box: 6 BSpline patches, all under raw primitive SDF.
 
-    nurbs_box is a rectangular block whose six faces are reconstructed
-    as BSpline patches.  Each face's trim curve coincides with the
-    full knot domain rectangle, so the Marschner blend's phantom-
-    elimination effect is small here.  The fixture's role is to
-    confirm that:
-
-    - BSpline frames are extracted from every slot.
-    - The composite SDF stays finite over the full grid.
-    - Sign agrees with the untrimmed path on representative queries
-      (Marschner's signed blend uses the same primitive coarse-normal
-      sign source).
-    - Gradients flow through BSpline control points.
-
-    A separate benchmark (``test_trim_baseline``) covers fixtures
-    where the trim curves cut materially smaller regions than the
-    full knot domain, exercising the actual phantom reduction.
+    Per ADR-0020, BSpline slots in ``TrimmedCSGStump`` use raw
+    ``primitive.sdf(query)`` just like analytical slots.  The trim
+    frames are still extracted (for the standalone-face query path
+    and future composition strategies) but do not contribute to the
+    DNF SDF.  This fixture's role is to lock in the bit-equivalence
+    invariant on a BSpline-bearing solid, so any future regression
+    of the BSpline DNF path against ``DifferentiableCSGStump``
+    surfaces immediately.
     """
 
     def test_class_instance(self, nurbs_box_stump_and_trimmed) -> None:
@@ -204,21 +203,22 @@ class TestTrimmedNurbsBoxRoutesBSpline:
         for f in trimmed.frames:
             assert isinstance(f, BSplineTrimFrame)
 
-    def test_volume_finite(self, nurbs_box_stump_and_trimmed) -> None:
-        import math
-
-        shape, _, trimmed = nurbs_box_stump_and_trimmed
+    def test_volume_matches_untrimmed(self, nurbs_box_stump_and_trimmed) -> None:
+        # Trimmed and untrimmed composites must agree on volume to
+        # within floating-point noise: every BSpline primitive
+        # contributes the same raw SDF in both paths (ADR-0020).
+        shape, stump, trimmed = nurbs_box_stump_and_trimmed
+        diff = stump_to_differentiable(stump)
         lo, hi = _shape_bounds(shape)
-        v = float(trimmed.volume(resolution=24, lo=lo, hi=hi))
-        assert math.isfinite(v)
-        assert v > 0.0
+        # res=24 keeps the test under a minute on BSpline projection.
+        v_untrimmed = float(diff.volume(resolution=24, lo=lo, hi=hi))
+        v_trimmed = float(trimmed.volume(resolution=24, lo=lo, hi=hi))
+        assert abs(v_untrimmed - v_trimmed) < 1e-3
 
     def test_sdf_signs_match_untrimmed(self, nurbs_box_stump_and_trimmed) -> None:
-        # nurbs_box is the rectangular block [0,10] x [0,8] x [-8,0]
-        # (extracted from the fixture's bbox); a few interior /
-        # exterior queries should agree on sign with the untrimmed
-        # composite even though the absolute values may differ inside
-        # the trim transition zone.
+        # nurbs_box is the rectangular block [0,10] x [0,8] x [-8,0];
+        # a few interior / exterior queries must agree on sign with
+        # the untrimmed composite (and on value, under ADR-0020).
         _, stump, trimmed = nurbs_box_stump_and_trimmed
         diff = stump_to_differentiable(stump)
         queries = jnp.array(
@@ -236,9 +236,9 @@ class TestTrimmedNurbsBoxRoutesBSpline:
     def test_gradient_flows_through_control_points(
         self, nurbs_box_stump_and_trimmed
     ) -> None:
-        # The BSpline trim path projects each query onto the
-        # primitive's surface; jax.grad over a single SDF evaluation
-        # must produce finite gradients on at least one slot's
+        # ``primitive.sdf`` on a BSpline runs the unrolled Newton
+        # projection, so jax.grad over a single SDF evaluation must
+        # produce finite gradients on at least one slot's
         # ``control_points`` field.
         import jax
 

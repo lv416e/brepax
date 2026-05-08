@@ -35,6 +35,7 @@ from OCP.gp import gp_Ax2, gp_Dir, gp_Pln, gp_Pnt
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.STEPControl import STEPControl_Reader
+from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
 from OCP.TopAbs import (
     TopAbs_EDGE,
     TopAbs_FACE,
@@ -81,6 +82,8 @@ __all__ = [
     "GeomAbs_Torus",
     "IFSelect_RetDone",
     "STEPControl_Reader",
+    "TColStd_Array1OfInteger",
+    "TColStd_Array1OfReal",
     "TopAbs_EDGE",
     "TopAbs_FACE",
     "TopAbs_FORWARD",

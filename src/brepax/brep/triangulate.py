@@ -26,6 +26,8 @@ from brepax._occt.backend import (
     GeomAbs_Plane,
     GeomAbs_Sphere,
     GeomAbs_Torus,
+    TColStd_Array1OfInteger,
+    TColStd_Array1OfReal,
     TopAbs_FACE,
     TopAbs_FORWARD,
     TopAbs_SOLID,
@@ -437,8 +439,6 @@ def _extract_face_geometric_params(adaptor: Any) -> tuple[str, dict[str, Any]] |
         }
 
     if stype == GeomAbs_BSplineSurface:
-        from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
-
         from brepax.brep.convert import _expand_knots
 
         bspl = adaptor.BSpline()

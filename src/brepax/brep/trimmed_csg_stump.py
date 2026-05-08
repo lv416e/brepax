@@ -3,34 +3,31 @@
 Wires CSG-Stump composition for primitives reconstructed from
 trimmed B-Rep faces.
 
-Per ADR-0019, every *analytical* primitive (plane, cylinder, sphere,
-cone, torus) contributes its raw untrimmed signed distance to the DNF.
-The untrimmed half-space *is* the correct CSG ingredient: a closed
-solid is exactly the intersection of half-spaces, and substituting in
-a trimmed face-patch SDF (which collapses to a non-negative boundary
-distance outside the trim parameter range) breaks that composition.
-This holds uniformly for every analytical surface type — plane was not
-a special case but the only case the original wiring implemented
-correctly by accident.
+Per ADR-0019 and ADR-0020, **every** primitive (plane, cylinder,
+sphere, cone, torus, BSpline) contributes its raw untrimmed signed
+distance to the DNF.  The untrimmed signed distance is the correct
+CSG ingredient: a closed solid is the intersection of half-spaces,
+and substituting in a trimmed face-patch SDF (which collapses to a
+non-negative boundary distance whenever the foot UV of a deeply-
+interior query falls outside that face's trim polygon) removes
+legitimate inside regions on multi-face solids.  ADR-0019 derived
+this for analytical primitives; ADR-0020 records the same scope
+correction for BSpline primitives, after a Linkrods measurement
+under the trim-aware path collapsed the volume by -99%.
 
-BSpline primitives are different.  BSpline patches are finite in
-parameter space, so the untrimmed signed distance is the source of
-phantom material outside the trim region (ADR-0016, Linkrods +219%
-measurement on raw ``abs(BSpline SDF)``).  For BSpline slots the
-composite SDF routes through the Marschner trim-aware blend
-(ADR-0018) by combining the primitive's projection-based signed
-distance with the unsigned distance to the 3D trim polyline; the
-result classifies queries outside the patch as outside the primitive
-and leaves the inside of the trimmed region unchanged.
+BSpline trim metadata is still extracted into per-slot
+:class:`BSplineTrimFrame` instances so the standalone trimmed-face
+distance-query path (``bspline_face_sdf_from_frame`` in
+``brep/trim_frame.py``) has the data it needs and so future work can
+build alternative composition strategies (e.g. GWN; ADR-0016) on top
+of the same metadata without re-extracting.  The frames do not
+contribute to the CSG-Stump SDF here.
 
-The Marschner trim-aware blend is also exposed for standalone
-trimmed-face distance queries via
-``brep/trim_frame.py``'s ``*_face_sdf_from_frame`` wrappers — those
-are unaffected by the CSG-Stump integration here.
-
-Analytical primitives only need ``primitive.sdf(query)`` — the same
-SDF that :class:`DifferentiableCSGStump` consumes.  BSpline slots
-additionally consume the per-slot :class:`BSplineTrimFrame`.
+The result is bit-equivalence with :class:`DifferentiableCSGStump`
+on every fixture, analytical or BSpline alike.  ``TrimmedCSGStump``
+remains the entry point for trim-aware composition because it
+carries the per-face trim frame data and the build pipeline
+(``enrich_with_trim_frames``) already extracts it from OCCT.
 """
 
 from __future__ import annotations
@@ -65,7 +62,6 @@ from brepax.brep.trim_frame import (
     PlaneTrimFrame,
     SphereTrimFrame,
     TorusTrimFrame,
-    bspline_face_sdf_from_frame,
     extract_bspline_trim_frame,
     extract_cone_trim_frame,
     extract_cylinder_trim_frame,
@@ -74,7 +70,6 @@ from brepax.brep.trim_frame import (
     extract_torus_trim_frame,
 )
 from brepax.primitives._base import Primitive
-from brepax.primitives.bspline_surface import BSplineSurface
 
 # Union of every supported trim-frame type.
 TrimFrame = (
@@ -97,19 +92,15 @@ class TrimmedCSGStump(eqx.Module):
 
     Each slot pairs a primitive (``Plane`` / ``Sphere`` / ``Cylinder``
     / ``Cone`` / ``Torus`` / ``BSplineSurface``) with the trim frame
-    extracted from its source OCCT face.  The composite SDF dispatches
-    on primitive type:
-
-    - **Analytical primitives**: return ``primitive.sdf(query)`` (raw
-      untrimmed half-space SDF), per ADR-0019.  Bit-equivalent to
-      :class:`DifferentiableCSGStump` for analytical-only models.
-    - **BSpline primitives**: return the Marschner trim-aware blend
-      via :func:`bspline_face_sdf_from_frame`, eliminating the phantom
-      that the untrimmed BSpline SDF carries past the patch boundary.
-
-    The DNF composition (intersection matrix + union mask) is shared
-    with :class:`DifferentiableCSGStump`; only the per-slot SDF
-    differs.
+    extracted from its source OCCT face.  The composite SDF returns
+    each primitive's raw ``primitive.sdf(query)`` and composes via
+    the same DNF as :class:`DifferentiableCSGStump`; per ADR-0019 and
+    ADR-0020 the per-slot trim frames are stored but not on the
+    DNF SDF path.  The trim frames are still useful for standalone
+    trimmed-face distance queries (``brep/trim_frame.py``'s
+    ``*_face_sdf_from_frame`` family) and for future composition
+    strategies that don't fold trim into the half-space ingredient
+    (e.g. GWN).
 
     Gradients through ``sdf`` and ``volume`` flow through the
     primitives' differentiable parameters (``radius``, ``axis``,
@@ -138,29 +129,18 @@ class TrimmedCSGStump(eqx.Module):
     def sdf(self, x: Float[Array, "... 3"]) -> Float[Array, ...]:
         """Composite CSG SDF.
 
-        For analytical slots, returns ``primitive.sdf(query)``.  For
-        BSpline slots, returns the Marschner trim-aware blend via
-        :func:`bspline_face_sdf_from_frame`.  Composes via the stump's
-        DNF.  ``isinstance`` resolves at JAX trace time since each
-        slot has a concrete Python type.
+        Per ADR-0020 (extending ADR-0019), every primitive contributes
+        its raw untrimmed signed distance to the DNF — analytical *and*
+        BSpline.  The Marschner trim-aware blend is reserved for
+        standalone trimmed-face distance queries; substituting it into
+        the CSG-Stump DNF removes legitimate inside regions on multi-
+        face solids because the blend collapses to a non-negative
+        boundary distance whenever the foot UV of a deeply-interior
+        query falls outside that face's trim polygon.
         """
 
-        def _per_slot_sdf(
-            prim: Primitive, frame: TrimFrame, query: Float[Array, 3]
-        ) -> Float[Array, ""]:
-            if isinstance(prim, BSplineSurface) and isinstance(frame, BSplineTrimFrame):
-                return bspline_face_sdf_from_frame(
-                    frame, prim, query, sharpness=self.sharpness
-                )
-            return prim.sdf(query)
-
         def _single(query: Float[Array, 3]) -> Float[Array, ""]:
-            sdfs = jnp.stack(
-                [
-                    _per_slot_sdf(prim, frame, query)
-                    for prim, frame in zip(self.primitives, self.frames, strict=True)
-                ]
-            )
+            sdfs = jnp.stack([prim.sdf(query) for prim in self.primitives])
             return _evaluate_dnf_sdf(sdfs, self.intersection_matrix, self.union_mask)
 
         if x.ndim == 1:

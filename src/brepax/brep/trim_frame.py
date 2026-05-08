@@ -40,11 +40,13 @@ from brepax._occt.backend import (
     GeomAbs_Plane,
     GeomAbs_Sphere,
     GeomAbs_Torus,
+    TColStd_Array1OfInteger,
+    TColStd_Array1OfReal,
     TopAbs_FORWARD,
 )
 from brepax._occt.types import TopoDS_Face
 from brepax.brep.trim_sdf import trim_aware_sdf
-from brepax.nurbs.evaluate import evaluate_surface
+from brepax.nurbs.evaluate import evaluate_surface, evaluate_surface_derivs
 from brepax.nurbs.projection import closest_point_and_foot
 
 if TYPE_CHECKING:
@@ -1300,6 +1302,11 @@ def cone_face_sdf(
     return cone_face_sdf_from_frame(frame, query, sharpness=sharpness)
 
 
+_EPS_SQ_BSPLINE = 1e-24
+# Normalisation guard for the fallback Newton-normal sign computation.
+_EPS_NORM_BSPLINE = 1e-10
+
+
 def extract_bspline_trim_frame(
     face: TopoDS_Face,
     max_vertices: int = 64,
@@ -1357,8 +1364,6 @@ def extract_bspline_trim_frame(
             pt = bspl.Pole(i, j)
             poles[i - 1, j - 1] = [pt.X(), pt.Y(), pt.Z()]
 
-    from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
-
     uk = TColStd_Array1OfReal(1, bspl.NbUKnots())
     um = TColStd_Array1OfInteger(1, bspl.NbUKnots())
     bspl.UKnots(uk)
@@ -1393,10 +1398,13 @@ def extract_bspline_trim_frame(
         )
 
     polyline_3d = jax.vmap(_eval)(polygon_uv)
-    # Padded slots have polygon_uv == 0 and could land anywhere on the
-    # surface; mask them to zero so the polyline distance reduction
-    # ignores them via the same mask channel.
-    polyline_3d = polyline_3d * mask[:, None]
+    # Padded slots have polygon_uv == 0 so their evaluated 3D point is
+    # whatever the BSpline returns at the (0, 0) parametric corner.
+    # That value is harmless because ``polyline_unsigned_distance``
+    # multiplies the segment mask by ``mask`` and substitutes 1e30
+    # for padded segments before the min reduction
+    # (see ``brep/polyline.py``); padded points never bias the
+    # distance reduction toward zero or any specific 3D location.
 
     return BSplineTrimFrame(
         polygon_uv=polygon_uv,
@@ -1452,6 +1460,35 @@ def bspline_face_sdf_from_frame(
         >>> # primitive = BSplineSurface(...)
         >>> # d = bspline_face_sdf_from_frame(tf, primitive, jnp.array([0., 0., 1.]))
     """
+    # Warm-start the Newton iterate from the coarse-grid sample
+    # closest to the query, mirroring ``BSplineSurface.sdf``.  The
+    # default ``u0=v0=0.5`` is far from the optimum on large or non-
+    # planar patches and pushes Newton into local minima — observed
+    # empirically as the foot landing outside the trim polygon and
+    # collapsing the inside region.  ``coarse_positions`` is already
+    # precomputed at primitive construction; the (u, v) grid that
+    # produced it is reconstructed here from the knot vectors using
+    # the same convention as ``_precompute_coarse_grid``.
+    from brepax.nurbs.projection import _COARSE_GRID
+
+    if primitive.coarse_positions is not None:
+        u_lo_k = primitive.knots_u[primitive.degree_u]
+        u_hi_k = primitive.knots_u[-primitive.degree_u - 1]
+        v_lo_k = primitive.knots_v[primitive.degree_v]
+        v_hi_k = primitive.knots_v[-primitive.degree_v - 1]
+        us_g = jnp.linspace(u_lo_k, u_hi_k, _COARSE_GRID)
+        vs_g = jnp.linspace(v_lo_k, v_hi_k, _COARSE_GRID)
+        u_grid, v_grid = jnp.meshgrid(us_g, vs_g, indexing="ij")
+        u_flat_g = u_grid.ravel()
+        v_flat_g = v_grid.ravel()
+        warm_dists_sq = jnp.sum((primitive.coarse_positions - query) ** 2, axis=-1)
+        best_idx = jax.lax.stop_gradient(jnp.argmin(warm_dists_sq))
+        u0 = jax.lax.stop_gradient(u_flat_g[best_idx])
+        v0 = jax.lax.stop_gradient(v_flat_g[best_idx])
+    else:
+        u0 = jnp.asarray(0.5)
+        v0 = jnp.asarray(0.5)
+
     foot, u_opt, v_opt = closest_point_and_foot(
         query,
         primitive.control_points,
@@ -1459,6 +1496,8 @@ def bspline_face_sdf_from_frame(
         primitive.knots_v,
         primitive.degree_u,
         primitive.degree_v,
+        u0=u0,
+        v0=v0,
         weights=primitive.weights,
         # Untrimmed knot domain so the foot can land anywhere on the
         # mathematical surface; chi_T then decides in/out trim.
@@ -1470,7 +1509,7 @@ def bspline_face_sdf_from_frame(
     # query coincides with its foot (zero-norm).  Pattern shared with
     # the analytical wrappers.
     dist_sq = jnp.sum(diff**2)
-    is_off = dist_sq > 1e-24
+    is_off = dist_sq > _EPS_SQ_BSPLINE
     safe_sq = jnp.where(is_off, dist_sq, 1.0)
     safe_norm = jnp.sqrt(safe_sq)
     dist = jnp.where(is_off, safe_norm, 0.0)
@@ -1484,8 +1523,6 @@ def bspline_face_sdf_from_frame(
         nearest_nrm = primitive.coarse_normals[best]
         sign = jnp.sign(jnp.dot(query - primitive.coarse_positions[best], nearest_nrm))
     else:
-        from brepax.nurbs.evaluate import evaluate_surface_derivs
-
         _, du, dv = evaluate_surface_derivs(
             primitive.control_points,
             primitive.knots_u,
@@ -1497,7 +1534,7 @@ def bspline_face_sdf_from_frame(
             primitive.weights,
         )
         normal = jnp.cross(du, dv)
-        normal = normal / (jnp.linalg.norm(normal) + 1e-10)
+        normal = normal / (jnp.linalg.norm(normal) + _EPS_NORM_BSPLINE)
         sign = jnp.sign(jnp.dot(diff, normal)) * primitive.sign_flip
 
     d_s = sign * dist

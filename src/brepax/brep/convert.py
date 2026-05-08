@@ -24,6 +24,8 @@ from brepax._occt.backend import (
     GeomAbs_Plane,
     GeomAbs_Sphere,
     GeomAbs_Torus,
+    TColStd_Array1OfInteger,
+    TColStd_Array1OfReal,
     TopAbs_EDGE,
     TopAbs_FACE,
     TopAbs_FORWARD,
@@ -317,8 +319,6 @@ def _convert_bspline_face(
             poles[i - 1, j - 1] = [pt.X(), pt.Y(), pt.Z()]
 
     # Extract knot vectors: OCCT (unique + multiplicities) → repeated
-    from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
-
     uk = TColStd_Array1OfReal(1, bspl.NbUKnots())
     um = TColStd_Array1OfInteger(1, bspl.NbUKnots())
     bspl.UKnots(uk)
