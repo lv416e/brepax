@@ -30,6 +30,7 @@ from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jaxtyping import Array, Float
 
 from brepax._occt.types import TopoDS_Shape
@@ -190,10 +191,12 @@ def _per_triangle_draft_angle(
     ``draft_angle = arcsin(|unit_normal . mold_direction|)``.  The
     safe-square-then-sqrt pattern is used because zero-area triangles
     (a degenerate but legal artefact of OCCT BRepMesh on slivers) have
-    an undefined gradient through ``cross(e1, e2) / |...|``.  Such
-    triangles return zero draft, which is the conservative answer for
-    a "min draft angle" reduction (they cannot be the only triangle
-    on a non-degenerate face, so the min stays meaningful).
+    an undefined gradient through ``cross(e1, e2) / |...|``.  For a
+    degenerate triangle the function returns ``+inf`` so a downstream
+    ``min`` reduction over a face's triangle slice ignores it; if the
+    function returned ``0`` or any other in-range value, a single
+    sliver in the OCCT mesh would force the face's worst-case draft
+    angle to that value regardless of the rest of the face.
     """
     e1 = triangle[1] - triangle[0]
     e2 = triangle[2] - triangle[0]
@@ -207,7 +210,12 @@ def _per_triangle_draft_angle(
     )
     sin_d = jnp.where(is_off, jnp.abs(jnp.sum(safe_normal * mold_direction)), 0.0)
     sin_d = jnp.clip(sin_d, 0.0, _ASIN_CLIP)
-    return jnp.arcsin(sin_d)
+    angle = jnp.arcsin(sin_d)
+    # Mask degenerate triangles out of any min reduction by lifting
+    # them to +inf.  A face whose every triangle is degenerate is
+    # itself degenerate; +inf is an honest signal that no draft angle
+    # could be measured there, rather than silently reporting 0.
+    return jnp.where(is_off, angle, jnp.inf)
 
 
 def min_draft_angle_per_face(
@@ -250,13 +258,16 @@ def min_draft_angle_per_face(
 
     Examples:
         >>> import jax.numpy as jnp
-        >>> from brepax.io.step import read_step
+        >>> from brepax._occt.backend import BRepPrimAPI_MakeBox
         >>> from brepax.metrics.draft_angle import min_draft_angle_per_face
-        >>> # shape = read_step("part.step")
-        >>> # mold = jnp.array([0.0, 0.0, 1.0])
-        >>> # angles, _ = min_draft_angle_per_face(shape, mold)
-        >>> # # angles[i] is in [0, pi/2]; 0 = wall parallel to ejection,
-        >>> # # pi/2 = surface perpendicular to ejection.
+        >>> shape = BRepPrimAPI_MakeBox(1.0, 1.0, 1.0).Shape()
+        >>> mold = jnp.array([0.0, 0.0, 1.0])
+        >>> angles, params = min_draft_angle_per_face(shape, mold)
+        >>> # 4 side faces give draft 0, 2 cap faces give draft pi/2.
+        >>> bool(jnp.all((angles >= 0) & (angles <= jnp.pi / 2 + 1e-5)))
+        True
+        >>> int(jnp.sum(jnp.rad2deg(angles) > 89.5))  # 2 caps
+        2
     """
     triangles, params_list = triangulate_shape(shape, deflection=deflection)
     n_faces = len(params_list)
@@ -264,19 +275,19 @@ def min_draft_angle_per_face(
         return jnp.zeros((0,)), params_list
 
     n_tris_py: list[int] = [int(p["n_triangles"]) for p in params_list]
-    offsets_py: list[int] = [0]
-    for n in n_tris_py:
-        offsets_py.append(offsets_py[-1] + n)
+    # Per-triangle face id used by ``jax.ops.segment_min``.  Building
+    # this once on the host is faster than slicing the draft array
+    # face by face and produces a single XLA op for the reduction.
+    segment_ids = jnp.asarray(np.repeat(np.arange(n_faces, dtype=np.int32), n_tris_py))
 
     mold_dir = mold_direction / (jnp.linalg.norm(mold_direction) + 1e-30)
     drafts = jax.vmap(lambda tri: _per_triangle_draft_angle(tri, mold_dir))(triangles)
 
-    return jnp.stack(
-        [
-            jnp.min(drafts[offsets_py[i] : offsets_py[i] + n_tris_py[i]])
-            for i in range(n_faces)
-        ]
-    ), params_list
+    # ``segment_min`` ignores no entries by default; degenerate
+    # triangles already return ``+inf`` from ``_per_triangle_draft_angle``
+    # so they are skipped naturally by the min.
+    angles = jax.ops.segment_min(drafts, segment_ids, num_segments=n_faces)
+    return angles, params_list
 
 
 __all__ = [

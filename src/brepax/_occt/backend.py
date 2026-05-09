@@ -15,6 +15,7 @@ from OCP.BRepExtrema import BRepExtrema_DistShapeShape
 from OCP.BRepGProp import BRepGProp
 from OCP.BRepMesh import BRepMesh_IncrementalMesh
 from OCP.BRepPrimAPI import (
+    BRepPrimAPI_MakeBox,
     BRepPrimAPI_MakeCone,
     BRepPrimAPI_MakeCylinder,
     BRepPrimAPI_MakeSphere,
@@ -63,6 +64,7 @@ __all__ = [
     "BRepExtrema_DistShapeShape",
     "BRepGProp",
     "BRepMesh_IncrementalMesh",
+    "BRepPrimAPI_MakeBox",
     "BRepPrimAPI_MakeCone",
     "BRepPrimAPI_MakeCylinder",
     "BRepPrimAPI_MakeSphere",

@@ -243,6 +243,41 @@ class TestMinDraftAnglePerFace:
             assert jnp.all(angles >= 0.0), f"{name}: negative angles"
             assert jnp.all(angles <= jnp.pi / 2 + 1e-5), f"{name}: angles > pi/2"
 
+    def test_degenerate_triangle_masked_from_min(self) -> None:
+        """Zero-area triangles must return ``+inf`` from
+        ``_per_triangle_draft_angle`` so the per-face ``min`` reduction
+        skips them.  If they returned ``0`` (a legal in-range draft
+        angle), a single sliver in the OCCT mesh would force the
+        face's worst-case draft angle to ``0`` regardless of the rest
+        of the face — the CodeRabbit Major issue this test pins."""
+        from brepax.metrics.draft_angle import _per_triangle_draft_angle
+
+        # Zero-area triangle (all three vertices identical).
+        degenerate = jnp.zeros((3, 3))
+        # Non-degenerate triangle with normal +Z.
+        good = jnp.array(
+            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+        )
+        mold = jnp.array([0.0, 0.0, 1.0])
+
+        d_degen = float(_per_triangle_draft_angle(degenerate, mold))
+        d_good = float(_per_triangle_draft_angle(good, mold))
+
+        assert d_degen == float("inf"), (
+            f"degenerate triangle returned {d_degen}, expected +inf"
+        )
+        # The good triangle has normal exactly +Z => arcsin(1) ≈ pi/2.
+        assert abs(d_good - float(jnp.pi / 2)) < 1e-3, (
+            f"good triangle returned {d_good}, expected ~pi/2"
+        )
+        # min over [degenerate, good] must equal the good triangle's
+        # value, NOT zero.  This is the regression behaviour
+        # ``+inf``-masking is meant to provide.
+        result = float(jnp.min(jnp.array([d_degen, d_good])))
+        assert abs(result - d_good) < 1e-6, (
+            f"min should pick the good triangle, got {result}"
+        )
+
     def test_gradient_flows_through_triangles(self) -> None:
         """``jax.grad`` of a per-face angle sum must produce finite
         gradients on triangle vertices (the same vertex array
