@@ -3,6 +3,7 @@
 from brepax.metrics.curvature import (
     max_curvature,
     mean_curvature,
+    mean_curvature_per_face,
 )
 from brepax.metrics.draft_angle import (
     draft_angle_violation,
@@ -38,6 +39,7 @@ __all__ = [
     "integrate_sdf_thin_wall_volume",
     "max_curvature",
     "mean_curvature",
+    "mean_curvature_per_face",
     "min_draft_angle_per_face",
     "min_wall_thickness",
     "moment_of_inertia",
