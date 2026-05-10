@@ -1,15 +1,21 @@
 """Unit tests for wall thickness metrics."""
 
+from pathlib import Path
+
 import jax
 import jax.numpy as jnp
 
 from brepax.brep.csg_eval import make_grid_3d
+from brepax.io.step import read_step
 from brepax.metrics.wall_thickness import (
     integrate_sdf_thin_wall_volume,
     min_wall_thickness,
+    min_wall_thickness_per_face,
     thin_wall_volume,
 )
 from brepax.primitives import Box, Sphere
+
+FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
 
 class TestIntegrateSdfThinWallVolume:
@@ -173,3 +179,148 @@ class TestMinWallThickness:
         assert float(grad_he[2]) > float(grad_he[0]), (
             f"z-gradient should dominate: {grad_he}"
         )
+
+
+class TestMinWallThicknessPerFace:
+    """Per-face min wall thickness from each face's centroid.
+
+    The M6.1 milestone gate clause "Trim-aware face-level metrics"
+    requires each face-level metric to be exposed and verified.
+    The per-face wall thickness is the distance from each face's
+    centroid to the nearest triangle on any **other** face — see
+    the function docstring for why centroid-based sampling is
+    necessary (boundary triangles share edges with neighbours and
+    would otherwise force the metric to zero).
+    """
+
+    @staticmethod
+    def _read(name: str):
+        return read_step(str(FIXTURES / f"{name}.step"))
+
+    def test_sample_box_axis_aligned(self) -> None:
+        """``sample_box`` is the rectangular block 10x20x30.  Each
+        face's centroid is at the centre of that face, and the
+        distance to the nearest perpendicular face equals the
+        half-extent of the smallest perpendicular dimension.
+
+        - +/- x faces (20x30 area): nearest perpendicular pair is
+          +/- y at half-extent 10 or +/- z at 15; min is 10.
+        - +/- y faces (10x30 area): nearest is +/- x at 5 or
+          +/- z at 15; min is 5.
+        - +/- z faces (10x20 area): nearest is +/- x at 5 or
+          +/- y at 10; min is 5.
+        """
+        shape = self._read("sample_box")
+        thicknesses, params = min_wall_thickness_per_face(shape)
+        assert thicknesses.shape == (len(params),) == (6,)
+        sorted_t = jnp.sort(thicknesses)
+        # 4 faces give 5 (the +/- y and +/- z pairs), 2 faces give 10
+        # (the +/- x pair).  Mesh discretization keeps the result well
+        # under 5% of the analytical value.
+        assert jnp.allclose(sorted_t[:4], 5.0, rtol=0.05), (
+            f"4 small-half-extent faces: expected ~5, got {sorted_t}"
+        )
+        assert jnp.allclose(sorted_t[4:], 10.0, rtol=0.05), (
+            f"2 wide faces: expected ~10, got {sorted_t}"
+        )
+
+    def test_sample_cylinder_side_vs_caps(self) -> None:
+        """``sample_cylinder`` is radius 5, height 15.  The cylinder
+        side face's centroid sits on the axis at z=7.5; its nearest
+        other-face triangle is one of the cap rings at z=0 or z=15
+        at distance 7.5.  Each cap face's centroid is at the cap's
+        centre on the axis; the nearest other-face triangle is on
+        the cylinder side at radial distance 5 (modulo discretization).
+        """
+        shape = self._read("sample_cylinder")
+        thicknesses, params = min_wall_thickness_per_face(shape)
+        assert len(params) == 3
+
+        for thick, p in zip(thicknesses, params, strict=True):
+            t = p["surface_type"]
+            if t == "cylinder":
+                # side face centroid -> cap at z=0 or z=15 at distance 7.5
+                assert jnp.isclose(thick, 7.5, rtol=0.05), (
+                    f"cyl side: expected ~7.5, got {float(thick):.4f}"
+                )
+            elif t == "plane":
+                # cap centroid -> side face at radial distance ~5
+                # (mesh discretization can underestimate by a few %).
+                assert jnp.isclose(thick, 5.0, rtol=0.10), (
+                    f"cyl cap: expected ~5, got {float(thick):.4f}"
+                )
+
+    def test_single_face_returns_inf(self) -> None:
+        """``sample_sphere`` has a single face; there is no other
+        face to measure to, so the function returns ``+inf`` rather
+        than 0 (an honest "no other surface" signal)."""
+        shape = self._read("sample_sphere")
+        thicknesses, params = min_wall_thickness_per_face(shape)
+        assert len(params) == 1
+        assert jnp.isinf(thicknesses[0])
+
+    def test_finite_or_inf_on_all_fixtures(self) -> None:
+        """Smoke property: every per-face thickness is either finite
+        positive or ``+inf`` on every fixture in the standard set.
+        Negative thickness or NaN would indicate a bug in the
+        centroid / slice handling."""
+        fixtures = [
+            "sample_box",
+            "sample_cylinder",
+            "sample_sphere",
+            "sample_cone",
+            "sample_torus",
+            "box_with_holes",
+            "box_with_pocket",
+            "box_with_slot",
+            "l_bracket",
+            "nurbs_box",
+        ]
+        for name in fixtures:
+            shape = self._read(name)
+            thicknesses, params = min_wall_thickness_per_face(shape)
+            assert thicknesses.shape == (len(params),)
+            for thick in thicknesses:
+                v = float(thick)
+                assert v > 0.0 and (jnp.isfinite(v) or jnp.isinf(v)), (
+                    f"{name}: unexpected thickness {v}"
+                )
+
+    def test_gradient_flows_through_triangles(self) -> None:
+        """``jax.grad`` of a per-face thickness sum must produce
+        finite gradients on triangle vertices (the same vertex array
+        ``triangulate_shape`` produces; the metric reduces over
+        ``point_triangle_distance`` which is differentiable through
+        triangle vertex positions)."""
+        from brepax.brep.mesh_sdf import point_triangle_distance
+        from brepax.brep.triangulate import triangulate_shape
+
+        shape = self._read("sample_box")
+        triangles, params_list = triangulate_shape(shape)
+        n_tris_py = [int(p["n_triangles"]) for p in params_list]
+        offsets_py = [0]
+        for n in n_tris_py:
+            offsets_py.append(offsets_py[-1] + n)
+
+        def loss(t: jnp.ndarray) -> jnp.ndarray:
+            total = jnp.asarray(0.0)
+            for i in range(len(params_list)):
+                a = offsets_py[i]
+                b = a + n_tris_py[i]
+                centroid = jnp.mean(t[a:b].reshape(-1, 3), axis=0)
+                if a == 0:
+                    others = t[b:]
+                elif b == t.shape[0]:
+                    others = t[:a]
+                else:
+                    others = jnp.concatenate([t[:a], t[b:]], axis=0)
+                per_tri = jax.vmap(
+                    lambda tri, c=centroid: point_triangle_distance(
+                        c, tri[0], tri[1], tri[2]
+                    )
+                )(others)
+                total = total + jnp.min(per_tri)
+            return total
+
+        grad = jax.grad(loss)(triangles)
+        assert jnp.all(jnp.isfinite(grad))

@@ -25,6 +25,7 @@ from brepax.metrics.wall_thickness import (
     integrate_sdf_min_wall_thickness,
     integrate_sdf_thin_wall_volume,
     min_wall_thickness,
+    min_wall_thickness_per_face,
     thin_wall_volume,
 )
 
@@ -42,6 +43,7 @@ __all__ = [
     "mean_curvature_per_face",
     "min_draft_angle_per_face",
     "min_wall_thickness",
+    "min_wall_thickness_per_face",
     "moment_of_inertia",
     "surface_area",
     "surface_area_per_face",
