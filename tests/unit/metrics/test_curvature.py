@@ -1,13 +1,19 @@
 """Unit tests for curvature field metrics."""
 
+from pathlib import Path
+
 import jax
 import jax.numpy as jnp
 
+from brepax.io.step import read_step
 from brepax.metrics.curvature import (
     max_curvature,
     mean_curvature,
+    mean_curvature_per_face,
 )
 from brepax.primitives import Box, Plane, Sphere
+
+FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
 
 class TestMeanCurvature:
@@ -135,17 +141,10 @@ class TestMeanCurvaturePerFace:
 
     @staticmethod
     def _read(name: str):
-        from pathlib import Path
-
-        from brepax.io.step import read_step
-
-        fixtures_dir = Path(__file__).resolve().parents[2] / "fixtures"
-        return read_step(str(fixtures_dir / f"{name}.step"))
+        return read_step(str(FIXTURES / f"{name}.step"))
 
     def test_sample_box_all_planes_zero(self) -> None:
         """``sample_box`` is six plane faces; all mean curvatures = 0."""
-        from brepax.metrics.curvature import mean_curvature_per_face
-
         shape = self._read("sample_box")
         kappas, params = mean_curvature_per_face(shape)
         assert kappas.shape == (len(params),) == (6,)
@@ -159,8 +158,6 @@ class TestMeanCurvaturePerFace:
         (radius 3 from the fixture's bbox); read it from the params
         list rather than hard-coding.
         """
-        from brepax.metrics.curvature import mean_curvature_per_face
-
         shape = self._read("sample_sphere")
         kappas, params = mean_curvature_per_face(shape)
         assert len(params) == 1
@@ -174,8 +171,6 @@ class TestMeanCurvaturePerFace:
     def test_sample_cylinder_caps_zero_side_inv_2r(self) -> None:
         """``sample_cylinder`` has 2 plane caps + 1 cylinder side.
         Caps give H = 0, side gives H = 1 / (2 r)."""
-        from brepax.metrics.curvature import mean_curvature_per_face
-
         shape = self._read("sample_cylinder")
         kappas, params = mean_curvature_per_face(shape)
         assert len(params) == 3
@@ -199,8 +194,6 @@ class TestMeanCurvaturePerFace:
 
     def test_box_with_holes_planes_zero_holes_cylinder(self) -> None:
         """``box_with_holes`` has 6 box-plane faces + 2 cylinder hole faces."""
-        from brepax.metrics.curvature import mean_curvature_per_face
-
         shape = self._read("box_with_holes")
         kappas, params = mean_curvature_per_face(shape)
         n_planes = sum(1 for p in params if p["surface_type"] == "plane")
@@ -216,8 +209,6 @@ class TestMeanCurvaturePerFace:
     def test_unsupported_types_return_nan(self) -> None:
         """Cone, torus and BSpline faces return NaN until their
         analytical handlers are added."""
-        from brepax.metrics.curvature import mean_curvature_per_face
-
         # nurbs_box: 6 BSpline faces, all NaN.
         shape = self._read("nurbs_box")
         kappas, params = mean_curvature_per_face(shape)
@@ -233,8 +224,6 @@ class TestMeanCurvaturePerFace:
     def test_finite_or_nan_on_all_fixtures(self) -> None:
         """Smoke property: every per-face curvature is either finite
         non-negative or NaN on every fixture in the standard set."""
-        from brepax.metrics.curvature import mean_curvature_per_face
-
         fixtures = [
             "sample_box",
             "sample_cylinder",

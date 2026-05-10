@@ -585,6 +585,60 @@ def _dispatch_bspline_group(
     return out
 
 
+def per_face_geometric_params(shape: TopoDS_Shape) -> list[dict[str, Any]]:
+    """Per-face primitive parameters in OCCT face traversal order.
+
+    Walks each Solid's face exporer once and calls
+    :func:`_extract_face_geometric_params` for each face.  Returns
+    the same per-face dicts that :func:`triangulate_shape` puts in
+    its ``params_list`` (with ``surface_type`` included), but without
+    triggering ``BRepMesh_IncrementalMesh``, the JAX-side vertex
+    evaluation, or the cross-face concatenation that
+    :func:`triangulate_shape` performs.
+
+    Suited to face-level metrics that only need the analytical
+    primitive parameters (radius, axis, etc.) and not the
+    triangulation itself — for example,
+    :func:`~brepax.metrics.curvature.mean_curvature_per_face` reads
+    only ``surface_type`` and the primitive radii.
+
+    The returned ``params_list`` does not include ``n_triangles``
+    because no triangulation is performed.  Callers that need a
+    mesh as well should call :func:`triangulate_shape` directly.
+
+    Args:
+        shape: An OCCT topological shape.  Faces are iterated in the
+            same per-Solid order as :func:`triangulate_shape`.
+
+    Returns:
+        List of per-face parameter dicts; each dict has at least a
+        ``surface_type`` key and the analytical-primitive parameters
+        produced by :func:`_extract_face_geometric_params`.
+    """
+    face_sources: list[Any] = []
+    exp_solid = TopExp_Explorer(shape, TopAbs_SOLID)
+    while exp_solid.More():
+        face_sources.append(TopoDS.Solid_s(exp_solid.Current()))
+        exp_solid.Next()
+    if not face_sources:
+        face_sources.append(shape)
+
+    out: list[dict[str, Any]] = []
+    for source in face_sources:
+        exp = TopExp_Explorer(source, TopAbs_FACE)
+        while exp.More():
+            face = TopoDS.Face_s(exp.Current())
+            adaptor = BRepAdaptor_Surface(face)
+            result = _extract_face_geometric_params(adaptor)
+            if result is None:
+                exp.Next()
+                continue
+            surface_type, params = result
+            out.append({"surface_type": surface_type, **params})
+            exp.Next()
+    return out
+
+
 def triangulate_shape(
     shape: TopoDS_Shape,
     *,
@@ -1233,5 +1287,6 @@ __all__ = [
     "mesh_center_of_mass",
     "mesh_inertia_tensor",
     "mesh_surface_area",
+    "per_face_geometric_params",
     "triangulate_shape",
 ]

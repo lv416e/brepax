@@ -36,7 +36,7 @@ from jaxtyping import Array, Float
 
 from brepax._occt.types import TopoDS_Shape
 from brepax.brep.csg_eval import make_grid_3d
-from brepax.brep.triangulate import _DEFAULT_DEFLECTION, triangulate_shape
+from brepax.brep.triangulate import per_face_geometric_params
 
 
 def _newton_refine(
@@ -232,47 +232,52 @@ def _per_face_analytical_mean_curvature(
 
 def mean_curvature_per_face(
     shape: TopoDS_Shape,
-    *,
-    deflection: float = _DEFAULT_DEFLECTION,
 ) -> tuple[Float[Array, " n_faces"], list[dict[str, object]]]:
     """Analytical mean curvature for each face of a shape.
 
-    Tessellates ``shape`` once via
-    :func:`~brepax.brep.triangulate.triangulate_shape` so the call
-    stays in lockstep with :func:`surface_area_per_face` and
-    :func:`min_draft_angle_per_face`.  Each face's mean curvature is
-    then computed analytically from its primitive parameters: 0 for
-    plane, ``1 / r`` for sphere, ``1 / (2 r)`` for cylinder.  Cone,
-    torus and BSpline faces return ``NaN``; those handlers are
-    deferred to a follow-up PR because their mean curvature is not
-    constant across the face and a single representative value
-    requires either parametric integration or a face-centroid
-    convention that this PR does not yet pin.
+    Reads each face's primitive parameters via
+    :func:`~brepax.brep.triangulate.per_face_geometric_params` (an
+    OCCT face traversal that does not build a triangulation) and
+    computes the mean curvature analytically: 0 for plane, ``1 / r``
+    for sphere, ``1 / (2 r)`` for cylinder.  Cone, torus and BSpline
+    faces return ``NaN``; those handlers are deferred to a follow-up
+    PR because their mean curvature is not constant across the face
+    and a single representative value requires either parametric
+    integration or a face-centroid convention that this PR does not
+    yet pin.
+
+    Skipping the mesh build is what distinguishes this function from
+    :func:`surface_area_per_face` and :func:`min_draft_angle_per_face`,
+    which both need the actual triangle vertex array.  Analytical mean
+    curvature only depends on the primitive's parameters, so paying
+    for ``BRepMesh`` plus the JAX-side vertex evaluation would be
+    wasted work.
 
     Trim awareness is automatic: the per-face mean curvature is a
     property of the primitive surface, not its trim region, so the
     function reports the same value for any trimmed sub-region of
     the same surface.
 
-    Differentiability: the closed forms above flow through the
-    primitive's ``radius`` field, which is a JAX scalar populated by
-    :func:`~brepax.brep.convert._convert_*_face`.  ``jax.grad`` over
-    a per-face curvature sum gives finite gradients on the radius;
-    NaN faces have undefined gradient by construction.
+    Differentiability: the closed forms flow through the primitive's
+    ``radius`` field, which is a JAX scalar populated by
+    :func:`~brepax.brep.triangulate._extract_face_geometric_params`.
+    ``jax.grad`` over a per-face curvature sum gives finite gradients
+    on the radius; NaN faces have undefined gradient by construction.
 
     Args:
         shape: An OCCT topological shape.  Faces are iterated in the
             same per-Solid order as
             :func:`~brepax.brep.triangulate.triangulate_shape`.
-        deflection: Mesh deflection passed to OCCT BRepMesh.  Default
-            matches ``triangulate_shape``'s own default.
 
     Returns:
         Tuple ``(curvatures, params_list)`` where ``curvatures`` has
         shape ``(n_faces,)`` with the mean curvature for each face in
         traversal order (NaN for unsupported types), and
         ``params_list`` is the list returned by
-        :func:`~brepax.brep.triangulate.triangulate_shape`.
+        :func:`~brepax.brep.triangulate.per_face_geometric_params`
+        (each entry includes ``surface_type`` and the analytical
+        primitive parameters; no ``n_triangles`` because no
+        triangulation is performed).
 
     Examples:
         >>> import jax.numpy as jnp
@@ -284,7 +289,7 @@ def mean_curvature_per_face(
         >>> bool(jnp.all(kappas == 0.0))
         True
     """
-    _, params_list = triangulate_shape(shape, deflection=deflection)
+    params_list = per_face_geometric_params(shape)
     n_faces = len(params_list)
     if n_faces == 0:
         return jnp.zeros((0,)), params_list
