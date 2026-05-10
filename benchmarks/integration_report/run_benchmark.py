@@ -33,6 +33,7 @@ from brepax._occt.backend import TopAbs_SOLID
 from brepax._occt.types import TopoDS_Shape
 from brepax.brep.convert import shape_metadata
 from brepax.brep.csg_stump import (
+    CSGStump,
     reconstruct_csg_stump,
     stump_to_differentiable,
 )
@@ -99,9 +100,24 @@ def _measure(fn: Callable[[], Any]) -> tuple[float | None, float, str]:
 
 
 def measure_divergence(shape: TopoDS_Shape) -> VolumeResult:
-    triangles, _ = triangulate_shape(shape)
-    v, elapsed, note = _measure(lambda: divergence_volume(triangles))
-    return VolumeResult(v, None, elapsed, note)
+    """Time the full STEP-to-volume path: triangulate + integrate.
+
+    Wrapping the triangulation step in the same timer as the
+    integration keeps the per-row time comparable to the CSG paths,
+    which include their reconstruct cost.
+    """
+    t0 = time.perf_counter()
+    try:
+        triangles, _ = triangulate_shape(shape)
+    except Exception as exc:
+        return VolumeResult(
+            None,
+            None,
+            time.perf_counter() - t0,
+            f"triangulate: {type(exc).__name__}",
+        )
+    v, _, note = _measure(lambda: divergence_volume(triangles))
+    return VolumeResult(v, None, time.perf_counter() - t0, note)
 
 
 def _shape_grid_bounds(shape: TopoDS_Shape) -> tuple[jnp.ndarray, jnp.ndarray]:
@@ -121,38 +137,74 @@ def _shape_grid_bounds(shape: TopoDS_Shape) -> tuple[jnp.ndarray, jnp.ndarray]:
     return lo, hi
 
 
-def measure_csg_stump(shape: TopoDS_Shape, *, resolution: int) -> VolumeResult:
+@dataclass
+class _StumpHandle:
+    """Cached output of ``reconstruct_csg_stump``.
+
+    ``stump`` is ``None`` when reconstruction returned ``None`` or
+    raised; in that case ``note`` carries the reason.  ``elapsed_s`` is
+    the cost paid once for the shape and is added to *both* the CSG
+    and Trimmed-CSG measurement times so each row reflects the full
+    STEP-to-volume cost.
+    """
+
+    stump: CSGStump | None
+    elapsed_s: float
+    note: str
+
+
+def reconstruct_stump_cached(shape: TopoDS_Shape) -> _StumpHandle:
     t0 = time.perf_counter()
     try:
         stump = reconstruct_csg_stump(shape)
     except Exception as exc:
-        return VolumeResult(
-            None, None, time.perf_counter() - t0, f"reconstruct: {type(exc).__name__}"
+        return _StumpHandle(
+            None,
+            time.perf_counter() - t0,
+            f"reconstruct: {type(exc).__name__}",
         )
+    elapsed = time.perf_counter() - t0
     if stump is None:
-        return VolumeResult(None, None, time.perf_counter() - t0, "reconstruct: None")
-    diff = stump_to_differentiable(stump)
+        return _StumpHandle(None, elapsed, "reconstruct: None")
+    return _StumpHandle(stump, elapsed, "")
+
+
+def measure_csg_stump(
+    shape: TopoDS_Shape,
+    *,
+    resolution: int,
+    handle: _StumpHandle,
+) -> VolumeResult:
+    if handle.stump is None:
+        return VolumeResult(None, None, handle.elapsed_s, handle.note)
+    t0 = time.perf_counter()
+    diff = stump_to_differentiable(handle.stump)
     lo, hi = _shape_grid_bounds(shape)
     v, _, note = _measure(lambda: diff.volume(resolution=resolution, lo=lo, hi=hi))
-    return VolumeResult(v, None, time.perf_counter() - t0, note)
+    return VolumeResult(v, None, handle.elapsed_s + (time.perf_counter() - t0), note)
 
 
-def measure_trimmed_csg_stump(shape: TopoDS_Shape, *, resolution: int) -> VolumeResult:
+def measure_trimmed_csg_stump(
+    shape: TopoDS_Shape,
+    *,
+    resolution: int,
+    handle: _StumpHandle,
+) -> VolumeResult:
+    if handle.stump is None:
+        return VolumeResult(None, None, handle.elapsed_s, handle.note)
     t0 = time.perf_counter()
     try:
-        stump = reconstruct_csg_stump(shape)
-        if stump is None:
-            return VolumeResult(
-                None, None, time.perf_counter() - t0, "reconstruct: None"
-            )
-        trimmed = enrich_with_trim_frames(stump, shape)
+        trimmed = enrich_with_trim_frames(handle.stump, shape)
     except Exception as exc:
         return VolumeResult(
-            None, None, time.perf_counter() - t0, f"enrich: {type(exc).__name__}"
+            None,
+            None,
+            handle.elapsed_s + (time.perf_counter() - t0),
+            f"enrich: {type(exc).__name__}",
         )
     lo, hi = _shape_grid_bounds(shape)
     v, _, note = _measure(lambda: trimmed.volume(resolution=resolution, lo=lo, hi=hi))
-    return VolumeResult(v, None, time.perf_counter() - t0, note)
+    return VolumeResult(v, None, handle.elapsed_s + (time.perf_counter() - t0), note)
 
 
 def _coverage_cell(values: jnp.ndarray) -> CoverageCell:
@@ -418,8 +470,13 @@ def main() -> None:
                 csg = VolumeResult(None, None, 0.0, "skipped")
                 trim = VolumeResult(None, None, 0.0, "skipped")
             else:
-                csg = measure_csg_stump(shape, resolution=args.resolution)
-                trim = measure_trimmed_csg_stump(shape, resolution=args.resolution)
+                handle = reconstruct_stump_cached(shape)
+                csg = measure_csg_stump(
+                    shape, resolution=args.resolution, handle=handle
+                )
+                trim = measure_trimmed_csg_stump(
+                    shape, resolution=args.resolution, handle=handle
+                )
 
             volume_rows.append(
                 {
