@@ -294,10 +294,7 @@ def mean_curvature_per_face(
     if n_faces == 0:
         return jnp.zeros((0,)), params_list
     kappas = jnp.stack(
-        [
-            _per_face_analytical_mean_curvature(str(p["surface_type"]), p)
-            for p in params_list
-        ]
+        [_per_face_analytical_mean_curvature(p["surface_type"], p) for p in params_list]
     )
     return kappas, params_list
 
