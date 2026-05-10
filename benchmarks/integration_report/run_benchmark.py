@@ -383,6 +383,12 @@ def render_report(
 
     for row in volume_rows:
         notes: list[str] = []
+        # Row-level note (e.g. shell fixture) renders once, without
+        # prefixing it with any single path key — the constraint
+        # applies to every volume path on this row, not just the
+        # first.
+        if row.get("shape_note"):
+            notes.append(row["shape_note"])
         for key, _ in path_keys:
             n = row[key].note
             if n:
@@ -550,7 +556,8 @@ def main() -> None:
                 {
                     "fixture": name,
                     "occt_volume": occt_volume,
-                    "divergence": VolumeResult(None, None, 0.0, shell_note),
+                    "shape_note": shell_note,
+                    "divergence": VolumeResult(None, None, 0.0, ""),
                     "mesh_sdf": VolumeResult(None, None, 0.0, ""),
                     "gwn": VolumeResult(None, None, 0.0, ""),
                     "csg_stump": VolumeResult(None, None, 0.0, ""),
