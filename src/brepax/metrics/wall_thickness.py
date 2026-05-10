@@ -254,7 +254,19 @@ def min_wall_thickness_per_face(
     *,
     deflection: float = _DEFAULT_DEFLECTION,
 ) -> tuple[Float[Array, " n_faces"], list[dict[str, object]]]:
-    """Per-face minimum wall thickness from each face's centroid.
+    """Per-face minimum wall thickness from each face's centroid
+    (centroid-based approximation, not manufacturing-grade minimum).
+
+    This is a single-sample-per-face estimator: it samples one point
+    per face (the centroid of that face's triangle vertices) and
+    measures the distance to the nearest triangle on any other face.
+    A true manufacturing-grade minimum wall thickness would sample
+    every point on each face (or a dense covering) and take the
+    pointwise minimum, which would also catch local thinning at face
+    edges, ribs, fillets, and small features that the single
+    centroid sample is blind to.  Use this metric for DFM screening
+    on smooth, near-uniform faces; do not use it as a release-gate
+    minimum on geometry with sharp local thinning.
 
     Tessellates ``shape`` once via
     :func:`~brepax.brep.triangulate.triangulate_shape`, computes the
