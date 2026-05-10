@@ -1,8 +1,8 @@
-"""Differentiable wall thickness metrics via SDF grid integration.
+"""Differentiable wall thickness metrics.
 
 For a proper signed distance field, the absolute value at any interior
-point equals the distance to the nearest surface boundary.  This module
-provides two complementary metrics built on that property:
+point equals the distance to the nearest surface boundary.  Two
+SDF-grid paths are exposed for global descriptors:
 
 - :func:`thin_wall_volume` counts the volume of material closer to a
   surface than a given threshold -- directly useful as a DFM constraint
@@ -10,8 +10,17 @@ provides two complementary metrics built on that property:
 - :func:`min_wall_thickness` estimates the minimum wall thickness as a
   differentiable scalar via soft-minimum over interior SDF values.
 
-Both integrate the same sigmoid framework used by volume and surface area
-metrics, with sharpness ``1 / cell_width``.
+Both integrate the same sigmoid framework used by volume and surface
+area metrics, with sharpness ``1 / cell_width``.
+
+A face-level mesh path is also exposed:
+
+- :func:`min_wall_thickness_per_face` returns, for each face, the
+  minimum distance from that face's centroid to triangles on every
+  *other* face.  Trim awareness is delegated to OCCT BRepMesh (the
+  triangulation only covers the trimmed region of each face).  The
+  metric is well-defined even when faces share edges because the
+  sample point is the per-face centroid, not the boundary triangles.
 """
 
 from __future__ import annotations
@@ -22,7 +31,10 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from brepax._occt.types import TopoDS_Shape
 from brepax.brep.csg_eval import make_grid_3d
+from brepax.brep.mesh_sdf import point_triangle_distance
+from brepax.brep.triangulate import _DEFAULT_DEFLECTION, triangulate_shape
 
 
 def integrate_sdf_thin_wall_volume(
@@ -237,9 +249,127 @@ def min_wall_thickness(
     return 2.0 * refined_dist
 
 
+def min_wall_thickness_per_face(
+    shape: TopoDS_Shape,
+    *,
+    deflection: float = _DEFAULT_DEFLECTION,
+) -> tuple[Float[Array, " n_faces"], list[dict[str, object]]]:
+    """Per-face minimum wall thickness from each face's centroid.
+
+    Tessellates ``shape`` once via
+    :func:`~brepax.brep.triangulate.triangulate_shape`, computes the
+    centroid of each face's triangle slice, and returns the distance
+    from that centroid to the nearest triangle on **any other face**.
+    The "other" qualifier matters: a centroid sampled on face F is by
+    construction at distance zero from F's own triangles, so the
+    self-face distance is uninteresting; the per-other-face minimum
+    is the metric of practical interest for DFM.
+
+    A face whose triangles share edges with adjacent faces has
+    boundary triangles arbitrarily close to those neighbours.
+    Sampling at the face *centroid* (mean of all the face's
+    triangle vertices) keeps the sample point off the boundary and
+    produces a stable wall-thickness estimate.  For an axis-aligned
+    box of half-extents ``(a, b, c)``, this gives ``min(b, c)`` for
+    each ``+/- x`` face, ``min(a, c)`` for each ``+/- y`` face, and
+    ``min(a, b)`` for each ``+/- z`` face — the half-extent of the
+    nearest perpendicular face pair.
+
+    Trim awareness is delegated to OCCT BRepMesh: the triangulation
+    only covers the trimmed region of each face, so the centroid and
+    the cross-face distance both respect trim.  Differentiability is
+    inherited from :func:`~brepax.brep.mesh_sdf.point_triangle_distance`,
+    which is differentiable through triangle vertex positions.
+
+    Single-face shapes (e.g. one full sphere) have no "other face",
+    so the returned thickness is ``+inf`` for that slot — an honest
+    "no other surface to measure to" signal rather than 0.
+
+    Args:
+        shape: An OCCT topological shape.  Faces are iterated in the
+            same per-Solid order as
+            :func:`~brepax.brep.triangulate.triangulate_shape`.
+        deflection: Mesh deflection passed to OCCT BRepMesh.  Default
+            matches ``triangulate_shape``'s own default.
+
+    Returns:
+        Tuple ``(thicknesses, params_list)`` where ``thicknesses`` has
+        shape ``(n_faces,)`` with the per-face min wall thickness in
+        traversal order (``+inf`` if there is no other face), and
+        ``params_list`` is the list returned by
+        :func:`~brepax.brep.triangulate.triangulate_shape`.
+
+    Examples:
+        >>> import jax.numpy as jnp
+        >>> from brepax._occt.backend import BRepPrimAPI_MakeBox
+        >>> from brepax.metrics.wall_thickness import min_wall_thickness_per_face
+        >>> shape = BRepPrimAPI_MakeBox(1.0, 2.0, 3.0).Shape()
+        >>> thicknesses, _ = min_wall_thickness_per_face(shape)
+        >>> # 6 faces; the +/- x faces give half(min(2,3))=1, the
+        >>> # +/- y faces give half(min(1,3))=0.5, the +/- z faces
+        >>> # give half(min(1,2))=0.5 — counted at the face centroid.
+        >>> bool(jnp.all(thicknesses > 0))
+        True
+    """
+    triangles, params_list = triangulate_shape(shape, deflection=deflection)
+    n_faces = len(params_list)
+    if n_faces == 0:
+        return jnp.zeros((0,)), params_list
+
+    # Per-face triangle slice offsets.  Python ints stay on the host;
+    # ``triangles[a:b]`` is differentiable through the slice.
+    n_tris_py: list[int] = [int(p["n_triangles"]) for p in params_list]
+    offsets_py: list[int] = [0]
+    for n in n_tris_py:
+        offsets_py.append(offsets_py[-1] + n)
+
+    def _per_centroid_min_other_face_dist(
+        centroid: Float[Array, 3],
+        others: Float[Array, "m 3 3"],
+    ) -> Float[Array, ""]:
+        per_tri = jax.vmap(
+            lambda t: point_triangle_distance(centroid, t[0], t[1], t[2])
+        )(others)
+        return jnp.min(per_tri)
+
+    thicknesses_per_face: list[Float[Array, ""]] = []
+    for i in range(n_faces):
+        a = offsets_py[i]
+        b = a + n_tris_py[i]
+        face_tris = triangles[a:b]
+        # Face centroid: mean of all triangle vertices on F.  Off the
+        # boundary by construction, so distance to neighbouring faces
+        # is not contaminated by the shared-edge artifact.
+        centroid = jnp.mean(face_tris.reshape(-1, 3), axis=0)
+
+        # Other-face triangles: everything outside the [a, b) slice.
+        # ``jnp.concatenate`` of two slices of the same flat array is
+        # cheap and stays differentiable.
+        if a == 0:
+            others = triangles[b:]
+        elif b == triangles.shape[0]:
+            others = triangles[:a]
+        else:
+            others = jnp.concatenate(
+                [triangles[:a], triangles[b:]],
+                axis=0,
+            )
+
+        if others.shape[0] == 0:
+            # Single-face shape: no other surface to measure against.
+            thicknesses_per_face.append(jnp.asarray(jnp.inf))
+        else:
+            thicknesses_per_face.append(
+                _per_centroid_min_other_face_dist(centroid, others)
+            )
+
+    return jnp.stack(thicknesses_per_face), params_list
+
+
 __all__ = [
     "integrate_sdf_min_wall_thickness",
     "integrate_sdf_thin_wall_volume",
     "min_wall_thickness",
+    "min_wall_thickness_per_face",
     "thin_wall_volume",
 ]
