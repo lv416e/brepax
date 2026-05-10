@@ -270,10 +270,11 @@ def min_wall_thickness_per_face(
     Sampling at the face *centroid* (mean of all the face's
     triangle vertices) keeps the sample point off the boundary and
     produces a stable wall-thickness estimate.  For an axis-aligned
-    box of half-extents ``(a, b, c)``, this gives ``min(b, c)`` for
-    each ``+/- x`` face, ``min(a, c)`` for each ``+/- y`` face, and
-    ``min(a, b)`` for each ``+/- z`` face — the half-extent of the
-    nearest perpendicular face pair.
+    box of half-extents ``(a, b, c)``, this gives ``min(2*a, b, c)``
+    for each ``+/- x`` face, ``min(a, 2*b, c)`` for each ``+/- y``
+    face, and ``min(a, b, 2*c)`` for each ``+/- z`` face — the minimum
+    of the distance to the opposite face and the half-extents of the
+    perpendicular dimensions.
 
     Trim awareness is delegated to OCCT BRepMesh: the triangulation
     only covers the trimmed region of each face, so the centroid and
@@ -305,9 +306,10 @@ def min_wall_thickness_per_face(
         >>> from brepax.metrics.wall_thickness import min_wall_thickness_per_face
         >>> shape = BRepPrimAPI_MakeBox(1.0, 2.0, 3.0).Shape()
         >>> thicknesses, _ = min_wall_thickness_per_face(shape)
-        >>> # 6 faces; the +/- x faces give half(min(2,3))=1, the
-        >>> # +/- y faces give half(min(1,3))=0.5, the +/- z faces
-        >>> # give half(min(1,2))=0.5 — counted at the face centroid.
+        >>> # 6 faces; for half-extents (0.5, 1.0, 1.5) the +/- x
+        >>> # faces give min(2*0.5, 1.0, 1.5)=1.0, the +/- y faces
+        >>> # give min(0.5, 2*1.0, 1.5)=0.5, the +/- z faces give
+        >>> # min(0.5, 1.0, 2*1.5)=0.5 — counted at the face centroid.
         >>> bool(jnp.all(thicknesses > 0))
         True
     """
@@ -336,6 +338,14 @@ def min_wall_thickness_per_face(
     for i in range(n_faces):
         a = offsets_py[i]
         b = a + n_tris_py[i]
+        if n_tris_py[i] == 0:
+            # Degenerate face that BRepMesh failed to triangulate: no
+            # centroid to sample from.  Return the same +inf sentinel
+            # used for the structurally analogous "no other surface"
+            # case so callers can still distinguish missing-data from
+            # a real numeric blowup.
+            thicknesses_per_face.append(jnp.asarray(jnp.inf))
+            continue
         face_tris = triangles[a:b]
         # Face centroid: mean of all triangle vertices on F.  Off the
         # boundary by construction, so distance to neighbouring faces
