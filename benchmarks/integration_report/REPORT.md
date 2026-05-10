@@ -8,24 +8,26 @@ Volume paths use a sigmoid grid integration at `resolution=32` (per-axis cell co
 
 ## Volume accuracy
 
-| Fixture | OCCT (ref) | divergence | div err | div t | CSG-Stump | csg err | csg t | TrimmedCSG | trim err | trim t | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| `sample_box` | 6000.0000 | 6000.0000 | 0.00% | 0.74s | 5689.5962 | 5.17% | 2.02s | 5689.5962 | 5.17% | 0.95s |  |
-| `sample_cylinder` | 1178.0972 | 1176.5602 | 0.13% | 0.90s | 1186.0311 | 0.67% | 1.35s | 1186.0311 | 0.67% | 1.89s |  |
-| `sample_sphere` | 113.0973 | 112.5589 | 0.48% | 0.59s | 118.4262 | 4.71% | 0.31s | 118.4262 | 4.71% | 0.32s |  |
-| `sample_cone` | 54.9779 | 54.6540 | 0.59% | 0.72s | 60.8456 | 10.67% | 1.02s | 60.8456 | 10.67% | 0.97s |  |
-| `sample_torus` | 222.0661 | 220.6733 | 0.63% | 0.59s | 242.5633 | 9.23% | 0.02s | 242.5633 | 9.23% | 0.07s |  |
-| `box_with_holes` | 22429.2037 | 22432.0938 | 0.01% | 0.90s | 20692.2324 | 7.74% | 0.38s | 20692.2324 | 7.74% | 0.40s |  |
-| `box_with_pocket` | 23214.6018 | 23215.6230 | 0.00% | 0.70s | 20293.1797 | 12.58% | 0.17s | 20293.1797 | 12.58% | 0.20s |  |
-| `box_with_slot` | 20800.0000 | 20800.0000 | 0.00% | 0.69s | 17470.7598 | 16.01% | 1.00s | 17470.7598 | 16.01% | 0.90s |  |
-| `l_bracket` | 12000.0000 | 12000.0000 | 0.00% | 0.37s | 11025.0674 | 8.12% | 1.11s | 11025.0674 | 8.12% | 1.14s |  |
-| `nurbs_box` | 480.0000 | 480.0000 | 0.00% | 0.42s | 481.2568 | 0.26% | 24.14s | 481.2568 | 0.26% | 40.38s |  |
-| `nurbs_revol` | 40.8856 | — | — | 0.00s | — | — | 0.00s | — | — | 0.00s | div: shell (volume paths require closed solid) |
-| `nurbs_saddle` | -0.0000 | — | — | 0.00s | — | — | 0.00s | — | — | 0.00s | div: shell (volume paths require closed solid) |
+| Fixture | OCCT (ref) | divergence | mesh_sdf | gwn | CSG-Stump | TrimmedCSG | timings (s) | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `sample_box` | 6000.0000 | 6000.0000 (0.00%) | 5689.0195 (5.18%) | 5900.4824 (1.66%) | 5689.5962 (5.17%) | 5689.5962 (5.17%) | divergence=0.99 mesh_sdf=2.08 gwn=0.46 csg_stump=2.03 trimmed_csg=1.73 |  |
+| `sample_cylinder` | 1178.0972 | 1176.5602 (0.13%) | 1184.0016 (0.50%) | 1164.7401 (1.13%) | 1186.0311 (0.67%) | 1186.0311 (0.67%) | divergence=3.14 mesh_sdf=1.26 gwn=0.42 csg_stump=2.20 trimmed_csg=1.96 |  |
+| `sample_sphere` | 113.0973 | 112.5589 (0.48%) | 117.7642 (4.13%) | 111.8235 (1.13%) | 118.4262 (4.71%) | 118.4262 (4.71%) | divergence=0.90 mesh_sdf=11.97 gwn=3.15 csg_stump=0.34 trimmed_csg=0.45 |  |
+| `sample_cone` | 54.9779 | 54.6540 (0.59%) | 60.3504 (9.77%) | 56.6688 (3.08%) | 60.8456 (10.67%) | 60.8456 (10.67%) | divergence=1.25 mesh_sdf=3.59 gwn=0.98 csg_stump=1.61 trimmed_csg=1.55 |  |
+| `sample_torus` | 222.0661 | 220.6733 (0.63%) | 241.2626 (8.64%) | 221.0463 (0.46%) | 242.5633 (9.23%) | 242.5633 (9.23%) | divergence=1.02 mesh_sdf=18.42 gwn=6.45 csg_stump=0.03 trimmed_csg=0.11 |  |
+| `box_with_holes` | 22429.2037 | 22432.0938 (0.01%) | 20694.4512 (7.73%) | 21917.6699 (2.28%) | 20692.2324 (7.74%) | 20692.2324 (7.74%) | divergence=1.34 mesh_sdf=3.30 gwn=0.63 csg_stump=0.38 trimmed_csg=0.46 |  |
+| `box_with_pocket` | 23214.6018 | 23215.6230 (0.00%) | 21492.3789 (7.42%) | 22700.0762 (2.22%) | 20293.1797 (12.58%) | 20293.1797 (12.58%) | divergence=1.05 mesh_sdf=1.46 gwn=0.39 csg_stump=0.16 trimmed_csg=0.18 |  |
+| `box_with_slot` | 20800.0000 | 20800.0000 (0.00%) | 19218.2852 (7.60%) | 20331.0352 (2.25%) | 17470.7598 (16.01%) | 17470.7598 (16.01%) | divergence=0.66 mesh_sdf=0.50 gwn=0.18 csg_stump=0.69 trimmed_csg=0.63 |  |
+| `l_bracket` | 12000.0000 | 12000.0000 (0.00%) | 11267.1504 (6.11%) | 11729.4434 (2.25%) | 11025.0674 (8.12%) | 11025.0674 (8.12%) | divergence=0.19 mesh_sdf=0.60 gwn=0.15 csg_stump=0.50 trimmed_csg=0.76 |  |
+| `nurbs_box` | 480.0000 | 480.0000 (0.00%) | 481.2567 (0.26%) | 497.4170 (3.63%) | 481.2568 (0.26%) | 481.2568 (0.26%) | divergence=0.67 mesh_sdf=0.45 gwn=0.30 csg_stump=41.47 trimmed_csg=44.93 |  |
+| `nurbs_revol` | 40.8856 | — | — | — | — | — | divergence=0.00 mesh_sdf=0.00 gwn=0.00 csg_stump=0.00 trimmed_csg=0.00 | divergence: shell (volume paths require closed solid) |
+| `nurbs_saddle` | -0.0000 | — | — | — | — | — | divergence=0.00 mesh_sdf=0.00 gwn=0.00 csg_stump=0.00 trimmed_csg=0.00 | divergence: shell (volume paths require closed solid) |
 
 **How to read this table.**
 
 - `divergence` is the mesh divergence-theorem volume (Stokes' theorem on the BRepMesh tessellation).  Differentiable through triangle vertex positions.  Strongest production path.
+- `mesh_sdf` is the mesh-based signed distance field (unsigned distance to the nearest triangle, signed by generalized winding number) integrated with a sigmoid indicator on the same grid as the CSG paths.  Differentiable through triangle vertex positions and the sigmoid integrator.
+- `gwn` is the generalized-winding-number indicator integrated directly: ``sigmoid((wn - 0.5) * GWN_SHARPNESS)`` summed over the grid.  Sharpness is fixed at module level (the field is dimensionless 0..1, so the cell-width-based sharpness used by the SDF integrators is not appropriate here).  This single fixed configuration is one operating point; sweeping sharpness / resolution / mesh deflection is out of scope for this PR.
 - `CSG-Stump` is the analytical primitive DNF, integrated with a sigmoid indicator.  Differentiable through primitive parameters.  Bounded by the BSpline half-space limitation (see `project_bspline_halfspace.md` in memory; concretely the CSG-Stump DNF cannot consume a finite trimmed BSpline patch as a half-space ingredient — ADR-0019, ADR-0020).
 - `TrimmedCSGStump` carries per-face trim metadata for standalone trimmed-face SDF queries; on the DNF path it is **bit-equivalent** to `DifferentiableCSGStump` per ADR-0019 / ADR-0020.  Equality of the `csg` and `trim` columns is the expected outcome.
 

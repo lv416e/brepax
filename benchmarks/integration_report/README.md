@@ -27,8 +27,10 @@ uv run python -m benchmarks.integration_report.run_benchmark \
 
 ## What it measures
 
-- **Volume accuracy** — three BRepAX paths versus OCCT BRepGProp's
-  analytic surface-integral quadrature.
+- **Volume accuracy** — five BRepAX paths versus OCCT BRepGProp's
+  analytic surface-integral quadrature: `divergence_volume`,
+  `mesh_sdf`, `gwn` (generalized winding number indicator),
+  `DifferentiableCSGStump.volume`, and `TrimmedCSGStump.volume`.
 - **Per-face metric coverage** — finite / NaN / inf counts for the
   four metrics shipped in PR #81-#84.
 
