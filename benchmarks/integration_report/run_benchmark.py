@@ -1,10 +1,16 @@
 """Reproducible integration benchmark report.
 
-Measures the BRepAX volume paths (mesh divergence theorem, CSG-Stump
-DNF grid integration, trimmed CSG-Stump grid integration) against
-OCCT BRepGProp on the project's standard STEP fixture set, and reports
-the per-fixture coverage of the four trim-aware face-level metrics
-shipped in PR #81-#84.
+Measures the BRepAX volume paths against OCCT BRepGProp on the
+project's standard STEP fixture set:
+
+- ``divergence_volume`` (mesh divergence theorem on BRepMesh)
+- ``mesh_sdf`` (mesh signed distance + sigmoid grid integration)
+- ``gwn`` (generalized winding number indicator + grid integration)
+- ``DifferentiableCSGStump.volume`` (analytical primitive DNF + sigmoid)
+- ``TrimmedCSGStump.volume`` (same DNF, ADR-0019/0020 bit-equivalent)
+
+and reports the per-fixture coverage of the four trim-aware face-level
+metrics shipped in PR #81-#84.
 
 Run:
     uv run python -m benchmarks.integration_report.run_benchmark
@@ -27,19 +33,23 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import jax
 import jax.numpy as jnp
 
 from brepax._occt.backend import TopAbs_SOLID
 from brepax._occt.types import TopoDS_Shape
 from brepax.brep.convert import shape_metadata
+from brepax.brep.csg_eval import integrate_sdf_volume, make_grid_3d
 from brepax.brep.csg_stump import (
     CSGStump,
     reconstruct_csg_stump,
     stump_to_differentiable,
 )
 from brepax.brep.gprop import compute_gprop_ground_truth
+from brepax.brep.mesh_sdf import mesh_sdf
 from brepax.brep.triangulate import divergence_volume, triangulate_shape
 from brepax.brep.trimmed_csg_stump import enrich_with_trim_frames
+from brepax.brep.winding import winding_number
 from brepax.io.step import read_step
 from brepax.metrics import (
     mean_curvature_per_face,
@@ -70,6 +80,8 @@ FIXTURES: tuple[str, ...] = (
 
 VOLUME_RESOLUTION = 32
 MOLD_DIRECTION = jnp.array([0.0, 0.0, 1.0])
+GWN_SHARPNESS = 32.0  # sigmoid sharpness around the wn=0.5 threshold
+GWN_CHUNK_SIZE = 1024  # winding-number evaluation chunk on the grid
 
 
 @dataclass
@@ -99,6 +111,18 @@ def _measure(fn: Callable[[], Any]) -> tuple[float | None, float, str]:
         return None, time.perf_counter() - t0, msg
 
 
+def _triangulate_or_none(
+    shape: TopoDS_Shape,
+) -> tuple[jnp.ndarray | None, str]:
+    try:
+        triangles, _ = triangulate_shape(shape)
+    except Exception as exc:
+        return None, f"triangulate: {type(exc).__name__}"
+    if triangles.shape[0] == 0:
+        return None, "no triangles"
+    return triangles, ""
+
+
 def measure_divergence(shape: TopoDS_Shape) -> VolumeResult:
     """Time the full STEP-to-volume path: triangulate + integrate.
 
@@ -107,16 +131,72 @@ def measure_divergence(shape: TopoDS_Shape) -> VolumeResult:
     which include their reconstruct cost.
     """
     t0 = time.perf_counter()
-    try:
-        triangles, _ = triangulate_shape(shape)
-    except Exception as exc:
-        return VolumeResult(
-            None,
-            None,
-            time.perf_counter() - t0,
-            f"triangulate: {type(exc).__name__}",
-        )
+    triangles, note = _triangulate_or_none(shape)
+    if triangles is None:
+        return VolumeResult(None, None, time.perf_counter() - t0, note)
     v, _, note = _measure(lambda: divergence_volume(triangles))
+    return VolumeResult(v, None, time.perf_counter() - t0, note)
+
+
+def measure_mesh_sdf(shape: TopoDS_Shape, *, resolution: int) -> VolumeResult:
+    """Mesh SDF volume: signed distance on a grid + sigmoid integration.
+
+    Differentiable through triangle vertex positions (the SDF chain) and
+    through the sigmoid integrator, identical in shape to the CSG-Stump
+    grid path so the bias source can be compared directly.
+    """
+    t0 = time.perf_counter()
+    triangles, note = _triangulate_or_none(shape)
+    if triangles is None:
+        return VolumeResult(None, None, time.perf_counter() - t0, note)
+    lo, hi = _shape_grid_bounds(shape)
+
+    def _eval() -> jnp.ndarray:
+        grid, _ = make_grid_3d(lo, hi, resolution)
+        flat = grid.reshape(-1, 3)
+        sdf_vals = mesh_sdf(flat, triangles)
+        return integrate_sdf_volume(sdf_vals, lo, hi, resolution)
+
+    v, _, note = _measure(_eval)
+    return VolumeResult(v, None, time.perf_counter() - t0, note)
+
+
+def measure_gwn(shape: TopoDS_Shape, *, resolution: int) -> VolumeResult:
+    """GWN volume: winding-number indicator on a grid + integration.
+
+    GWN ~= 1 inside a closed mesh, ~= 0 outside; integrating
+    ``sigmoid((wn - 0.5) * GWN_SHARPNESS)`` over the grid recovers the
+    interior volume.  Sharpness is fixed at module level so the run
+    is reproducible across fixtures (the field is dimensionless 0..1,
+    so the cell-width-based sharpness used by ``integrate_sdf_volume``
+    is not appropriate here).
+    """
+    t0 = time.perf_counter()
+    triangles, note = _triangulate_or_none(shape)
+    if triangles is None:
+        return VolumeResult(None, None, time.perf_counter() - t0, note)
+    lo, hi = _shape_grid_bounds(shape)
+
+    def _eval() -> jnp.ndarray:
+        grid, cell_vol = make_grid_3d(lo, hi, resolution)
+        flat = grid.reshape(-1, 3)
+        n = flat.shape[0]
+        # Pad to a multiple of GWN_CHUNK_SIZE so lax.map sees static
+        # shapes while we cap the per-step memory footprint.
+        rem = n % GWN_CHUNK_SIZE
+        pad = 0 if rem == 0 else GWN_CHUNK_SIZE - rem
+        padded = jnp.pad(flat, ((0, pad), (0, 0)))
+        chunks = padded.reshape(-1, GWN_CHUNK_SIZE, 3)
+
+        def _chunk(c: jnp.ndarray) -> jnp.ndarray:
+            return jax.vmap(lambda p: winding_number(p, triangles))(c)
+
+        wn_padded = jax.lax.map(_chunk, chunks).reshape(-1)
+        wn = wn_padded[:n]
+        indicator = jax.nn.sigmoid((wn - 0.5) * GWN_SHARPNESS)
+        return jnp.sum(indicator) * cell_vol
+
+    v, _, note = _measure(_eval)
     return VolumeResult(v, None, time.perf_counter() - t0, note)
 
 
@@ -246,10 +326,6 @@ def _format_value(v: float | None) -> str:
     return f"{v:.4f}" if v is not None else "—"
 
 
-def _format_time(s: float) -> str:
-    return f"{s:.2f}s"
-
-
 def render_report(
     volume_rows: list[dict],
     coverage_rows: list[dict],
@@ -284,44 +360,49 @@ def render_report(
     )
     lines.append("")
 
-    # Volume table
+    # Volume table — one row per fixture, one column per path showing
+    # "value (err%)".  A separate timings column carries per-path
+    # wall-clock seconds; notes carry any per-path failure/skip note.
     lines.append("## Volume accuracy")
     lines.append("")
-    lines.append(
-        "| Fixture | OCCT (ref) | divergence | div err | div t | "
-        "CSG-Stump | csg err | csg t | TrimmedCSG | trim err | trim t | Notes |"
+    path_keys = (
+        ("divergence", "divergence"),
+        ("mesh_sdf", "mesh_sdf"),
+        ("gwn", "gwn"),
+        ("csg_stump", "CSG-Stump"),
+        ("trimmed_csg", "TrimmedCSG"),
     )
-    lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
+    header_paths = " | ".join(label for _, label in path_keys)
+    lines.append(f"| Fixture | OCCT (ref) | {header_paths} | timings (s) | Notes |")
+    lines.append("|---|---|" + "|".join("---" for _ in path_keys) + "|---|---|")
+
+    def _path_cell(result: VolumeResult, ref: float) -> str:
+        if result.value is None:
+            return "—"
+        return f"{_format_value(result.value)} ({_format_pct(result.value, ref)})"
+
     for row in volume_rows:
         notes: list[str] = []
-        for label, key in (
-            ("div", "divergence"),
-            ("csg", "csg_stump"),
-            ("trim", "trimmed_csg"),
-        ):
+        # Row-level note (e.g. shell fixture) renders once, without
+        # prefixing it with any single path key — the constraint
+        # applies to every volume path on this row, not just the
+        # first.
+        if row.get("shape_note"):
+            notes.append(row["shape_note"])
+        for key, _ in path_keys:
             n = row[key].note
             if n:
-                notes.append(f"{label}: {n}")
-        lines.append(
-            "| "
-            + " | ".join(
-                [
-                    f"`{row['fixture']}`",
-                    f"{row['occt_volume']:.4f}",
-                    _format_value(row["divergence"].value),
-                    _format_pct(row["divergence"].value, row["occt_volume"]),
-                    _format_time(row["divergence"].elapsed_s),
-                    _format_value(row["csg_stump"].value),
-                    _format_pct(row["csg_stump"].value, row["occt_volume"]),
-                    _format_time(row["csg_stump"].elapsed_s),
-                    _format_value(row["trimmed_csg"].value),
-                    _format_pct(row["trimmed_csg"].value, row["occt_volume"]),
-                    _format_time(row["trimmed_csg"].elapsed_s),
-                    "; ".join(notes) if notes else "",
-                ]
-            )
-            + " |"
-        )
+                notes.append(f"{key}: {n}")
+        timing_str = " ".join(f"{key}={row[key].elapsed_s:.2f}" for key, _ in path_keys)
+        cells = [
+            f"`{row['fixture']}`",
+            f"{row['occt_volume']:.4f}",
+        ]
+        for key, _ in path_keys:
+            cells.append(_path_cell(row[key], row["occt_volume"]))
+        cells.append(timing_str)
+        cells.append("; ".join(notes) if notes else "")
+        lines.append("| " + " | ".join(cells) + " |")
     lines.append("")
     lines.append("**How to read this table.**")
     lines.append("")
@@ -329,6 +410,22 @@ def render_report(
         "- `divergence` is the mesh divergence-theorem volume (Stokes' "
         "theorem on the BRepMesh tessellation).  Differentiable through "
         "triangle vertex positions.  Strongest production path."
+    )
+    lines.append(
+        "- `mesh_sdf` is the mesh-based signed distance field "
+        "(unsigned distance to the nearest triangle, signed by "
+        "generalized winding number) integrated with a sigmoid "
+        "indicator on the same grid as the CSG paths.  Differentiable "
+        "through triangle vertex positions and the sigmoid integrator."
+    )
+    lines.append(
+        "- `gwn` is the generalized-winding-number indicator integrated "
+        "directly: ``sigmoid((wn - 0.5) * GWN_SHARPNESS)`` summed over "
+        "the grid.  Sharpness is fixed at module level (the field is "
+        "dimensionless 0..1, so the cell-width-based sharpness used by "
+        "the SDF integrators is not appropriate here).  This single "
+        "fixed configuration is one operating point; sweeping sharpness "
+        "/ resolution / mesh deflection is out of scope for this PR."
     )
     lines.append(
         "- `CSG-Stump` is the analytical primitive DNF, integrated with "
@@ -459,13 +556,18 @@ def main() -> None:
                 {
                     "fixture": name,
                     "occt_volume": occt_volume,
-                    "divergence": VolumeResult(None, None, 0.0, shell_note),
+                    "shape_note": shell_note,
+                    "divergence": VolumeResult(None, None, 0.0, ""),
+                    "mesh_sdf": VolumeResult(None, None, 0.0, ""),
+                    "gwn": VolumeResult(None, None, 0.0, ""),
                     "csg_stump": VolumeResult(None, None, 0.0, ""),
                     "trimmed_csg": VolumeResult(None, None, 0.0, ""),
                 }
             )
         else:
             div = measure_divergence(shape)
+            mesh = measure_mesh_sdf(shape, resolution=args.resolution)
+            gwn = measure_gwn(shape, resolution=args.resolution)
             if args.skip_csg:
                 csg = VolumeResult(None, None, 0.0, "skipped")
                 trim = VolumeResult(None, None, 0.0, "skipped")
@@ -483,6 +585,8 @@ def main() -> None:
                     "fixture": name,
                     "occt_volume": occt_volume,
                     "divergence": div,
+                    "mesh_sdf": mesh,
+                    "gwn": gwn,
                     "csg_stump": csg,
                     "trimmed_csg": trim,
                 }
