@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.6.0](https://github.com/lv416e/brepax/compare/v0.5.0...v0.6.0) (2026-05-12)
+
+
+### Features
+
+* **brep:** add OCCT BRepGProp ground-truth helper ([#59](https://github.com/lv416e/brepax/issues/59)) ([045a800](https://github.com/lv416e/brepax/commit/045a80079b76f7f8b6fe5d904e383cb6c0e3ad82))
+* **brep:** add unsigned distance from a 3D point to a padded closed polyline ([#63](https://github.com/lv416e/brepax/issues/63)) ([0c07c73](https://github.com/lv416e/brepax/commit/0c07c73c5e6f18225177fd05b348cffe69038cd9))
+* **brep:** end-to-end trim-aware cone-face SDF, matched against OCCT ([#75](https://github.com/lv416e/brepax/issues/75)) ([22bf116](https://github.com/lv416e/brepax/commit/22bf1162f8d8f7b03f01a3f91b25f9cc45991980))
+* **brep:** end-to-end trim-aware cylinder-face SDF, matched against OCCT ([#69](https://github.com/lv416e/brepax/issues/69)) ([c605fc7](https://github.com/lv416e/brepax/commit/c605fc7fe79c27193a8dbf4e92aea607019e6e46))
+* **brep:** end-to-end trim-aware plane-face SDF, matched against OCCT ([#67](https://github.com/lv416e/brepax/issues/67)) ([2fc6e48](https://github.com/lv416e/brepax/commit/2fc6e487f743fe8f986fe94adb565e8c23bd5cb4))
+* **brep:** end-to-end trim-aware sphere-face SDF, matched against OCCT ([#71](https://github.com/lv416e/brepax/issues/71)) ([cff4be9](https://github.com/lv416e/brepax/commit/cff4be97cd4cb1d53ce6076be11aca970720a82e))
+* **brep:** extract cone trim-frame data for Marschner composition ([#72](https://github.com/lv416e/brepax/issues/72)) ([20de8a4](https://github.com/lv416e/brepax/commit/20de8a4532c95f04e4b50f3b24c13a785d521e53))
+* **brep:** extract cylinder trim-frame data for Marschner composition ([#68](https://github.com/lv416e/brepax/issues/68)) ([4144077](https://github.com/lv416e/brepax/commit/4144077e236d990dd78d5b786f83150342c20ec5))
+* **brep:** extract plane trim-frame data for Marschner composition ([#66](https://github.com/lv416e/brepax/issues/66)) ([5121b61](https://github.com/lv416e/brepax/commit/5121b61b154838bce70a1d801d014d85ab535dc3))
+* **brep:** extract sphere trim-frame data for Marschner composition ([#70](https://github.com/lv416e/brepax/issues/70)) ([6fb7d97](https://github.com/lv416e/brepax/commit/6fb7d97afea4f50b0e4552b08149ec8fa31dc2f3))
+* **brep:** trim-aware signed-blend SDF composition per ADR-0018 ([#65](https://github.com/lv416e/brepax/issues/65)) ([b0183fd](https://github.com/lv416e/brepax/commit/b0183fda5658768159700188c0df86b2fb0582d2))
+* **brep:** TrimmedCSGStump wires per-primitive Marschner trim-aware SDF ([#76](https://github.com/lv416e/brepax/issues/76)) ([604fc0e](https://github.com/lv416e/brepax/commit/604fc0e93427bfb402a8afd0a5ea3801a953ddd6))
+* **metrics:** add mean_curvature_per_face for analytical primitives ([#83](https://github.com/lv416e/brepax/issues/83)) ([599c5f3](https://github.com/lv416e/brepax/commit/599c5f3a95ef5408cfda538ef6776f0944bd2b32))
+* **metrics:** add min_draft_angle_per_face for trim-aware face-level draft angle ([#82](https://github.com/lv416e/brepax/issues/82)) ([29ed8c3](https://github.com/lv416e/brepax/commit/29ed8c3cf0e154779dd025a7d9c83a8d58985a2c))
+* **metrics:** add min_wall_thickness_per_face for trim-aware face-level wall thickness ([#84](https://github.com/lv416e/brepax/issues/84)) ([5c6f5f9](https://github.com/lv416e/brepax/commit/5c6f5f9daa8759848ae6df99dc002313a0657889))
+* **metrics:** add surface_area_per_face for trim-aware face-level surface area ([#81](https://github.com/lv416e/brepax/issues/81)) ([a6ef6a5](https://github.com/lv416e/brepax/commit/a6ef6a53e0f55f513ac368053028a2c5ccf992c6))
+* **primitives:** add analytical foot-of-perpendicular on primitive surfaces ([#62](https://github.com/lv416e/brepax/issues/62)) ([119ffdf](https://github.com/lv416e/brepax/commit/119ffdf7ed198da69d23a49151a2f5efa95d88dd))
+
+
+### Bug Fixes
+
+* **brep:** close BSpline Marschner-as-DNF-ingredient as negative result (ADR-0020) ([#80](https://github.com/lv416e/brepax/issues/80)) ([9900f84](https://github.com/lv416e/brepax/commit/9900f84c8b8e2b7ae222e1bcb0c96cd2215533ba))
+* **brep:** scope TrimmedCSGStump to raw analytical SDF ([#79](https://github.com/lv416e/brepax/issues/79)) ([7dc81ad](https://github.com/lv416e/brepax/commit/7dc81ad18b11ec806cbce50de668b9497f4e9d70))
+
+
+### Documentation
+
+* **adr:** ADR-0018 trim-aware surface SDF composition ([#64](https://github.com/lv416e/brepax/issues/64)) ([9b43be0](https://github.com/lv416e/brepax/commit/9b43be0ef08adde523c4764979c580da4984b891))
+* **reference:** surface integration benchmark report under Reference ([#87](https://github.com/lv416e/brepax/issues/87)) ([9230240](https://github.com/lv416e/brepax/commit/92302401bc2b587f5b5bd29bbb3ffff52bfce67d))
+
 ## [0.5.0](https://github.com/lv416e/brepax/compare/v0.4.2...v0.5.0) (2026-04-20)
 
 
