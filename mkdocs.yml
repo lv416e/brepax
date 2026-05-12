@@ -33,6 +33,11 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.snippets:
+      check_paths: true
+      base_path:
+        - .
+        - docs
   - admonition
   - pymdownx.details
   - toc:
@@ -75,6 +80,7 @@ nav:
       - Boolean Operations: reference/boolean.md
       - Analytical: reference/analytical.md
       - Applications: reference/applications.md
+      - Integration Benchmark Report: reference/benchmarks.md
   - Architecture:
       - Overview: architecture/index.md
       - ADR:
