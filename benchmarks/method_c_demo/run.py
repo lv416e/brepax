@@ -113,11 +113,15 @@ def _optimize(
     max_steps: int,
 ) -> Trajectory:
     loss_fn = _loss_factory(method, target_area)
-    grad_fn = jax.grad(loss_fn)
+    # value_and_grad shares the forward pass between loss recording
+    # and gradient computation; jit caches the compiled trace so the
+    # 200-step loop runs at XLA speed.
+    value_and_grad_fn = jax.jit(jax.value_and_grad(loss_fn))
 
     r1 = init_r1
+    loss0, g = value_and_grad_fn(r1)
     r1_history = [float(r1)]
-    loss_history = [float(loss_fn(r1))]
+    loss_history = [float(loss0)]
     position_err_history = [float(jnp.abs(r1 - TARGET_R1))]
 
     # The test in tests/benchmarks/test_optimization_trajectory.py
@@ -127,11 +131,10 @@ def _optimize(
     # (the headline finding) is visible as a flat line, not a
     # truncated trajectory.
     for _ in range(max_steps):
-        g = grad_fn(r1)
         r1 = r1 - lr * g
+        loss_val, g = value_and_grad_fn(r1)
         r1_history.append(float(r1))
-        loss = float(loss_fn(r1))
-        loss_history.append(loss)
+        loss_history.append(float(loss_val))
         position_err_history.append(float(jnp.abs(r1 - TARGET_R1)))
 
     return Trajectory(
@@ -223,7 +226,10 @@ def _render_report(
     lines.append("")
     lines.append("## Final-step numbers")
     lines.append("")
-    lines.append("| Method | final r1 | |r1 - r1*| | final loss | steps |")
+    # Column name avoids unescaped pipes: ``|r1 - r1*|`` in a markdown
+    # header row breaks the column count.  ``pos err`` carries the
+    # same meaning and renders cleanly.
+    lines.append("| Method | final r1 | pos err | final loss | steps |")
     lines.append("|---|---|---|---|---|")
     for traj, label in (
         (traj_c, "Method C (stratum)"),

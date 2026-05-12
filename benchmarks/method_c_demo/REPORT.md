@@ -6,10 +6,10 @@ Settings: ``lr=0.01``, ``max_steps=200``, ``init_r1=0.8``, ``target_area=7.88005
 
 ## Final-step numbers
 
-| Method | final r1 | |r1 - r1*| | final loss | steps |
+| Method | final r1 | pos err | final loss | steps |
 |---|---|---|---|---|
 | Method C (stratum) | 1.501310 | 1.31e-03 | 3.62e-06 | 200 |
-| Method A (smoothing, beta=0.1) | 1.478751 | 2.12e-02 | 2.27e-13 | 200 |
+| Method A (smoothing, beta=0.1) | 1.478751 | 2.12e-02 | 1.75e-15 | 200 |
 
 Method C converges to the grid-discretisation floor of its stratum-aware integrator.  Method A's residual is the bias introduced by the sigmoid temperature ``beta``; it does not shrink with more gradient-descent steps because the bias is inherent to the smoothed objective, not a transient of the optimiser.  This is the documented behaviour from ``tests/benchmarks/test_optimization_trajectory.py``; the purpose of this page is to make it visible alongside the rest of the documentation rather than to claim it as a new result.
 

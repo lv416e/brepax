@@ -3,14 +3,10 @@
 A docs-side mirror of the within-stratum optimisation result that
 already lives in
 [`tests/benchmarks/test_optimization_trajectory.py`](https://github.com/lv416e/brepax/blob/main/tests/benchmarks/test_optimization_trajectory.py).
-
-The page below is the **output of one command**, regenerated from the
-same commit this documentation was built from:
-
-```bash
-uv sync --extra viz
-uv run python -m benchmarks.method_c_demo.run
-```
+The numbers and plot on this page are the bundled benchmark output —
+see
+[`benchmarks/method_c_demo/README.md`](https://github.com/lv416e/brepax/blob/main/benchmarks/method_c_demo/README.md)
+for the regeneration command.
 
 ## What this page does not claim
 
