@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0001-jax-native-rationale/">
+        <link rel="canonical" href="https://lv416e.github.io/brepax/reference/benchmarks/">
       
       
-        <link rel="prev" href="../../">
+        <link rel="prev" href="../applications/">
       
       
-        <link rel="next" href="../0002-equinox-pytree-pattern/">
+        <link rel="next" href="../../architecture/">
       
       
         
       
       
-      <link rel="icon" href="../../../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>ADR-0001: JAX-Native Rationale - BRepAX</title>
+        <title>Integration Benchmark Report - BRepAX</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,9 +53,9 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0001-jax-native-rationale" class="md-skip">
+        <a href="#integration-benchmark-report" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +96,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../.." title="BRepAX" class="md-header__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0001: JAX-Native Rationale
+              Integration Benchmark Report
             
           </span>
         </div>
@@ -232,7 +232,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
+    <a href="../.." title="BRepAX" class="md-nav__button md-logo" aria-label="BRepAX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -343,7 +343,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/01_quickstart/" class="md-nav__link">
+      <a href="../../tutorials/01_quickstart/" class="md-nav__link">
         
   
   
@@ -371,7 +371,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/02_first_optimization/" class="md-nav__link">
+      <a href="../../tutorials/02_first_optimization/" class="md-nav__link">
         
   
   
@@ -399,7 +399,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/03_stratum_tracking/" class="md-nav__link">
+      <a href="../../tutorials/03_stratum_tracking/" class="md-nav__link">
         
   
   
@@ -488,7 +488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/design_thesis/" class="md-nav__link">
+      <a href="../../explanation/design_thesis/" class="md-nav__link">
         
   
   
@@ -516,7 +516,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/stratification_theory/" class="md-nav__link">
+      <a href="../../explanation/stratification_theory/" class="md-nav__link">
         
   
   
@@ -544,7 +544,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/why_brep/" class="md-nav__link">
+      <a href="../../explanation/why_brep/" class="md-nav__link">
         
   
   
@@ -572,7 +572,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/license_strategy/" class="md-nav__link">
+      <a href="../../explanation/license_strategy/" class="md-nav__link">
         
   
   
@@ -600,7 +600,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
+      <a href="../../explanation/jax_where_gradient_pitfall/" class="md-nav__link">
         
   
   
@@ -628,7 +628,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/toi_derivation/" class="md-nav__link">
+      <a href="../../explanation/toi_derivation/" class="md-nav__link">
         
   
   
@@ -656,7 +656,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/hybrid_optimization_strategy/" class="md-nav__link">
+      <a href="../../explanation/hybrid_optimization_strategy/" class="md-nav__link">
         
   
   
@@ -684,7 +684,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/concept_proof_evaluation/" class="md-nav__link">
+      <a href="../../explanation/concept_proof_evaluation/" class="md-nav__link">
         
   
   
@@ -712,7 +712,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/3d_extension_evaluation/" class="md-nav__link">
+      <a href="../../explanation/3d_extension_evaluation/" class="md-nav__link">
         
   
   
@@ -740,7 +740,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/nurbs_brep_feasibility/" class="md-nav__link">
+      <a href="../../explanation/nurbs_brep_feasibility/" class="md-nav__link">
         
   
   
@@ -768,7 +768,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/nist_evaluation/" class="md-nav__link">
+      <a href="../../explanation/nist_evaluation/" class="md-nav__link">
         
   
   
@@ -796,7 +796,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../explanation/csg_reconstruction_feasibility/" class="md-nav__link">
+      <a href="../../explanation/csg_reconstruction_feasibility/" class="md-nav__link">
         
   
   
@@ -804,235 +804,6 @@
     
   
     CSG Reconstruction Feasibility
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reference
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Reference
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../reference/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../reference/primitives/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Primitives
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../reference/boolean/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Boolean Operations
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../reference/analytical/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Analytical
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../reference/applications/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Applications
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../reference/benchmarks/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Integration Benchmark Report
   
 
     
@@ -1075,17 +846,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-    Architecture
+    Reference
   
 
     
@@ -1096,12 +867,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Architecture
+    Reference
   
 
           </label>
@@ -1114,7 +885,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -1139,32 +910,17 @@
                 
   
   
-    
   
   
-  
-    
-    
-    
-    
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
+    <li class="md-nav__item">
+      <a href="../primitives/" class="md-nav__link">
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
-            
   
   
   <span class="md-ellipsis">
     
   
-    ADR
+    Primitives
   
 
     
@@ -1172,19 +928,95 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    ADR
+      </a>
+    </li>
   
 
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../boolean/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Boolean Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../analytical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analytical
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Applications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1209,7 +1041,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0001: JAX-Native Rationale
+    Integration Benchmark Report
   
 
     
@@ -1227,7 +1059,7 @@
   <span class="md-ellipsis">
     
   
-    ADR-0001: JAX-Native Rationale
+    Integration Benchmark Report
   
 
     
@@ -1253,10 +1085,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#what-this-report-does-not-claim" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        What this report does not claim
       
     </span>
   </a>
@@ -1264,32 +1096,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#the-report" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
+        The report
       
     </span>
   </a>
@@ -1305,6 +1115,67 @@
 
               
             
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
               
                 
   
@@ -1312,7 +1183,114 @@
   
   
     <li class="md-nav__item">
-      <a href="../0002-equinox-pytree-pattern/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0001-jax-native-rationale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0001: JAX-Native Rationale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0002-equinox-pytree-pattern/" class="md-nav__link">
         
   
   
@@ -1340,7 +1318,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0003-stratum-label-encoding/" class="md-nav__link">
+      <a href="../../architecture/adr/0003-stratum-label-encoding/" class="md-nav__link">
         
   
   
@@ -1368,7 +1346,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0004-custom-vjp-at-boundaries/" class="md-nav__link">
+      <a href="../../architecture/adr/0004-custom-vjp-at-boundaries/" class="md-nav__link">
         
   
   
@@ -1396,7 +1374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0005-half-edge-padding-strategy/" class="md-nav__link">
+      <a href="../../architecture/adr/0005-half-edge-padding-strategy/" class="md-nav__link">
         
   
   
@@ -1424,7 +1402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0006-license-apache-2-rationale/" class="md-nav__link">
+      <a href="../../architecture/adr/0006-license-apache-2-rationale/" class="md-nav__link">
         
   
   
@@ -1452,7 +1430,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0007-ocp-binding-choice/" class="md-nav__link">
+      <a href="../../architecture/adr/0007-ocp-binding-choice/" class="md-nav__link">
         
   
   
@@ -1480,7 +1458,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0008-occt-abstraction-layer/" class="md-nav__link">
+      <a href="../../architecture/adr/0008-occt-abstraction-layer/" class="md-nav__link">
         
   
   
@@ -1508,7 +1486,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0009-method-b-deferred/" class="md-nav__link">
+      <a href="../../architecture/adr/0009-method-b-deferred/" class="md-nav__link">
         
   
   
@@ -1536,7 +1514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0010-design-validation-split/" class="md-nav__link">
+      <a href="../../architecture/adr/0010-design-validation-split/" class="md-nav__link">
         
   
   
@@ -1564,7 +1542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0011-hybrid-strategy/" class="md-nav__link">
+      <a href="../../architecture/adr/0011-hybrid-strategy/" class="md-nav__link">
         
   
   
@@ -1592,7 +1570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0012-generic-stratum-detection/" class="md-nav__link">
+      <a href="../../architecture/adr/0012-generic-stratum-detection/" class="md-nav__link">
         
   
   
@@ -1620,7 +1598,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0013-mold-direction-demonstrator/" class="md-nav__link">
+      <a href="../../architecture/adr/0013-mold-direction-demonstrator/" class="md-nav__link">
         
   
   
@@ -1648,7 +1626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0014-step-io-initial/" class="md-nav__link">
+      <a href="../../architecture/adr/0014-step-io-initial/" class="md-nav__link">
         
   
   
@@ -1676,7 +1654,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0015-face-to-primitive-conversion/" class="md-nav__link">
+      <a href="../../architecture/adr/0015-face-to-primitive-conversion/" class="md-nav__link">
         
   
   
@@ -1704,7 +1682,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0016-divergence-theorem-volume/" class="md-nav__link">
+      <a href="../../architecture/adr/0016-divergence-theorem-volume/" class="md-nav__link">
         
   
   
@@ -1767,10 +1745,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#what-this-report-does-not-claim" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        What this report does not claim
       
     </span>
   </a>
@@ -1778,32 +1756,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#the-report" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
+        The report
       
     </span>
   </a>
@@ -1830,27 +1786,410 @@
   
 
 
-<h1 id="adr-0001-jax-native-rationale">ADR-0001: JAX-Native Rationale<a class="headerlink" href="#adr-0001-jax-native-rationale" title="Permanent link">&para;</a></h1>
-<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
-<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>BRepAX needs a differentiable computation backend for geometric operations. The primary candidates are JAX, PyTorch, and custom C++ with autodiff. The library targets researchers in computational geometry and CAD optimization who need composable transformations (jit, vmap, grad) over geometric primitives.</p>
-<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Implement BRepAX as a pure JAX library, without C++ extensions or PyTorch interop.</p>
-<p>Key reasons:</p>
+<h1 id="integration-benchmark-report">Integration benchmark report<a class="headerlink" href="#integration-benchmark-report" title="Permanent link">&para;</a></h1>
+<p>A reproducible measurement of BRepAX's volume paths and face-level
+metric coverage on the project's standard STEP fixture set.</p>
+<p>The report below is the <strong>output of one command</strong>, regenerated from
+the same commit this documentation was built from (so the numbers
+shown here and the version of BRepAX you are reading docs for are
+guaranteed to be in sync):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.integration_report.run_benchmark
+</code></pre></div>
+<h2 id="what-this-report-does-not-claim">What this report does not claim<a class="headerlink" href="#what-this-report-does-not-claim" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Composable transformations</strong>: JAX's functional transformation model (jit/vmap/grad) maps naturally to geometric operations on SDF fields</li>
-<li><strong>custom_vjp/custom_jvp</strong>: Essential for implementing stratum-aware gradient corrections at topological boundaries</li>
-<li><strong>Ecosystem alignment</strong>: Equinox, Diffrax, Optimistix provide battle-tested patterns for scientific JAX libraries</li>
-<li><strong>Static shape model</strong>: Forces explicit handling of topology changes via padding/masking, which aligns with stratum tracking design</li>
+<li>No "first" or "unique" claim about any BRepAX path.</li>
+<li>No quantitative speed comparison against external systems.</li>
+<li>No claim that BRepAX outperforms any external system on tasks
+  those systems were designed for.</li>
 </ul>
-<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<p>The competitor landscape section below is <strong>qualitative feature
+coverage only</strong>, not a numerical head-to-head; cells are marked
+"hypothesis" where they reflect best-effort reading of public
+documentation.</p>
+<h2 id="the-report">The report<a class="headerlink" href="#the-report" title="Permanent link">&para;</a></h2>
+<h1 id="brepax-integration-benchmark-report">BRepAX Integration Benchmark Report<a class="headerlink" href="#brepax-integration-benchmark-report" title="Permanent link">&para;</a></h1>
+<p>Reproducible measurement of the BRepAX volume paths and face-level metric coverage on the project's standard STEP fixture set.</p>
+<p><strong>This report is the output of one benchmark command</strong> — <code>uv run python -m benchmarks.integration_report.run_benchmark</code>. No claim of novelty is made beyond what the tables below directly show.  Comparisons against external systems (Manifold, PyTorch3D, JAX-FEM) are qualitative; see <code>competitor_landscape.md</code> for the framing and its limitations.</p>
+<p>Volume paths use a sigmoid grid integration at <code>resolution=32</code> (per-axis cell count); the mesh divergence path uses the OCCT BRepMesh tessellation at the default deflection.  OCCT BRepGProp is the reference and is computed analytically on the exact B-Rep, not on the mesh.</p>
+<h2 id="volume-accuracy">Volume accuracy<a class="headerlink" href="#volume-accuracy" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Fixture</th>
+<th>OCCT (ref)</th>
+<th>divergence</th>
+<th>mesh_sdf</th>
+<th>gwn</th>
+<th>CSG-Stump</th>
+<th>TrimmedCSG</th>
+<th>timings (s)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sample_box</code></td>
+<td>6000.0000</td>
+<td>6000.0000 (0.00%)</td>
+<td>5689.0195 (5.18%)</td>
+<td>5900.4824 (1.66%)</td>
+<td>5689.5962 (5.17%)</td>
+<td>5689.5962 (5.17%)</td>
+<td>divergence=1.18 mesh_sdf=4.30 gwn=0.92 csg_stump=4.19 trimmed_csg=2.67</td>
+<td></td>
+</tr>
+<tr>
+<td><code>sample_cylinder</code></td>
+<td>1178.0972</td>
+<td>1176.5602 (0.13%)</td>
+<td>1184.0016 (0.50%)</td>
+<td>1164.7401 (1.13%)</td>
+<td>1186.0311 (0.67%)</td>
+<td>1186.0311 (0.67%)</td>
+<td>divergence=1.16 mesh_sdf=2.70 gwn=1.22 csg_stump=1.77 trimmed_csg=2.16</td>
+<td></td>
+</tr>
+<tr>
+<td><code>sample_sphere</code></td>
+<td>113.0973</td>
+<td>112.5589 (0.48%)</td>
+<td>117.7642 (4.13%)</td>
+<td>111.8235 (1.13%)</td>
+<td>118.4262 (4.71%)</td>
+<td>118.4262 (4.71%)</td>
+<td>divergence=1.52 mesh_sdf=15.60 gwn=6.31 csg_stump=0.62 trimmed_csg=0.66</td>
+<td></td>
+</tr>
+<tr>
+<td><code>sample_cone</code></td>
+<td>54.9779</td>
+<td>54.6540 (0.59%)</td>
+<td>60.3504 (9.77%)</td>
+<td>56.6688 (3.08%)</td>
+<td>60.8456 (10.67%)</td>
+<td>60.8456 (10.67%)</td>
+<td>divergence=3.44 mesh_sdf=4.04 gwn=2.04 csg_stump=2.58 trimmed_csg=2.46</td>
+<td></td>
+</tr>
+<tr>
+<td><code>sample_torus</code></td>
+<td>222.0661</td>
+<td>220.6733 (0.63%)</td>
+<td>241.2626 (8.64%)</td>
+<td>221.0463 (0.46%)</td>
+<td>242.5633 (9.23%)</td>
+<td>242.5633 (9.23%)</td>
+<td>divergence=1.83 mesh_sdf=23.25 gwn=8.83 csg_stump=0.05 trimmed_csg=0.31</td>
+<td></td>
+</tr>
+<tr>
+<td><code>box_with_holes</code></td>
+<td>22429.2037</td>
+<td>22432.0938 (0.01%)</td>
+<td>20694.4512 (7.73%)</td>
+<td>21917.6699 (2.28%)</td>
+<td>20692.2324 (7.74%)</td>
+<td>20692.2324 (7.74%)</td>
+<td>divergence=1.63 mesh_sdf=3.73 gwn=1.70 csg_stump=1.27 trimmed_csg=1.25</td>
+<td></td>
+</tr>
+<tr>
+<td><code>box_with_pocket</code></td>
+<td>23214.6018</td>
+<td>23215.6230 (0.00%)</td>
+<td>21492.3789 (7.42%)</td>
+<td>22700.0762 (2.22%)</td>
+<td>20293.1797 (12.58%)</td>
+<td>20293.1797 (12.58%)</td>
+<td>divergence=1.46 mesh_sdf=6.72 gwn=1.29 csg_stump=0.86 trimmed_csg=1.10</td>
+<td></td>
+</tr>
+<tr>
+<td><code>box_with_slot</code></td>
+<td>20800.0000</td>
+<td>20800.0000 (0.00%)</td>
+<td>19218.2852 (7.60%)</td>
+<td>20331.0352 (2.25%)</td>
+<td>17470.7598 (16.01%)</td>
+<td>17470.7598 (16.01%)</td>
+<td>divergence=1.49 mesh_sdf=2.72 gwn=0.58 csg_stump=4.31 trimmed_csg=2.99</td>
+<td></td>
+</tr>
+<tr>
+<td><code>l_bracket</code></td>
+<td>12000.0000</td>
+<td>12000.0000 (0.00%)</td>
+<td>11267.1504 (6.11%)</td>
+<td>11729.4434 (2.25%)</td>
+<td>11025.0674 (8.12%)</td>
+<td>11025.0674 (8.12%)</td>
+<td>divergence=0.64 mesh_sdf=1.69 gwn=0.57 csg_stump=1.78 trimmed_csg=1.91</td>
+<td></td>
+</tr>
+<tr>
+<td><code>nurbs_box</code></td>
+<td>480.0000</td>
+<td>480.0000 (0.00%)</td>
+<td>481.2567 (0.26%)</td>
+<td>497.4170 (3.63%)</td>
+<td>481.2568 (0.26%)</td>
+<td>481.2568 (0.26%)</td>
+<td>divergence=0.66 mesh_sdf=1.01 gwn=0.49 csg_stump=55.30 trimmed_csg=44.21</td>
+<td></td>
+</tr>
+<tr>
+<td><code>nurbs_revol</code></td>
+<td>40.8856</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>divergence=0.00 mesh_sdf=0.00 gwn=0.00 csg_stump=0.00 trimmed_csg=0.00</td>
+<td>shell (volume paths require closed solid)</td>
+</tr>
+<tr>
+<td><code>nurbs_saddle</code></td>
+<td>-0.0000</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>divergence=0.00 mesh_sdf=0.00 gwn=0.00 csg_stump=0.00 trimmed_csg=0.00</td>
+<td>shell (volume paths require closed solid)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>How to read this table.</strong></p>
 <ul>
-<li>Users must work within the JAX ecosystem (no PyTorch interop)</li>
-<li>Dynamic topology changes require padding strategies (see ADR-0005)</li>
-<li>Performance-critical inner loops stay in Python/JAX until profiling shows otherwise</li>
-<li>C++ extensions are deferred unless benchmarks reveal specific bottlenecks</li>
+<li><code>divergence</code> is the mesh divergence-theorem volume (Stokes' theorem on the BRepMesh tessellation).  Differentiable through triangle vertex positions.  Strongest production path.</li>
+<li><code>mesh_sdf</code> is the mesh-based signed distance field (unsigned distance to the nearest triangle, signed by generalized winding number) integrated with a sigmoid indicator on the same grid as the CSG paths.  Differentiable through triangle vertex positions and the sigmoid integrator.</li>
+<li><code>gwn</code> is the generalized-winding-number indicator integrated directly: <code>sigmoid((wn - 0.5) * GWN_SHARPNESS)</code> summed over the grid.  Sharpness is fixed at module level (the field is dimensionless 0..1, so the cell-width-based sharpness used by the SDF integrators is not appropriate here).  This single fixed configuration is one operating point; sweeping sharpness / resolution / mesh deflection is out of scope for this PR.</li>
+<li><code>CSG-Stump</code> is the analytical primitive DNF, integrated with a sigmoid indicator.  Differentiable through primitive parameters.  Bounded by the BSpline half-space limitation (see <code>project_bspline_halfspace.md</code> in memory; concretely the CSG-Stump DNF cannot consume a finite trimmed BSpline patch as a half-space ingredient — ADR-0019, ADR-0020).</li>
+<li><code>TrimmedCSGStump</code> carries per-face trim metadata for standalone trimmed-face SDF queries; on the DNF path it is <strong>bit-equivalent</strong> to <code>DifferentiableCSGStump</code> per ADR-0019 / ADR-0020.  Equality of the <code>csg</code> and <code>trim</code> columns is the expected outcome.</li>
 </ul>
+<h2 id="face-level-metric-coverage">Face-level metric coverage<a class="headerlink" href="#face-level-metric-coverage" title="Permanent link">&para;</a></h2>
+<p>Each cell shows <code>(finite / nan / inf)</code> counts out of the fixture's total face count.  Single-face shapes return <code>+inf</code> for <code>min_wall_thickness_per_face</code> (no other surface to measure against).  <code>mean_curvature_per_face</code> returns NaN on cone, torus, and BSpline faces (analytical handler not yet added).</p>
+<table>
+<thead>
+<tr>
+<th>Fixture</th>
+<th>n_faces</th>
+<th>surface_area</th>
+<th>min_draft_angle</th>
+<th>mean_curvature</th>
+<th>min_wall_thickness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sample_box</code></td>
+<td>6</td>
+<td>6/0/0</td>
+<td>6/0/0</td>
+<td>6/0/0</td>
+<td>6/0/0</td>
+</tr>
+<tr>
+<td><code>sample_cylinder</code></td>
+<td>3</td>
+<td>3/0/0</td>
+<td>3/0/0</td>
+<td>3/0/0</td>
+<td>3/0/0</td>
+</tr>
+<tr>
+<td><code>sample_sphere</code></td>
+<td>1</td>
+<td>1/0/0</td>
+<td>1/0/0</td>
+<td>1/0/0</td>
+<td>0/0/1</td>
+</tr>
+<tr>
+<td><code>sample_cone</code></td>
+<td>3</td>
+<td>3/0/0</td>
+<td>3/0/0</td>
+<td>2/1/0</td>
+<td>3/0/0</td>
+</tr>
+<tr>
+<td><code>sample_torus</code></td>
+<td>1</td>
+<td>1/0/0</td>
+<td>1/0/0</td>
+<td>0/1/0</td>
+<td>0/0/1</td>
+</tr>
+<tr>
+<td><code>box_with_holes</code></td>
+<td>8</td>
+<td>8/0/0</td>
+<td>8/0/0</td>
+<td>8/0/0</td>
+<td>8/0/0</td>
+</tr>
+<tr>
+<td><code>box_with_pocket</code></td>
+<td>8</td>
+<td>8/0/0</td>
+<td>8/0/0</td>
+<td>8/0/0</td>
+<td>8/0/0</td>
+</tr>
+<tr>
+<td><code>box_with_slot</code></td>
+<td>11</td>
+<td>11/0/0</td>
+<td>11/0/0</td>
+<td>11/0/0</td>
+<td>11/0/0</td>
+</tr>
+<tr>
+<td><code>l_bracket</code></td>
+<td>14</td>
+<td>14/0/0</td>
+<td>14/0/0</td>
+<td>14/0/0</td>
+<td>14/0/0</td>
+</tr>
+<tr>
+<td><code>nurbs_box</code></td>
+<td>6</td>
+<td>6/0/0</td>
+<td>6/0/0</td>
+<td>0/6/0</td>
+<td>6/0/0</td>
+</tr>
+<tr>
+<td><code>nurbs_revol</code></td>
+<td>0</td>
+<td>0/0/0</td>
+<td>0/0/0</td>
+<td>0/0/0</td>
+<td>0/0/0</td>
+</tr>
+<tr>
+<td><code>nurbs_saddle</code></td>
+<td>1</td>
+<td>1/0/0</td>
+<td>1/0/0</td>
+<td>0/1/0</td>
+<td>0/0/1</td>
+</tr>
+</tbody>
+</table>
+<h2 id="qualitative-competitor-landscape">Qualitative competitor landscape<a class="headerlink" href="#qualitative-competitor-landscape" title="Permanent link">&para;</a></h2>
+<p><strong>Important caveat.</strong>  This is a <em>qualitative</em> feature-coverage table,
+not a head-to-head numerical benchmark.  Numerical comparison would
+require running the same problem (e.g. volume of a Linkrods-class
+trimmed-BSpline shape with derivatives w.r.t. control points) through
+each system, which none of the listed competitors are directly
+designed to express.  The table reports what each system is built to
+do, not who is faster on a shared benchmark.  Cells marked
+"hypothesis" are best-effort observations from public documentation;
+treat them as starting points, not citations.</p>
+<table>
+<thead>
+<tr>
+<th>System / Path</th>
+<th>STEP / B-Rep input</th>
+<th>Per-face awareness</th>
+<th>Trimmed BSpline</th>
+<th>Differentiable volume</th>
+<th>Per-face metrics</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BRepAX <code>divergence_volume</code></td>
+<td>yes (via OCCT)</td>
+<td>derived from face triangulation</td>
+<td>via OCCT BRepMesh</td>
+<td>yes — through triangle vertex positions</td>
+<td>yes (this PR's coverage table)</td>
+<td>strongest production path on this report</td>
+</tr>
+<tr>
+<td>BRepAX <code>evaluate_stump_volume</code></td>
+<td>yes (via OCCT + reconstruction)</td>
+<td>primitive-based</td>
+<td>weak (ADR-0020: BSpline patches are not a CSG-Stump DNF half-space ingredient)</td>
+<td>yes — through primitive parameters</td>
+<td>not directly</td>
+<td>analytical-dominant fixtures</td>
+</tr>
+<tr>
+<td>BRepAX <code>TrimmedCSGStump.volume</code></td>
+<td>yes</td>
+<td>per-face trim metadata stored</td>
+<td>metadata stored, not on DNF SDF path (ADR-0019, ADR-0020)</td>
+<td>yes — through primitive parameters</td>
+<td>not directly</td>
+<td>bit-equivalent to <code>evaluate_stump_volume</code> on the DNF path</td>
+</tr>
+<tr>
+<td>Manifold (manifold3d)</td>
+<td>indirect (mesh only)</td>
+<td>mesh-level</td>
+<td>no (mesh)</td>
+<td>no (Boolean is exact, not differentiable)</td>
+<td>no</td>
+<td>hypothesis: robust mesh boolean, not a CAD-differentiable kernel</td>
+</tr>
+<tr>
+<td>PyTorch3D mesh ops</td>
+<td>no (mesh only)</td>
+<td>mesh-level</td>
+<td>no (mesh)</td>
+<td>partial (mesh deformations are differentiable)</td>
+<td>no</td>
+<td>hypothesis: differentiable mesh operations, not B-Rep</td>
+</tr>
+<tr>
+<td>JAX-FEM</td>
+<td>no (FE mesh)</td>
+<td>element-level</td>
+<td>no (mesh)</td>
+<td>yes — but for FE objectives, not CAD volume</td>
+<td>no</td>
+<td>hypothesis: physics solver, not a CAD geometry kernel</td>
+</tr>
+</tbody>
+</table>
+<p>The framing BRepAX is built around — <em>gradients flow from STEP /
+B-Rep through to a JAX scalar</em> — does not have an obvious head-to-head
+counterpart in the listed systems, because they enter the pipeline at
+a different stage (mesh, or FE mesh).  This is the BRepAX position to
+test, not assume; the right way to falsify it is to run a published
+benchmark that asks each system to solve the same B-Rep-rooted
+optimisation problem.  No such benchmark is bundled with this PR.</p>
+<p>What is <em>not</em> claimed by this report:</p>
+<ul>
+<li>No "first" or "unique" claim about any BRepAX path.  Other research
+  projects exist on differentiable B-Rep, signed distance functions on
+  trimmed surfaces, and topology-aware boolean differentiation; this
+  report does not survey them.</li>
+<li>No quantitative speed comparison against any external system.</li>
+<li>No claim that BRepAX outperforms any competitor on tasks they were
+  designed for.  Manifold's exact mesh boolean and JAX-FEM's PDE
+  solver are <em>not</em> in scope here.</li>
+</ul>
+<p>What this report <em>does</em> assert:</p>
+<ul>
+<li>The numbers in <code>volume accuracy</code> and <code>face-level metric coverage</code>
+  are reproducible from the bundled command on the bundled fixtures.</li>
+<li>The CSG-Stump and TrimmedCSGStump rows being equal is consistent
+  with the negative-result ADRs (ADR-0019, ADR-0020).</li>
+<li>Per-face metric NaN counts on cone / torus / BSpline faces in
+  <code>mean_curvature_per_face</code> are the documented analytical-handler
+  deferral, not failures.</li>
+</ul>
+<hr />
+<p>Generated by <code>benchmarks/integration_report/run_benchmark.py</code>.</p>
 
 
 
@@ -1906,10 +2245,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "navigation.top", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
