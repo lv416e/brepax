@@ -81,6 +81,7 @@ nav:
       - Analytical: reference/analytical.md
       - Applications: reference/applications.md
       - Integration Benchmark Report: reference/benchmarks.md
+      - Method-C Applied Demo: reference/method_c_demo.md
   - Architecture:
       - Overview: architecture/index.md
       - ADR:
