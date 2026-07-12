@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.1](https://github.com/lv416e/brepax/compare/v0.6.0...v0.6.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* **ci:** authenticate Codecov uploads ([#93](https://github.com/lv416e/brepax/issues/93)) ([5dd33c2](https://github.com/lv416e/brepax/commit/5dd33c271da98e38e1019303226c9d28c361e8f3))
+
+
+### Documentation
+
+* **benchmarks:** add Method-C applied convergence demo ([#88](https://github.com/lv416e/brepax/issues/88)) ([5480d56](https://github.com/lv416e/brepax/commit/5480d567679f1c7850cd40913199734b202c681a))
+
 ## [0.6.0](https://github.com/lv416e/brepax/compare/v0.5.0...v0.6.0) (2026-05-12)
 
 
