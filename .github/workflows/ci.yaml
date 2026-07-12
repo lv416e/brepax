@@ -72,7 +72,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --extra dev --extra viz
       - run: uv run pytest --cov=brepax --cov-report=xml -x -m "not slow"
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
         with:
           file: coverage.xml
