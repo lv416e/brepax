@@ -58,6 +58,9 @@ jobs:
   test:
     needs: [changes, lint, typecheck]
     if: needs.changes.outputs.code == 'true'
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -75,8 +78,9 @@ jobs:
       - uses: codecov/codecov-action@v7
         if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
         with:
-          file: coverage.xml
-          fail_ci_if_error: false
+          files: coverage.xml
+          fail_ci_if_error: true
+          use_oidc: true
 
   ci-gate:
     # Single required check for branch protection.
