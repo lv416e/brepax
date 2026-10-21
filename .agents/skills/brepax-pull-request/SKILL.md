@@ -36,9 +36,15 @@ approved architectural decisions need an ADR.
 
 Before requesting merge, verify on GitHub that `ci-gate` passed, the branch
 has no merge conflicts, and the title and body follow these conventions.
-Report unavailable evidence as unavailable. Use squash merge only, wait for
-maintainer review and authorization, and do not leave ceremonial merge
-comments. Never bypass branch protection with admin privileges.
+Report unavailable evidence as unavailable. Use squash merge only and do not
+leave ceremonial merge comments.
+
+For ordinary PRs, the repository owner's explicit merge authorization permits
+an admin merge without the required approval count when required CI has passed
+for the current head and substantive review findings are resolved. Immediately
+before merging, recheck the head SHA, base, mergeability, checks, and review
+threads; pin the expected head SHA. Never bypass failed or pending required
+checks. Do not infer merge authorization from implementation approval alone.
 
 ## Release-please
 

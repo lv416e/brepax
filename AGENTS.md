@@ -160,4 +160,11 @@ checks and release procedure.
 Never merge a release-please PR without the maintainer's explicit instruction.
 Do not change branch protection, secrets, or deploy keys, force-push, rewrite
 shared history, or delete another contributor's work without explicit
-authorization. Never use an admin bypass of branch protection.
+authorization.
+
+For ordinary PRs, the repository owner's explicit merge authorization permits
+an admin squash merge when required CI has passed for the current head and
+substantive review findings are resolved. This exception covers the required
+approval count only. Recheck the head SHA, base, mergeability, checks, and
+review threads immediately before merging; pin the expected head SHA.
+Never bypass failed or pending required checks.
