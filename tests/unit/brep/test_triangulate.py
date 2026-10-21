@@ -9,7 +9,10 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from hypothesis import example, given, settings
+from hypothesis import strategies as st
 
+from brepax.brep.gprop import compute_gprop_ground_truth
 from brepax.brep.triangulate import (
     _eval_sphere,
     _extract_ax3,
@@ -24,6 +27,13 @@ from brepax.brep.triangulate import (
 from brepax.io.step import read_step
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
+
+
+def _rotation_matrix(angle: float) -> np.ndarray:
+    axis = np.array([1.0, 2.0, 3.0]) / np.sqrt(14.0)
+    x, y, z = axis
+    skew = np.array([[0.0, -z, y], [z, 0.0, -x], [-y, x, 0.0]])
+    return np.eye(3) + np.sin(angle) * skew + (1.0 - np.cos(angle)) * (skew @ skew)
 
 
 def _divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
@@ -129,19 +139,70 @@ class TestMeshMetrics:
         shape = read_step(FIXTURES / "sample_box.step")
         tris, _ = triangulate_shape(shape)
         inertia = mesh_inertia_tensor(tris)
-        # M=6000, I_xx = M/12*(b^2+c^2) = 500*(400+900) = 650000
-        assert float(inertia[0, 0]) == pytest.approx(650000.0, rel=1e-4)
-        assert float(inertia[1, 1]) == pytest.approx(500000.0, rel=1e-4)
-        assert float(inertia[2, 2]) == pytest.approx(250000.0, rel=1e-4)
+        expected = np.diag([650000.0, 500000.0, 250000.0])
+        np.testing.assert_allclose(inertia, expected, rtol=1e-12, atol=1e-8)
 
-    def test_inertia_symmetric(self) -> None:
-        """Inertia tensor is symmetric."""
+    def test_nonprincipal_inertia_matches_occt(self) -> None:
+        """A concave solid has nonzero products of inertia about its CoM."""
+        shape = read_step(FIXTURES / "l_bracket.step")
+        tris, _ = triangulate_shape(shape)
+        expected = compute_gprop_ground_truth(shape)["moment_of_inertia"]
+        assert abs(expected[0, 1]) > 1.0
+        np.testing.assert_allclose(
+            mesh_inertia_tensor(tris), expected, rtol=1e-12, atol=1e-8
+        )
+
+    def test_empty_inertia_is_zero(self) -> None:
+        np.testing.assert_array_equal(
+            mesh_inertia_tensor(jnp.empty((0, 3, 3))), np.zeros((3, 3))
+        )
+
+    @settings(max_examples=12, derandomize=True, deadline=None)
+    @given(
+        angle=st.floats(-math.pi, math.pi),
+        translation=st.tuples(*(st.floats(-100.0, 100.0) for _ in range(3))),
+        scale=st.floats(1e-6, 1e3),
+    )
+    @example(angle=0.47, translation=(3.0, -2.0, 4.0), scale=1.0)
+    @example(angle=0.0, translation=(1e8, -2e8, 3e8), scale=1.0)
+    @example(angle=0.47, translation=(3.0, -2.0, 4.0), scale=1e-6)
+    def test_inertia_rigid_motion_and_scale(self, angle, translation, scale) -> None:
+        """Unit-density inertia obeys I' = s^5 R I R^T, independent of translation."""
+        shape = read_step(FIXTURES / "l_bracket.step")
+        tris, _ = triangulate_shape(shape)
+        reference = compute_gprop_ground_truth(shape)["moment_of_inertia"]
+        rotation = _rotation_matrix(angle)
+        transformed = scale * (tris @ rotation.T + jnp.array(translation))
+        expected = scale**5 * (rotation @ reference @ rotation.T)
+        np.testing.assert_allclose(
+            mesh_inertia_tensor(transformed),
+            expected,
+            rtol=2e-10,
+            atol=2e-10 * np.linalg.norm(expected),
+        )
+
+    def test_inertia_transformed_gradients(self) -> None:
+        """JIT/vmap/grad match analytic scale and translation derivatives."""
         shape = read_step(FIXTURES / "sample_box.step")
         tris, _ = triangulate_shape(shape)
-        inertia = mesh_inertia_tensor(tris)
-        assert float(inertia[0, 1]) == pytest.approx(float(inertia[1, 0]), abs=1e-4)
-        assert float(inertia[0, 2]) == pytest.approx(float(inertia[2, 0]), abs=1e-4)
-        assert float(inertia[1, 2]) == pytest.approx(float(inertia[2, 1]), abs=1e-4)
+        tris = tris - jnp.array([5.0, 10.0, 15.0])
+        rotation = jnp.asarray(_rotation_matrix(0.47))
+        direction = jnp.array([1.0, 2.0, -3.0]) / jnp.sqrt(14.0)
+        reference = jnp.diag(jnp.array([650000.0, 500000.0, 250000.0]))
+        coefficient = direction @ rotation @ reference @ rotation.T @ direction
+
+        def objective(scale, shift):
+            transformed = scale * (tris @ rotation.T) + shift
+            return direction @ mesh_inertia_tensor(transformed) @ direction
+
+        scales = jnp.array([0.25, 1.0, 2.0])
+        scale_grad, shift_grad = jax.jit(
+            jax.vmap(jax.grad(objective, argnums=(0, 1)), in_axes=(0, None))
+        )(scales, jnp.array([3.0, -2.0, 4.0]))
+        np.testing.assert_allclose(
+            scale_grad, 5.0 * scales**4 * coefficient, rtol=1e-12
+        )
+        np.testing.assert_allclose(shift_grad, 0.0, atol=1e-7)
 
     def test_surface_area_gradient_finite(self) -> None:
         """Gradient of surface area is finite."""
