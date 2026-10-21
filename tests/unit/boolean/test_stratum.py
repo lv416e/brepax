@@ -2,6 +2,7 @@
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 from brepax.analytical.disk_disk import disk_disk_union_area
@@ -154,3 +155,28 @@ class TestStratumNearBoundary:
             b.radius,
         )
         assert jnp.isclose(result, expected, rtol=0.1)
+
+
+@pytest.mark.parametrize("quarter_turn", [False, True])
+def test_union_area_rigid_grid_symmetry(quarter_turn: bool) -> None:
+    """Translations and quarter-turns preserve area and transform its gradients."""
+    a = Disk(center=jnp.array([-0.35, 0.1]), radius=jnp.array(0.8))
+    b = Disk(center=jnp.array([0.8, 0.45]), radius=jnp.array(0.65))
+    rotation = jnp.array([[0.0, -1.0], [1.0, 0.0]]) if quarter_turn else jnp.eye(2)
+    shift = jnp.array([2.3, -1.7])
+
+    def area(a_, b_):
+        return union_area(a_, b_, method="stratum")
+
+    evaluate = jax.jit(jax.value_and_grad(area, argnums=(0, 1)))
+    value, gradients = evaluate(a, b)
+    transformed_value, transformed_gradients = evaluate(
+        Disk(center=rotation @ a.center + shift, radius=a.radius),
+        Disk(center=rotation @ b.center + shift, radius=b.radius),
+    )
+    np.testing.assert_allclose(transformed_value, value, rtol=1e-12)
+    for gradient, transformed in zip(gradients, transformed_gradients, strict=True):
+        np.testing.assert_allclose(
+            transformed.center, rotation @ gradient.center, rtol=1e-11, atol=1e-12
+        )
+        np.testing.assert_allclose(transformed.radius, gradient.radius, rtol=1e-11)
