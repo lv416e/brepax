@@ -31,6 +31,14 @@ Thank you for your interest in contributing to BRepAX.
 - Type check: `uv run mypy src/`
 - Run all via nox: `uv run nox`
 
+## Implementation Guidelines
+
+[AGENTS.md](AGENTS.md) is the canonical source for implementation style,
+responsibility boundaries, test selection, and mandatory pre-commit checks.
+Detailed workflows live in [.agents/skills](.agents/skills/). These guidelines
+apply regardless of the coding assistant used. `CLAUDE.md` and `.claude/skills`
+are relative symlinks to those shared sources; edit the originals.
+
 ## Commit Messages
 
 We use [Conventional Commits](https://www.conventionalcommits.org/). Examples:
@@ -43,7 +51,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/). Examples:
 ## Pull Requests
 
 1. Create a feature branch from `main`
-2. Make your changes with tests
+2. Implement the change and select verification appropriate to its behavior
 3. Ensure all checks pass
 4. Submit a PR with a clear description
 
@@ -75,7 +83,8 @@ Production releases are managed by [release-please](https://github.com/googleapi
 1. Conventional Commits on `main` cause release-please to auto-create a release PR.
 2. The release PR stays open until the maintainer decides to release.
 3. Merging the release PR creates a semver tag (e.g., `v0.2.0`).
-4. The tag push triggers the publish workflow, uploading to PyPI via Trusted Publishing.
+4. The `publish` job in the same release-please workflow uploads the package
+   to PyPI via Trusted Publishing.
 
 **Important**: Release-please PRs must only be merged on the maintainer's explicit decision. They represent a strategic release choice, not a routine code change.
 
