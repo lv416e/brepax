@@ -3,7 +3,7 @@
 Reads one STEP file, runs the same five volume paths and four
 face-level metrics that ``benchmarks/integration_report/run_benchmark.py``
 uses, and prints a compact result table.  Designed as the reusable
-building block for large-scale evaluation (M7a: 20+ external models).
+building block for batch evaluation of external models.
 
 Run:
     uv run python -m benchmarks.abc_evaluation.evaluate_step path/to/file.step
@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 import time
 from collections.abc import Callable
@@ -87,9 +88,12 @@ def _safe(fn: Callable[[], Any]) -> tuple[float | None, float, str]:
     t0 = time.perf_counter()
     try:
         v = float(fn())
+        if not math.isfinite(v):
+            raise ValueError("non-finite volume result")
         return v, time.perf_counter() - t0, ""
     except Exception as exc:
-        msg = f"{type(exc).__name__}: {str(exc).splitlines()[0][:120]}"
+        first_line = next(iter(str(exc).splitlines()), "")
+        msg = f"{type(exc).__name__}: {first_line[:120]}"
         return None, time.perf_counter() - t0, msg
 
 
@@ -99,115 +103,116 @@ def _shape_grid_bounds(shape: TopoDS_Shape) -> tuple[jnp.ndarray, jnp.ndarray]:
     return jnp.array(meta.bbox_min) - margin, jnp.array(meta.bbox_max) + margin
 
 
+def _mesh_sdf_volume(
+    triangles: jnp.ndarray,
+    flat_grid: jnp.ndarray,
+    lo: jnp.ndarray,
+    hi: jnp.ndarray,
+    resolution: int,
+) -> jnp.ndarray:
+    sdf_values = mesh_sdf(flat_grid, triangles)
+    return integrate_sdf_volume(sdf_values, lo, hi, resolution)
+
+
+def _gwn_volume(
+    triangles: jnp.ndarray, flat_grid: jnp.ndarray, cell_volume: jnp.ndarray
+) -> jnp.ndarray:
+    n = flat_grid.shape[0]
+    padding = (-n) % GWN_CHUNK_SIZE
+    chunks = jnp.pad(flat_grid, ((0, padding), (0, 0))).reshape(-1, GWN_CHUNK_SIZE, 3)
+
+    def evaluate_chunk(points: jnp.ndarray) -> jnp.ndarray:
+        return jax.vmap(lambda point: winding_number(point, triangles))(points)
+
+    winding = jax.lax.map(evaluate_chunk, chunks).reshape(-1)[:n]
+    indicator = jax.nn.sigmoid((winding - 0.5) * GWN_SHARPNESS)
+    return jnp.sum(indicator) * cell_volume
+
+
 def _evaluate_volume_paths(shape: TopoDS_Shape, *, resolution: int) -> list[PathResult]:
     results: list[PathResult] = []
-
-    # Triangulate once (shared by divergence, mesh_sdf, gwn)
-    t0 = time.perf_counter()
+    start = time.perf_counter()
     try:
         triangles, _ = triangulate_shape(shape)
-    except Exception as exc:
-        note = f"triangulate: {type(exc).__name__}"
-        for name in ("divergence", "mesh_sdf", "gwn"):
-            results.append(PathResult(name, None, None, time.perf_counter() - t0, note))
-        # CSG paths don't need triangles
-        triangles = None
-    else:
+        jax.block_until_ready(triangles)
+        triangle_note = "" if triangles.shape[0] else "no triangles"
         if triangles.shape[0] == 0:
             triangles = None
+    except Exception as exc:
+        triangles = None
+        triangle_note = f"triangulate: {type(exc).__name__}"
+    triangulation_s = time.perf_counter() - start
 
+    start = time.perf_counter()
     lo, hi = _shape_grid_bounds(shape)
+    jax.block_until_ready((lo, hi))
+    bounds_s = time.perf_counter() - start
 
-    # divergence
-    if triangles is not None:
-        v, elapsed, note = _safe(lambda: divergence_volume(triangles))
-        results.append(PathResult("divergence", v, None, elapsed, note))
-    elif not any(r.path == "divergence" for r in results):
-        results.append(PathResult("divergence", None, None, 0.0, "no triangles"))
+    if triangles is None:
+        results.extend(
+            PathResult(name, None, None, triangulation_s, triangle_note)
+            for name in ("divergence", "mesh_sdf", "gwn")
+        )
+    else:
+        value, elapsed, note = _safe(lambda: divergence_volume(triangles))
+        results.append(
+            PathResult("divergence", value, None, triangulation_s + elapsed, note)
+        )
 
-    # mesh_sdf
-    if triangles is not None:
+        start = time.perf_counter()
+        try:
+            grid, cell_volume = make_grid_3d(lo, hi, resolution)
+            flat_grid = grid.reshape(-1, 3)
+            jax.block_until_ready((flat_grid, cell_volume))
+            grid_note = ""
+        except Exception as exc:
+            grid_note = f"grid: {type(exc).__name__}"
+        grid_s = time.perf_counter() - start
+        setup_s = triangulation_s + bounds_s + grid_s
+        for name, compute in (
+            (
+                "mesh_sdf",
+                lambda: _mesh_sdf_volume(triangles, flat_grid, lo, hi, resolution),
+            ),
+            ("gwn", lambda: _gwn_volume(triangles, flat_grid, cell_volume)),
+        ):
+            if grid_note:
+                value, elapsed, note = None, 0.0, grid_note
+            else:
+                value, elapsed, note = _safe(compute)
+            results.append(PathResult(name, value, None, setup_s + elapsed, note))
 
-        def _mesh_sdf_vol() -> jnp.ndarray:
-            grid, _ = make_grid_3d(lo, hi, resolution)
-            flat = grid.reshape(-1, 3)
-            sdf_vals = mesh_sdf(flat, triangles)
-            return integrate_sdf_volume(sdf_vals, lo, hi, resolution)
-
-        v, elapsed, note = _safe(_mesh_sdf_vol)
-        results.append(PathResult("mesh_sdf", v, None, elapsed, note))
-    elif not any(r.path == "mesh_sdf" for r in results):
-        results.append(PathResult("mesh_sdf", None, None, 0.0, "no triangles"))
-
-    # gwn
-    if triangles is not None:
-
-        def _gwn_vol() -> jnp.ndarray:
-            grid, cell_vol = make_grid_3d(lo, hi, resolution)
-            flat = grid.reshape(-1, 3)
-            n = flat.shape[0]
-            rem = n % GWN_CHUNK_SIZE
-            pad = 0 if rem == 0 else GWN_CHUNK_SIZE - rem
-            padded = jnp.pad(flat, ((0, pad), (0, 0)))
-            chunks = padded.reshape(-1, GWN_CHUNK_SIZE, 3)
-
-            def _chunk(c: jnp.ndarray) -> jnp.ndarray:
-                return jax.vmap(lambda p: winding_number(p, triangles))(c)
-
-            wn = jax.lax.map(_chunk, chunks).reshape(-1)[:n]
-            indicator = jax.nn.sigmoid((wn - 0.5) * GWN_SHARPNESS)
-            return jnp.sum(indicator) * cell_vol
-
-        v, elapsed, note = _safe(_gwn_vol)
-        results.append(PathResult("gwn", v, None, elapsed, note))
-    elif not any(r.path == "gwn" for r in results):
-        results.append(PathResult("gwn", None, None, 0.0, "no triangles"))
-
-    # CSG-Stump
-    t0_csg = time.perf_counter()
+    start = time.perf_counter()
     try:
         stump = reconstruct_csg_stump(shape)
+        reconstruction_note = "" if stump is not None else "reconstruct: None"
     except Exception as exc:
         stump = None
-        csg_note = f"reconstruct: {type(exc).__name__}"
-    else:
-        csg_note = "" if stump is not None else "reconstruct: None"
+        reconstruction_note = f"reconstruct: {type(exc).__name__}"
+    setup_s = bounds_s + time.perf_counter() - start
 
-    if stump is not None:
-        diff = stump_to_differentiable(stump)
-        v, _, note = _safe(lambda: diff.volume(resolution=resolution, lo=lo, hi=hi))
-        results.append(
-            PathResult("csg_stump", v, None, time.perf_counter() - t0_csg, note)
+    if stump is None:
+        results.extend(
+            PathResult(name, None, None, setup_s, reconstruction_note)
+            for name in ("csg_stump", "trimmed_csg")
         )
     else:
-        results.append(
-            PathResult("csg_stump", None, None, time.perf_counter() - t0_csg, csg_note)
-        )
-
-    # TrimmedCSG
-    if stump is not None:
-        t0_trim = time.perf_counter()
-        try:
-            trimmed = enrich_with_trim_frames(stump, shape)
-            v, _, note = _safe(
-                lambda: trimmed.volume(resolution=resolution, lo=lo, hi=hi)
-            )
-            results.append(
-                PathResult("trimmed_csg", v, None, time.perf_counter() - t0_trim, note)
-            )
-        except Exception as exc:
-            results.append(
-                PathResult(
-                    "trimmed_csg",
-                    None,
-                    None,
-                    time.perf_counter() - t0_trim,
-                    f"enrich: {type(exc).__name__}",
-                )
-            )
-    else:
-        results.append(PathResult("trimmed_csg", None, None, 0.0, csg_note))
-
+        for name, compute in (
+            (
+                "csg_stump",
+                lambda: stump_to_differentiable(stump).volume(
+                    resolution=resolution, lo=lo, hi=hi
+                ),
+            ),
+            (
+                "trimmed_csg",
+                lambda: enrich_with_trim_frames(stump, shape).volume(
+                    resolution=resolution, lo=lo, hi=hi
+                ),
+            ),
+        ):
+            value, elapsed, note = _safe(compute)
+            results.append(PathResult(name, value, None, setup_s + elapsed, note))
     return results
 
 
@@ -239,6 +244,13 @@ def _evaluate_face_metrics(shape: TopoDS_Shape) -> list[MetricResult]:
 def evaluate_step_file(
     path: str | Path, *, resolution: int = VOLUME_RESOLUTION
 ) -> ModelResult:
+    """Evaluate one STEP file against OCCT references.
+
+    Resolution must be at least two. Failed volume paths have a null value
+    and an explanatory note; unsupported surface types retain metric NaNs.
+    """
+    if resolution < 2:
+        raise ValueError("resolution must be at least 2")
     path = Path(path)
     shape = read_step(str(path))
     shape_type = shape.ShapeType().name.split("_")[-1].lower()
@@ -318,7 +330,10 @@ def main() -> None:
         "--resolution",
         type=int,
         default=VOLUME_RESOLUTION,
-        help="Per-axis grid resolution for sigmoid integrators (default 32)",
+        help=(
+            "Per-axis grid resolution for sigmoid integrators "
+            f"(default {VOLUME_RESOLUTION})"
+        ),
     )
     parser.add_argument(
         "--json",
@@ -326,6 +341,9 @@ def main() -> None:
         help="Output JSON instead of text table",
     )
     args = parser.parse_args()
+
+    if args.resolution < 2:
+        parser.error("resolution must be at least 2")
 
     if not args.step_file.exists():
         print(f"File not found: {args.step_file}", file=sys.stderr)

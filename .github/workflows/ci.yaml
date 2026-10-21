@@ -18,7 +18,7 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
         id: filter
         with:
@@ -26,6 +26,7 @@ jobs:
             code:
               - 'src/**'
               - 'tests/**'
+              - 'benchmarks/**'
               - 'pyproject.toml'
               - 'ruff.toml'
               - '.github/workflows/ci.yaml'
@@ -35,7 +36,7 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -48,7 +49,7 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -58,6 +59,9 @@ jobs:
   test:
     needs: [changes, lint, typecheck]
     if: needs.changes.outputs.code == 'true'
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -65,18 +69,19 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
       - run: uv sync --extra dev --extra viz
       - run: uv run pytest --cov=brepax --cov-report=xml -x -m "not slow"
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
         with:
-          file: coverage.xml
-          fail_ci_if_error: false
+          files: coverage.xml
+          fail_ci_if_error: true
+          use_oidc: true
 
   ci-gate:
     # Single required check for branch protection.
