@@ -131,10 +131,11 @@ def _gwn_volume(
 
 def _evaluate_volume_paths(shape: TopoDS_Shape, *, resolution: int) -> list[PathResult]:
     results: list[PathResult] = []
+    triangles: jnp.ndarray | None
     start = time.perf_counter()
     try:
         triangles, _ = triangulate_shape(shape)
-        jax.block_until_ready(triangles)
+        triangles.block_until_ready()
         triangle_note = "" if triangles.shape[0] else "no triangles"
         if triangles.shape[0] == 0:
             triangles = None
@@ -145,7 +146,8 @@ def _evaluate_volume_paths(shape: TopoDS_Shape, *, resolution: int) -> list[Path
 
     start = time.perf_counter()
     lo, hi = _shape_grid_bounds(shape)
-    jax.block_until_ready((lo, hi))
+    lo.block_until_ready()
+    hi.block_until_ready()
     bounds_s = time.perf_counter() - start
 
     if triangles is None:
@@ -163,7 +165,8 @@ def _evaluate_volume_paths(shape: TopoDS_Shape, *, resolution: int) -> list[Path
         try:
             grid, cell_volume = make_grid_3d(lo, hi, resolution)
             flat_grid = grid.reshape(-1, 3)
-            jax.block_until_ready((flat_grid, cell_volume))
+            flat_grid.block_until_ready()
+            cell_volume.block_until_ready()
             grid_note = ""
         except Exception as exc:
             grid_note = f"grid: {type(exc).__name__}"
@@ -218,7 +221,9 @@ def _evaluate_volume_paths(shape: TopoDS_Shape, *, resolution: int) -> list[Path
 
 def _evaluate_face_metrics(shape: TopoDS_Shape) -> list[MetricResult]:
     results: list[MetricResult] = []
-    metrics: dict[str, Callable] = {
+    metrics: dict[
+        str, Callable[[TopoDS_Shape], tuple[jnp.ndarray, list[dict[str, object]]]]
+    ] = {
         "surface_area": lambda s: surface_area_per_face(s),
         "min_draft_angle": lambda s: min_draft_angle_per_face(
             s, mold_direction=MOLD_DIRECTION

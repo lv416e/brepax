@@ -297,7 +297,9 @@ def _coverage_cell(values: jnp.ndarray) -> CoverageCell:
 
 def measure_face_coverage(shape: TopoDS_Shape) -> dict[str, CoverageCell]:
     out: dict[str, CoverageCell] = {}
-    metrics = {
+    metrics: dict[
+        str, Callable[[TopoDS_Shape], tuple[jnp.ndarray, list[dict[str, object]]]]
+    ] = {
         "surface_area": lambda s: surface_area_per_face(s),
         "min_draft_angle": lambda s: min_draft_angle_per_face(
             s, mold_direction=MOLD_DIRECTION
@@ -327,8 +329,8 @@ def _format_value(v: float | None) -> str:
 
 
 def render_report(
-    volume_rows: list[dict],
-    coverage_rows: list[dict],
+    volume_rows: list[dict[str, Any]],
+    coverage_rows: list[dict[str, Any]],
     *,
     resolution: int,
 ) -> str:
@@ -525,8 +527,8 @@ def main() -> None:
 
     fixtures = args.fixtures if args.fixtures else FIXTURES
 
-    volume_rows: list[dict] = []
-    coverage_rows: list[dict] = []
+    volume_rows: list[dict[str, Any]] = []
+    coverage_rows: list[dict[str, Any]] = []
 
     for name in fixtures:
         path = FIXTURES_DIR / f"{name}.step"

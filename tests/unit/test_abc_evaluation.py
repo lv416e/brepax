@@ -50,7 +50,9 @@ def test_elapsed_times_include_required_preparation(monkeypatch, grid_fails) -> 
         evaluation, "_shape_grid_bounds", work((jnp.zeros(3), jnp.ones(3)), 2)
     )
     monkeypatch.setattr(
-        evaluation, "make_grid_3d", work((jnp.zeros((2, 2, 2, 3)), 0.125), 3)
+        evaluation,
+        "make_grid_3d",
+        work((jnp.zeros((2, 2, 2, 3)), jnp.array(0.125)), 3),
     )
     if grid_fails:
 

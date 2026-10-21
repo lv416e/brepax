@@ -41,8 +41,8 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --extra dev
-      - run: uv run ruff check src/ tests/
-      - run: uv run ruff format --check src/ tests/
+      - run: uv run ruff check src/ tests/ benchmarks/
+      - run: uv run ruff format --check src/ tests/ benchmarks/
 
   typecheck:
     needs: changes
@@ -54,7 +54,7 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --extra dev
-      - run: uv run mypy src/
+      - run: uv run mypy src/ benchmarks/
 
   test:
     needs: [changes, lint, typecheck]
