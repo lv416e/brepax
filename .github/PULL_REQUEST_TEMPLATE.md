@@ -1,28 +1,15 @@
-## What changed
+## Summary
 
-<!-- 1-3 sentences describing the essence of this change -->
+<!-- Describe the problem, resulting behavior, and reason for the change. -->
 
-## Why
+## Verification
 
-<!-- Motivation, link to spec section or ADR if applicable -->
+<!-- List checks actually run and their results, plus relevant checks not run.
+Choose tests using .agents/skills/brepax-validation/SKILL.md; explain when
+existing coverage or non-test checks are sufficient. Pre-commit gates still
+apply as defined in AGENTS.md. Include numerical limits or unresolved issues
+when they affect the conclusion. -->
 
-## How verified
+## Related
 
-- [ ] Tests pass (`uv run pytest`)
-- [ ] Type checking passes (`uv run mypy src/`)
-- [ ] Linting passes (`uv run ruff check src/ tests/`)
-
-<!-- Benchmark results or unexpected behaviors, if applicable -->
-
-## Open questions
-
-<!-- Unresolved points to address in follow-up PRs -->
-
-## Checklist
-
-- [ ] Property tests added/updated
-- [ ] Unit tests added/updated
-- [ ] Type annotations complete
-- [ ] Docstrings with Examples section
-- [ ] ADR updated if architectural decision was made
-- [ ] Commit messages follow Conventional Commits
+<!-- Link relevant issues or ADRs. Omit this section if none apply. -->

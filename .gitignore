@@ -40,8 +40,10 @@ site/
 .env.*
 credentials.*
 
-# Claude Code
-.claude/
+# Keep the shared skill link; permissions and worktrees stay local.
+.claude/*
+!.claude/skills
+.worktrees/
 
 # STEP test fixtures (large binary, not in git)
 tests/fixtures/nist/
