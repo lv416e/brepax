@@ -792,13 +792,18 @@ def triangulate_shape(
 def divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
     """Compute volume of a closed triangle mesh via the divergence theorem.
 
-    Uses the signed-tetrahedra formula: each triangle and the origin
-    form a tetrahedron whose signed volume is ``v0 . (v1 x v2) / 6``.
+    Uses the signed-tetrahedra formula in a local frame near the mesh:
+    each triangle and the local origin form a tetrahedron whose signed
+    volume is ``v0 . (v1 x v2) / 6``.
     The sum over all triangles gives the enclosed volume for a
     watertight mesh with outward-facing normals.
 
-    The result is a polynomial function of vertex positions, so
-    ``jax.grad`` gives exact gradients with no singularities.
+    Local coordinates reduce cancellation for solids far from the world
+    origin. Units are length cubed. Empty meshes return zero.
+
+    ``jax.grad`` differentiates the frozen mesh. Geometric shape derivatives
+    require shared boundaries to move consistently and preserve closure;
+    independently moving duplicated triangle corners can open the mesh.
 
     Args:
         triangles: Triangle vertices, shape ``(n, 3, 3)``.
@@ -812,7 +817,11 @@ def divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
         >>> vol = divergence_volume(tris)
         >>> grad = jax.grad(divergence_volume)(tris)
     """
-    v0, v1, v2 = triangles[:, 0], triangles[:, 1], triangles[:, 2]
+    if triangles.shape[0] == 0:
+        return jnp.zeros((), dtype=triangles.dtype)
+
+    local = triangles - jnp.mean(triangles, axis=(0, 1))
+    v0, v1, v2 = local[:, 0], local[:, 1], local[:, 2]
     return jnp.sum(v0 * jnp.cross(v1, v2)) / 6.0
 
 
@@ -820,7 +829,9 @@ def mesh_surface_area(triangles: jnp.ndarray) -> jnp.ndarray:
     """Compute surface area of a triangle mesh.
 
     Sums the area of each triangle: ``(1/2) ||cross(e1, e2)||``.
-    Differentiable via ``jax.grad``.
+    Units are length squared. No absolute area floor is applied. Collapsed
+    or collinear triangles have zero area with a chosen zero subgradient
+    at the nondifferentiable point. Empty meshes return zero.
 
     Args:
         triangles: Triangle vertices, shape ``(n, 3, 3)``.
@@ -835,15 +846,24 @@ def mesh_surface_area(triangles: jnp.ndarray) -> jnp.ndarray:
     e1 = triangles[:, 1] - triangles[:, 0]
     e2 = triangles[:, 2] - triangles[:, 0]
     cross = jnp.cross(e1, e2)
-    return jnp.sum(jnp.sqrt(jnp.sum(cross**2, axis=-1) + 1e-20)) / 2.0
+    squared_norm = jnp.sum(cross**2, axis=-1)
+    nonzero = squared_norm > 0.0
+    # Keep sqrt's derivative finite even in the unselected zero-area branch.
+    safe_norm = jnp.sqrt(jnp.where(nonzero, squared_norm, 1.0))
+    return jnp.sum(jnp.where(nonzero, safe_norm, 0.0)) / 2.0
 
 
 def mesh_center_of_mass(triangles: jnp.ndarray) -> jnp.ndarray:
     """Compute center of mass of a closed triangle mesh.
 
-    Uses the divergence theorem with ``F = (x^2/2, 0, 0)`` etc.
-    to compute first moments, then divides by volume.  Polynomial
-    in vertex positions (degree 4 ratio).
+    Integrates signed tetrahedron first moments in a local frame, then
+    divides by signed volume. This avoids cancelling world-origin moments
+    and introducing a dimensionful epsilon into the denominator.
+
+    Assumes a watertight mesh with nonzero volume. Units are length.
+    Empty meshes return zero. For nonempty zero-volume inputs the center
+    is undefined; nearly degenerate solids are ill-conditioned. Shape
+    derivatives require closure-preserving shared-boundary motion.
 
     Args:
         triangles: Triangle vertices, shape ``(n, 3, 3)``.
@@ -855,12 +875,15 @@ def mesh_center_of_mass(triangles: jnp.ndarray) -> jnp.ndarray:
         >>> tris, _ = triangulate_shape(shape)
         >>> com = mesh_center_of_mass(tris)
     """
-    v0, v1, v2 = triangles[:, 0], triangles[:, 1], triangles[:, 2]
-    vol = jnp.sum(v0 * jnp.cross(v1, v2)) / 6.0
-    n = jnp.cross(v1 - v0, v2 - v0)
-    sq_sum = v0**2 + v1**2 + v2**2 + v0 * v1 + v0 * v2 + v1 * v2
-    moments = jnp.sum(n * sq_sum, axis=0) / 24.0
-    return moments / (vol + 1e-20)
+    if triangles.shape[0] == 0:
+        return jnp.zeros((3,), dtype=triangles.dtype)
+
+    reference = jnp.mean(triangles, axis=(0, 1))
+    local = triangles - reference
+    v0, v1, v2 = local[:, 0], local[:, 1], local[:, 2]
+    signed_volumes = jnp.sum(v0 * jnp.cross(v1, v2), axis=-1) / 6.0
+    moments = jnp.sum(signed_volumes[:, None] * jnp.sum(local, axis=1), axis=0) / 4.0
+    return reference + moments / jnp.sum(signed_volumes)
 
 
 def mesh_inertia_tensor(triangles: jnp.ndarray) -> jnp.ndarray:
