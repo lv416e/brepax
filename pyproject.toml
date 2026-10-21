@@ -70,6 +70,7 @@ version-file = "src/brepax/_version.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = [
     "-ra",
     "--strict-markers",
