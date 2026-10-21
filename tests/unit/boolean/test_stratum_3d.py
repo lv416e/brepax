@@ -2,9 +2,11 @@
 
 import jax
 import jax.numpy as jnp
+import numpy as np
+import pytest
 
 from brepax.analytical.sphere_sphere import sphere_sphere_union_volume
-from brepax.boolean import union_volume
+from brepax.boolean import intersect_volume, subtract_volume, union_volume
 from brepax.primitives import Sphere
 
 
@@ -51,3 +53,28 @@ class TestStratumVolume3D:
         grad = jax.grad(f)(jnp.array([0.0, 0.0, 0.0]))
         assert grad.shape == (3,)
         assert jnp.all(jnp.isfinite(grad))
+
+
+@pytest.mark.parametrize("measure", [union_volume, intersect_volume, subtract_volume])
+def test_boolean_volume_axis_permutation(measure) -> None:
+    """An axis cycle permutes the grid and center gradients without changing volume."""
+    a = Sphere(center=jnp.array([-0.35, 0.1, -0.2]), radius=jnp.array(0.8))
+    b = Sphere(center=jnp.array([0.8, 0.45, 0.15]), radius=jnp.array(0.65))
+    rotation = jnp.array([[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    shift = jnp.array([2.3, -1.7, 0.6])
+
+    def volume(a_, b_):
+        return measure(a_, b_, method="stratum", resolution=40)
+
+    evaluate = jax.jit(jax.value_and_grad(volume, argnums=(0, 1)))
+    value, gradients = evaluate(a, b)
+    transformed_value, transformed_gradients = evaluate(
+        Sphere(center=rotation @ a.center + shift, radius=a.radius),
+        Sphere(center=rotation @ b.center + shift, radius=b.radius),
+    )
+    np.testing.assert_allclose(transformed_value, value, rtol=1e-12)
+    for gradient, transformed in zip(gradients, transformed_gradients, strict=True):
+        np.testing.assert_allclose(
+            transformed.center, rotation @ gradient.center, rtol=1e-11, atol=1e-12
+        )
+        np.testing.assert_allclose(transformed.radius, gradient.radius, rtol=1e-11)

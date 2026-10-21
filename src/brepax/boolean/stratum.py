@@ -1,4 +1,4 @@
-"""Stratum-aware Boolean operations with exact per-stratum gradients.
+"""Stratum-aware Boolean operations with analytical and grid-estimated gradients.
 
 Forward: exact SDF Boolean (jnp.minimum) + heaviside indicator on grid.
 Backward: custom_vjp dispatches gradient computation by stratum label:
@@ -8,6 +8,8 @@ Backward: custom_vjp dispatches gradient computation by stratum label:
 
 This preserves the core design principle (stratum label dispatch)
 while generalizing to any primitive pair via grid-based computation.
+The intersecting-stratum estimator differentiates a smoothed indicator on a
+frozen grid, rather than the hard sampled forward value or exact CAD geometry.
 """
 
 import jax
@@ -137,7 +139,7 @@ def _single_primitive_volume_grad(
     def _grid_vol(p: Primitive) -> Float[Array, ""]:
         grid, cell_m = _make_grid_nd(lo, hi, resolution)
         sdf_vals = p.sdf(grid)
-        cell_width = (hi[0] - lo[0]) / (resolution - 1)
+        cell_width = jnp.power(cell_m, 1.0 / lo.shape[0])
         indicator = jax.nn.sigmoid(-sdf_vals / cell_width)
         return jnp.sum(indicator) * cell_m
 
@@ -206,8 +208,9 @@ def _grad_intersecting(
 ) -> tuple[Primitive, Primitive]:
     """Intersecting: straight-through estimator on exact SDF Boolean.
 
-    Uses grid-adaptive beta = cell_width for the sigmoid, which ensures
-    precision improves with resolution. Only the union SDF boundary
+    Uses the geometric mean of axis spacings for the sigmoid width,
+    preserving axis-permutation symmetry on anisotropic grids while
+    shrinking the smoothing width with resolution. Only the union SDF boundary
     contributes meaningful gradient.
     """
 
@@ -217,7 +220,7 @@ def _grad_intersecting(
     ) -> Float[Array, ""]:
         grid, cell_m = _make_grid_nd(lo, hi, resolution)
         sdf_union = jnp.minimum(a_.sdf(grid), b_.sdf(grid))
-        cell_width = (hi[0] - lo[0]) / (resolution - 1)
+        cell_width = jnp.power(cell_m, 1.0 / lo.shape[0])
         indicator = jax.nn.sigmoid(-sdf_union / cell_width)
         return jnp.sum(indicator) * cell_m
 
@@ -254,12 +257,16 @@ def _grad_intersecting_generic(
     resolution: int,
     op: str,
 ) -> tuple[Primitive, Primitive]:
-    """Intersecting stratum: straight-through estimator on exact SDF Boolean."""
+    """Intersecting: straight-through estimator with geometric-mean cell width.
+
+    The width is invariant under grid-axis permutations; arbitrary rotations
+    still change the sampled grid and introduce discretization error.
+    """
 
     def _vol(a_: Primitive, b_: Primitive) -> Float[Array, ""]:
         grid, cell_m = _make_grid_nd(lo, hi, resolution)
         sdf_vals = _sdf_combine(a_, b_, grid, op)
-        cell_width = (hi[0] - lo[0]) / (resolution - 1)
+        cell_width = jnp.power(cell_m, 1.0 / lo.shape[0])
         indicator = jax.nn.sigmoid(-sdf_vals / cell_width)
         return jnp.sum(indicator) * cell_m
 
@@ -404,7 +411,7 @@ def union_area_stratum(
     *,
     resolution: int = 128,
 ) -> Float[Array, ""]:
-    """Compute 2D union area with stratum-aware exact gradients."""
+    """Compute 2D union area with stratum-dispatched gradients."""
     lo, hi = _auto_domain(a, b)
     lo = jax.lax.stop_gradient(lo)
     hi = jax.lax.stop_gradient(hi)
