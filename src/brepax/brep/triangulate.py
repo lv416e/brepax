@@ -614,6 +614,9 @@ def per_face_geometric_params(shape: TopoDS_Shape) -> list[dict[str, Any]]:
         List of per-face parameter dicts; each dict has at least a
         ``surface_type`` key and the analytical-primitive parameters
         produced by :func:`_extract_face_geometric_params`.
+
+    Raises:
+        NotImplementedError: An evaluated face has an unsupported surface type.
     """
     face_sources: list[Any] = []
     exp_solid = TopExp_Explorer(shape, TopAbs_SOLID)
@@ -631,8 +634,8 @@ def per_face_geometric_params(shape: TopoDS_Shape) -> list[dict[str, Any]]:
             adaptor = BRepAdaptor_Surface(face)
             result = _extract_face_geometric_params(adaptor)
             if result is None:
-                exp.Next()
-                continue
+                msg = f"Unsupported surface type: {adaptor.GetType().name}"
+                raise NotImplementedError(msg)
             surface_type, params = result
             out.append({"surface_type": surface_type, **params})
             exp.Next()
@@ -676,6 +679,13 @@ def triangulate_shape(
         Tuple of ``(triangles, params_list)`` where triangles has
         shape ``(n_total, 3, 3)`` and params_list contains one
         parameter dict per face, in traversal order.
+
+    Raises:
+        NotImplementedError: An evaluated face has an unsupported surface type.
+        ValueError: An evaluated face has no triangulation or no triangles.
+
+    If solids are present, only their faces are evaluated. Otherwise all
+    faces are evaluated. A shape with no faces returns empty arrays and metadata.
     """
     BRepMesh_IncrementalMesh(shape, deflection)
 
@@ -699,18 +709,19 @@ def triangulate_shape(
 
             result = _extract_face_geometric_params(adaptor)
             if result is None:
-                exp.Next()
-                continue
+                msg = f"Unsupported surface type: {adaptor.GetType().name}"
+                raise NotImplementedError(msg)
             surface_type, params = result
 
             loc = TopLoc_Location()
             poly_tri = BRep_Tool.Triangulation_s(face, loc)
             if poly_tri is None:
-                exp.Next()
-                continue
+                raise ValueError("Face has no triangulation after OCCT meshing")
 
             n_nodes = poly_tri.NbNodes()
             n_tris = poly_tri.NbTriangles()
+            if n_nodes == 0 or n_tris == 0:
+                raise ValueError("Face triangulation contains no triangles")
 
             us_np = np.empty(n_nodes)
             vs_np = np.empty(n_nodes)
@@ -1135,6 +1146,12 @@ def extract_mesh_topology(
         ``conn`` (numpy int32), ``reverse`` (bool), and surface
         parameters (JAX arrays).
 
+    Raises:
+        NotImplementedError: An evaluated face has an unsupported surface type.
+        ValueError: An evaluated face has no triangulation or no triangles.
+
+    Face selection and empty-shape behavior follow :func:`triangulate_shape`.
+
     Examples:
         >>> topology = extract_mesh_topology(shape)
         >>> triangles = evaluate_mesh(topology)
@@ -1159,17 +1176,18 @@ def extract_mesh_topology(
 
             face_data = _extract_face_data(adaptor)
             if face_data is None:
-                exp.Next()
-                continue
+                msg = f"Unsupported surface type: {adaptor.GetType().name}"
+                raise NotImplementedError(msg)
 
             loc = TopLoc_Location()
             poly_tri = BRep_Tool.Triangulation_s(face, loc)
             if poly_tri is None:
-                exp.Next()
-                continue
+                raise ValueError("Face has no triangulation after OCCT meshing")
 
             n_nodes = poly_tri.NbNodes()
             n_tris = poly_tri.NbTriangles()
+            if n_nodes == 0 or n_tris == 0:
+                raise ValueError("Face triangulation contains no triangles")
 
             us_np = np.empty(n_nodes)
             vs_np = np.empty(n_nodes)
