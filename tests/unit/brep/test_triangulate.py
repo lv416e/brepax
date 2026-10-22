@@ -29,17 +29,13 @@ from brepax.io.step import read_step
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
 
-def _rotation_matrix(angle: float) -> np.ndarray:
-    axis = np.array([1.0, 2.0, 3.0]) / np.sqrt(14.0)
-    x, y, z = axis
+def _rotation_matrix(
+    angle: float, axis: tuple[float, float, float] = (1.0, 2.0, 3.0)
+) -> np.ndarray:
+    direction = np.asarray(axis) / np.linalg.norm(axis)
+    x, y, z = direction
     skew = np.array([[0.0, -z, y], [z, 0.0, -x], [-y, x, 0.0]])
     return np.eye(3) + np.sin(angle) * skew + (1.0 - np.cos(angle)) * (skew @ skew)
-
-
-def _divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
-    """Divergence theorem volume from a triangle mesh."""
-    v0, v1, v2 = triangles[:, 0], triangles[:, 1], triangles[:, 2]
-    return jnp.sum(v0 * jnp.cross(v1, v2)) / 6.0
 
 
 # Reference volumes from OCCT GProp (pre-computed for each fixture)
@@ -59,7 +55,7 @@ class TestTriangulateShape:
         """Box triangulation gives exact volume."""
         shape = read_step(FIXTURES / "sample_box.step")
         tris, params = triangulate_shape(shape)
-        vol = float(_divergence_volume(tris))
+        vol = float(divergence_volume(tris))
         assert vol == pytest.approx(6000.0, rel=1e-3)
         assert len(params) == 6
 
@@ -71,7 +67,7 @@ class TestTriangulateShape:
         """Curved surface volume within 1% of OCCT GProp."""
         shape = read_step(FIXTURES / f"{fixture}.step")
         tris, _params = triangulate_shape(shape)
-        vol = float(_divergence_volume(tris))
+        vol = float(divergence_volume(tris))
         assert vol == pytest.approx(_REF_VOLUMES[fixture], rel=1e-2)
 
     def test_bspline_face_triangulated(self) -> None:
@@ -160,25 +156,48 @@ class TestMeshMetrics:
     @settings(max_examples=12, derandomize=True, deadline=None)
     @given(
         angle=st.floats(-math.pi, math.pi),
+        axis=st.tuples(*(st.floats(-1.0, 1.0) for _ in range(3))).filter(
+            lambda axis: np.linalg.norm(axis) > 0.1
+        ),
         translation=st.tuples(*(st.floats(-100.0, 100.0) for _ in range(3))),
-        scale=st.floats(1e-6, 1e3),
+        scale=st.floats(1e-9, 1e3),
     )
-    @example(angle=0.47, translation=(3.0, -2.0, 4.0), scale=1.0)
-    @example(angle=0.0, translation=(1e8, -2e8, 3e8), scale=1.0)
-    @example(angle=0.47, translation=(3.0, -2.0, 4.0), scale=1e-6)
-    def test_inertia_rigid_motion_and_scale(self, angle, translation, scale) -> None:
-        """Unit-density inertia obeys I' = s^5 R I R^T, independent of translation."""
+    @example(angle=0.47, axis=(0.3, -0.4, 0.5), translation=(3.0, -2.0, 4.0), scale=1.0)
+    @example(angle=0.0, axis=(0.3, -0.4, 0.5), translation=(1e8, -2e8, 3e8), scale=1.0)
+    @example(
+        angle=0.47, axis=(0.3, -0.4, 0.5), translation=(3.0, -2.0, 4.0), scale=1e-9
+    )
+    def test_mesh_metrics_rigid_motion_and_scale(
+        self, angle, axis, translation, scale
+    ) -> None:
+        """Check scalar, vector, and tensor similarity laws against independent OCCT."""
         shape = read_step(FIXTURES / "l_bracket.step")
         tris, _ = triangulate_shape(shape)
-        reference = compute_gprop_ground_truth(shape)["moment_of_inertia"]
-        rotation = _rotation_matrix(angle)
+        reference = compute_gprop_ground_truth(shape)
+        rotation = _rotation_matrix(angle, axis)
         transformed = scale * (tris @ rotation.T + jnp.array(translation))
-        expected = scale**5 * (rotation @ reference @ rotation.T)
         np.testing.assert_allclose(
-            mesh_inertia_tensor(transformed),
-            expected,
+            divergence_volume(transformed) / scale**3, reference["volume"], rtol=2e-9
+        )
+        np.testing.assert_allclose(
+            mesh_surface_area(transformed) / scale**2,
+            reference["surface_area"],
+            rtol=2e-9,
+        )
+        # Compare in model units; allow only coordinate-rounding error at large offsets.
+        rounding = 8 * np.finfo(float).eps * np.max(np.abs(translation))
+        np.testing.assert_allclose(
+            mesh_center_of_mass(transformed) / scale - np.array(translation),
+            rotation @ reference["center_of_mass"],
             rtol=2e-10,
-            atol=2e-10 * np.linalg.norm(expected),
+            atol=2e-10 + rounding,
+        )
+        expected = rotation @ reference["moment_of_inertia"] @ rotation.T
+        np.testing.assert_allclose(
+            mesh_inertia_tensor(transformed) / scale**5,
+            expected,
+            rtol=2e-9,
+            atol=2e-9 * np.linalg.norm(expected),
         )
 
     def test_inertia_transformed_gradients(self) -> None:
@@ -204,12 +223,78 @@ class TestMeshMetrics:
         )
         np.testing.assert_allclose(shift_grad, 0.0, atol=1e-7)
 
-    def test_surface_area_gradient_finite(self) -> None:
-        """Gradient of surface area is finite."""
+    @pytest.mark.parametrize(
+        ("metric", "degree", "reference"),
+        [(divergence_volume, 3, 6000.0), (mesh_surface_area, 2, 2200.0)],
+    )
+    def test_scalar_metric_similarity_gradients(
+        self, metric, degree, reference
+    ) -> None:
+        """Scalar gradients co-rotate and scale by s^(degree-1), including under JIT."""
         shape = read_step(FIXTURES / "sample_box.step")
         tris, _ = triangulate_shape(shape)
-        grad = jax.grad(mesh_surface_area)(tris)
-        assert jnp.all(jnp.isfinite(grad))
+        rotation = jnp.asarray(_rotation_matrix(0.47))
+        shift = jnp.array([3.0, -2.0, 4.0])
+
+        def objective(scale, translation):
+            return metric(scale * (tris @ rotation.T) + translation)
+
+        scales = jnp.array([1e-9, 1e-3, 1.0, 2.0])
+        scale_grad, shift_grad = jax.jit(jax.vmap(jax.grad(objective, argnums=(0, 1))))(
+            scales, scales[:, None] * shift
+        )
+        np.testing.assert_allclose(
+            scale_grad / scales ** (degree - 1), degree * reference, rtol=1e-12
+        )
+        np.testing.assert_allclose(
+            shift_grad / scales[:, None] ** (degree - 1), 0.0, atol=1e-10
+        )
+
+        gradient = jax.jit(jax.grad(metric))
+        scale = 0.25
+        np.testing.assert_allclose(
+            gradient(scale * (tris @ rotation.T) + shift),
+            scale ** (degree - 1) * (gradient(tris) @ rotation.T),
+            rtol=1e-12,
+            atol=1e-12,
+        )
+
+    def test_center_of_mass_similarity_derivatives(self) -> None:
+        """CoM translation and scale Jacobians match the analytic similarity laws."""
+        shape = read_step(FIXTURES / "sample_box.step")
+        tris, _ = triangulate_shape(shape)
+        rotation = jnp.asarray(_rotation_matrix(0.47, (0.3, -0.4, 0.5)))
+
+        def center(scale, translation):
+            return mesh_center_of_mass(scale * (tris @ rotation.T) + translation)
+
+        scales = jnp.array([1e-9, 1.0, 1e3])
+        scale_jac, shift_jac = jax.jit(jax.vmap(jax.jacrev(center, argnums=(0, 1))))(
+            scales, scales[:, None] * jnp.array([3.0, -2.0, 4.0])
+        )
+        np.testing.assert_allclose(
+            scale_jac,
+            jnp.broadcast_to(rotation @ jnp.array([5.0, 10.0, 15.0]), (3, 3)),
+            rtol=1e-12,
+        )
+        np.testing.assert_allclose(
+            shift_jac, jnp.tile(jnp.eye(3), (3, 1, 1)), atol=1e-12
+        )
+
+    def test_empty_mesh_metrics_are_zero(self) -> None:
+        triangles = jnp.empty((0, 3, 3))
+        assert float(divergence_volume(triangles)) == 0.0
+        assert float(mesh_surface_area(triangles)) == 0.0
+        np.testing.assert_array_equal(mesh_center_of_mass(triangles), jnp.zeros(3))
+
+    def test_zero_area_triangles_have_zero_value_and_gradient(self) -> None:
+        """At collapsed or collinear triangles, select a zero area subgradient."""
+        triangles = jnp.array(
+            [[[1.0, 2.0, 3.0]] * 3, [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]]]
+        )
+        value, gradient = jax.jit(jax.value_and_grad(mesh_surface_area))(triangles)
+        assert float(value) == 0.0
+        np.testing.assert_array_equal(gradient, jnp.zeros_like(triangles))
 
 
 class TestEvaluateMesh:
@@ -239,26 +324,29 @@ class TestEvaluateMesh:
 class TestDivergenceVolumeGradient:
     """Tests for gradient flow through divergence_volume."""
 
-    def test_gradient_finite_and_nonzero(self) -> None:
-        """Gradient of volume w.r.t. triangle vertices is finite and nonzero."""
-        shape = read_step(FIXTURES / "sample_box.step")
-        tris, _ = triangulate_shape(shape)
-        grad = jax.grad(_divergence_volume)(tris)
-        assert jnp.all(jnp.isfinite(grad))
-        assert jnp.any(grad != 0)
+    def test_shared_vertex_gradients_match_analytic_tetrahedron(self) -> None:
+        """Compare against a determinant oracle while preserving mesh closure."""
+        vertices = jnp.array(
+            [[1.2, -0.3, 0.5], [3.4, -0.1, 0.7], [1.5, 2.1, 0.4], [1.0, 0.2, 4.5]]
+        )
+        faces = jnp.array([[1, 2, 3], [0, 3, 2], [0, 1, 3], [0, 2, 1]])
 
-    def test_gradient_matches_finite_diff(self) -> None:
-        """AD gradient matches central finite difference."""
-        shape = read_step(FIXTURES / "sample_box.step")
-        tris, _ = triangulate_shape(shape)
-        grad = jax.grad(_divergence_volume)(tris)
+        def volume(points):
+            return divergence_volume(points[faces])
 
-        eps = 1e-3
-        idx = (0, 1, 2)
-        tris_p = tris.at[idx].add(eps)
-        tris_m = tris.at[idx].add(-eps)
-        fd = (_divergence_volume(tris_p) - _divergence_volume(tris_m)) / (2 * eps)
-        assert float(grad[idx]) == pytest.approx(float(fd), rel=0.05)
+        edges = np.asarray(vertices[1:] - vertices[0])
+        reference_volume = np.linalg.det(edges) / 6.0
+        outer_gradients = reference_volume * np.linalg.inv(edges).T
+        reference_gradient = np.vstack((-outer_gradients.sum(axis=0), outer_gradients))
+        value, gradient = jax.jit(jax.value_and_grad(volume))(vertices)
+        np.testing.assert_allclose(value, reference_volume, rtol=1e-12)
+        np.testing.assert_allclose(gradient, reference_gradient, rtol=1e-12, atol=1e-12)
+
+        for step in (1e-3, 1e-4, 1e-5):
+            forward = vertices.at[1, 2].add(step)
+            backward = vertices.at[1, 2].add(-step)
+            fd = (volume(forward) - volume(backward)) / (2 * step)
+            np.testing.assert_allclose(gradient[1, 2], fd, rtol=1e-8, atol=1e-10)
 
 
 class TestParametricOptimization:
