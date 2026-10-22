@@ -11,6 +11,17 @@ import numpy as np
 import pytest
 from hypothesis import example, given, settings
 from hypothesis import strategies as st
+from OCP.BRepBuilderAPI import (
+    BRepBuilderAPI_MakeEdge,
+    BRepBuilderAPI_MakeFace,
+    BRepBuilderAPI_MakeWire,
+    BRepBuilderAPI_NurbsConvert,
+)
+from OCP.BRepCheck import BRepCheck_Analyzer
+from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism
+from OCP.Geom import Geom_BezierCurve
+from OCP.gp import gp_Pnt, gp_Vec
+from OCP.TColgp import TColgp_Array1OfPnt
 
 from brepax._occt.backend import BRepPrimAPI_MakeBox
 from brepax.brep.gprop import compute_gprop_ground_truth
@@ -72,6 +83,34 @@ def _rotation_matrix(
     return np.eye(3) + np.sin(angle) * skew + (1.0 - np.cos(angle)) * (skew @ skew)
 
 
+def _curved_roof_shape(unit: float):
+    """Extrude a quadratic roof with planar trimmed caps, then convert to NURBS."""
+    rotation = _rotation_matrix(0.47)
+
+    def point(x: float, z: float):
+        return gp_Pnt(*(unit * (rotation @ np.array([x, 0.0, z]) + [3.0, -2.0, 4.0])))
+
+    corners = [point(0, 0), point(40, 0), point(40, 10), point(0, 10)]
+    poles = TColgp_Array1OfPnt(1, 3)
+    for i, pole in enumerate([corners[2], point(20, 20), corners[3]], 1):
+        poles.SetValue(i, pole)
+    wire = BRepBuilderAPI_MakeWire()
+    for edge in (
+        BRepBuilderAPI_MakeEdge(corners[0], corners[1]),
+        BRepBuilderAPI_MakeEdge(corners[1], corners[2]),
+        BRepBuilderAPI_MakeEdge(Geom_BezierCurve(poles)),
+        BRepBuilderAPI_MakeEdge(corners[3], corners[0]),
+    ):
+        wire.Add(edge.Edge())
+    face = BRepBuilderAPI_MakeFace(wire.Wire()).Face()
+    vector = gp_Vec(*(unit * (rotation @ np.array([0.0, 20.0, 0.0]))))
+    shape = BRepBuilderAPI_NurbsConvert(
+        BRepPrimAPI_MakePrism(face, vector).Shape(), True
+    ).Shape()
+    assert BRepCheck_Analyzer(shape).IsValid()
+    return shape
+
+
 # Reference volumes from OCCT GProp (pre-computed for each fixture)
 _REF_VOLUMES = {
     "sample_box": 6000.0,
@@ -111,6 +150,43 @@ class TestTriangulateShape:
         assert tris.shape[0] > 0
         assert len(params) == 1
         assert "control_points" in params[0]
+
+    @pytest.mark.parametrize("unit", [1e-3, 1.0, 1e3])
+    def test_rotated_bspline_roof_preserves_boundary(self, unit: float) -> None:
+        """Mesher UV roundoff must not send boundary vertices to the origin."""
+        shape = _curved_roof_shape(unit)
+        reference = compute_gprop_ground_truth(shape)
+        triangles, params = triangulate_shape(shape, deflection=0.001 * unit)
+        topology = extract_mesh_topology(shape, deflection=0.001 * unit)
+        assert len(params) == len(topology) == 6
+        for mesh in (triangles, evaluate_mesh(topology)):
+            _assert_closed_mesh(mesh / unit)
+            np.testing.assert_allclose(
+                divergence_volume(mesh) / unit**3,
+                reference["volume"] / unit**3,
+                rtol=1e-4,
+            )
+            np.testing.assert_allclose(
+                mesh_surface_area(mesh) / unit**2,
+                reference["surface_area"] / unit**2,
+                rtol=1e-4,
+            )
+
+        def scaled_metrics(scale):
+            mesh = _scaled_bspline_mesh(topology, jnp.full(3, scale))
+            return jnp.array(
+                [divergence_volume(mesh) / unit**3, mesh_surface_area(mesh) / unit**2]
+            )
+
+        derivative = jax.jit(jax.jacfwd(scaled_metrics))(jnp.array(1.0))
+        np.testing.assert_allclose(
+            derivative,
+            [
+                3 * reference["volume"] / unit**3,
+                2 * reference["surface_area"] / unit**2,
+            ],
+            rtol=1e-4,
+        )
 
     def test_deflection_affects_triangle_count(self) -> None:
         """Finer deflection produces more triangles."""
