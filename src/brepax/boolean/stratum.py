@@ -26,7 +26,10 @@ def _primitive_bounds(p: Primitive) -> tuple[Array, Array]:
     params = p.parameters()
     if "center" in params:
         c = params["center"]
-        r = params.get("radius", jnp.array(1.0))
+        if "major_radius" in params:
+            r = params["major_radius"] + params["minor_radius"]
+        else:
+            r = params.get("radius", jnp.array(1.0))
         # FiniteCylinder has height; extend bounds along axis
         h = params.get("height", jnp.array(0.0))
         extent = jnp.maximum(r, h / 2.0)
@@ -53,10 +56,21 @@ def _auto_domain(
     a: Primitive,
     b: Primitive,
 ) -> tuple[Array, Array]:
-    """Compute bounding box from two primitives with padding."""
+    """Enclose finite primitives with padding proportional to their size.
+
+    Each axis receives a quarter of the larger primitive width on that axis.
+    This preserves the previous half-unit padding for unit-radius spheres,
+    scales with model units, and avoids diluting short-axis resolution for
+    elongated primitives. Padding does not grow with primitive separation.
+    Unit covariance requires the primitive bounds to scale with geometry.
+    Pairs containing an unbounded primitive retain the legacy half-unit
+    padding and heuristic windows; unit covariance is not guaranteed for them.
+    """
     lo_a, hi_a = _primitive_bounds(a)
     lo_b, hi_b = _primitive_bounds(b)
-    margin = 0.5
+    largest_widths = jnp.maximum(hi_a - lo_a, hi_b - lo_b)
+    both_finite = jnp.isfinite(a.volume()) & jnp.isfinite(b.volume())
+    margin = jnp.where(both_finite, 0.25 * largest_widths, 0.5)
     lo = jnp.minimum(lo_a, lo_b) - margin
     hi = jnp.maximum(hi_a, hi_b) + margin
     return lo, hi
