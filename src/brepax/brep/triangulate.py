@@ -639,6 +639,22 @@ def per_face_geometric_params(shape: TopoDS_Shape) -> list[dict[str, Any]]:
     return out
 
 
+def _snap_mesh_parameters_to_knot_domain(
+    values: np.ndarray, knots: jnp.ndarray, degree: int
+) -> np.ndarray:
+    """Snap only roundoff-sized overshoots of a B-spline parameter domain."""
+    host_knots = np.asarray(knots)
+    lower, upper = host_knots[degree], host_knots[-degree - 1]
+    # OCCT boundary UVs can lie a few ulps outside the knot interval after
+    # coordinate transforms. Below its left endpoint all basis functions
+    # vanish, moving the vertex to the origin. Scale by parameter units and
+    # knot precision; do not clamp materially out-of-domain parameters.
+    magnitude = max(abs(lower), abs(upper), upper - lower)
+    tolerance = 8 * np.finfo(host_knots.dtype).eps * magnitude
+    clipped = np.clip(values, lower, upper)
+    return np.where(np.abs(values - clipped) <= tolerance, clipped, values)
+
+
 def triangulate_shape(
     shape: TopoDS_Shape,
     *,
@@ -702,6 +718,14 @@ def triangulate_shape(
                 uv = poly_tri.UVNode(i)
                 us_np[i - 1] = uv.X()
                 vs_np[i - 1] = uv.Y()
+
+            if surface_type == "bspline":
+                us_np = _snap_mesh_parameters_to_knot_domain(
+                    us_np, params["knots_u"], params["deg_u"]
+                )
+                vs_np = _snap_mesh_parameters_to_knot_domain(
+                    vs_np, params["knots_v"], params["deg_v"]
+                )
 
             conn = np.empty((n_tris, 3), dtype=np.int32)
             for i in range(1, n_tris + 1):
@@ -1153,6 +1177,14 @@ def extract_mesh_topology(
                 uv = poly_tri.UVNode(i)
                 us_np[i - 1] = uv.X()
                 vs_np[i - 1] = uv.Y()
+
+            if face_data["surface_type"] == "bspline":
+                us_np = _snap_mesh_parameters_to_knot_domain(
+                    us_np, face_data["knots_u"], face_data["deg_u"]
+                )
+                vs_np = _snap_mesh_parameters_to_knot_domain(
+                    vs_np, face_data["knots_v"], face_data["deg_v"]
+                )
 
             conn = np.empty((n_tris, 3), dtype=np.int32)
             for i in range(1, n_tris + 1):
