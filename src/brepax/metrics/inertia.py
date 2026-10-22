@@ -4,6 +4,13 @@ Both metrics extend the sigmoid indicator framework used by volume and
 surface area: the indicator ``sigma(-f/eps)`` weights each grid point
 by its interior membership, and position-dependent terms produce the
 mass-weighted integrals for center of mass and inertia tensor.
+
+Lengths, SDF values, and domain bounds must use the same units. With
+co-transformed sampling points, positive scaling by ``s`` maps the centroid
+to ``s * c + t`` and unit-density inertia to ``s**5 * I``. A fixed Cartesian
+grid preserves rotations that permute its samples; arbitrary rotations
+introduce discretization error. These are sampled sigmoid moments, not exact
+solid moments or derivatives of rebuilt CAD geometry.
 """
 
 from __future__ import annotations
@@ -15,6 +22,19 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from brepax.brep.csg_eval import make_grid_3d
+
+
+def _weighted_center_of_mass(
+    indicator: Float[Array, "R R R"],
+    grid: Float[Array, "R R R 3"],
+) -> Float[Array, 3]:
+    """Normalize dimensionless weights in a local frame; zero mass is undefined."""
+    # A common factor cancels from the ratio. Freeze it so reverse AD never
+    # squares a tiny total weight while differentiating the normalization.
+    weights = indicator / jax.lax.stop_gradient(jnp.max(indicator))
+    reference = grid[0, 0, 0]
+    local_moment = jnp.sum((grid - reference) * weights[..., None], axis=(0, 1, 2))
+    return reference + local_moment / jnp.sum(weights)
 
 
 def integrate_sdf_center_of_mass(
@@ -34,14 +54,14 @@ def integrate_sdf_center_of_mass(
         resolution: Number of grid points per axis.
 
     Returns:
-        Center of mass, shape ``(3,)``.
+        Center of mass in length units, shape ``(3,)``. Undefined (NaN)
+        if all sigmoid weights underflow to zero. Requires positive domain
+        widths and nonzero resolution.
     """
     cell_vol = jnp.prod((hi - lo) / resolution)
     cell_width = jnp.power(cell_vol, 1.0 / 3.0)
     indicator = jax.nn.sigmoid(-sdf / cell_width)
-    volume = jnp.sum(indicator) * cell_vol
-    weighted_pos = jnp.sum(grid * indicator[..., None], axis=(0, 1, 2)) * cell_vol
-    return weighted_pos / (volume + 1e-20)
+    return _weighted_center_of_mass(indicator, grid)
 
 
 def center_of_mass(
@@ -54,7 +74,10 @@ def center_of_mass(
     """Compute differentiable center of mass of a shape.
 
     Assumes unit density.  The center of mass is the volume-weighted
-    average position of interior points.
+    average position of sigmoid-weighted grid points. Domain bounds are
+    frozen during differentiation; AD differentiates the sampled smooth
+    moment with respect to SDF parameters. Co-scale the domain for unit
+    changes. Zero total sampled weight gives an undefined (NaN) centroid.
 
     Args:
         sdf_fn: Signed distance function.
@@ -102,16 +125,17 @@ def integrate_sdf_moment_of_inertia(
             from the SDF.
 
     Returns:
-        Inertia tensor, shape ``(3, 3)``.
+        Inertia tensor in length units to the fifth power at unit density,
+        shape ``(3, 3)``. Requires positive domain widths and nonzero
+        resolution. Zero total sampled weight gives NaN when ``com`` is
+        inferred, or a zero tensor about a supplied finite ``com``.
     """
     cell_vol = jnp.prod((hi - lo) / resolution)
     cell_width = jnp.power(cell_vol, 1.0 / 3.0)
     indicator = jax.nn.sigmoid(-sdf / cell_width)
 
     if com is None:
-        volume = jnp.sum(indicator) * cell_vol
-        weighted_pos = jnp.sum(grid * indicator[..., None], axis=(0, 1, 2)) * cell_vol
-        com = weighted_pos / (volume + 1e-20)
+        com = _weighted_center_of_mass(indicator, grid)
 
     # Position relative to center of mass
     r = grid - com
@@ -145,6 +169,12 @@ def moment_of_inertia(
     assuming unit density.  Uses Richardson extrapolation by default
     to cancel the leading-order sigmoid bleeding bias that amplifies
     at r^2-weighted integrals.
+
+    Domain bounds are frozen during differentiation; AD differentiates the
+    sampled smooth moment with respect to SDF parameters. Co-scale the
+    domain for unit changes. Inertia has units of length to the fifth power
+    at unit density. Zero total sampled weight gives an undefined (NaN)
+    centroid and tensor.
 
     Args:
         sdf_fn: Signed distance function.

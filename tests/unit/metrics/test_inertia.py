@@ -2,8 +2,15 @@
 
 import jax
 import jax.numpy as jnp
+import pytest
 
-from brepax.metrics.inertia import center_of_mass, moment_of_inertia
+from brepax.brep.csg_eval import make_grid_3d
+from brepax.metrics.inertia import (
+    center_of_mass,
+    integrate_sdf_center_of_mass,
+    integrate_sdf_moment_of_inertia,
+    moment_of_inertia,
+)
 from brepax.primitives import Box, Sphere
 
 
@@ -32,16 +39,22 @@ class TestCenterOfMass:
         com = center_of_mass(b.sdf, lo=lo, hi=hi, resolution=32)
         assert jnp.allclose(com, jnp.zeros(3), atol=0.1)
 
-    def test_differentiable(self) -> None:
-        """jax.grad of CoM w.r.t. sphere center is finite."""
-        lo, hi = jnp.array([-4.0] * 3), jnp.array([4.0] * 3)
+    def test_sphere_units(self) -> None:
+        """Co-scaled domains preserve the analytic centroid in length units."""
+        expected = jnp.array([0.3, -0.4, 0.5])
 
-        def com_x(c: jnp.ndarray) -> jnp.ndarray:
-            s = Sphere(center=c, radius=jnp.array(1.0))
-            return center_of_mass(s.sdf, lo=lo, hi=hi, resolution=16)[0]
+        def compute(scale: jnp.ndarray) -> jnp.ndarray:
+            c = scale * expected
+            sphere = Sphere(center=c, radius=0.8 * scale)
+            return (
+                center_of_mass(
+                    sphere.sdf, lo=c - 2 * scale, hi=c + 2 * scale, resolution=24
+                )
+                / scale
+            )
 
-        grad = jax.grad(com_x)(jnp.array([1.0, 0.0, 0.0]))
-        assert jnp.all(jnp.isfinite(grad))
+        actual = jax.jit(jax.vmap(compute))(jnp.array([1e-9, 1.0, 1e3]))
+        assert jnp.allclose(actual, expected, rtol=1e-12, atol=1e-12)
 
     def test_jit_compatible(self) -> None:
         """center_of_mass works under jax.jit."""
@@ -94,13 +107,111 @@ class TestMomentOfInertia:
             f"I_xx={float(inertia[0, 0]):.1f}, expected={float(expected_xx):.1f}"
         )
 
-    def test_differentiable(self) -> None:
-        """jax.grad of inertia w.r.t. box half_extents is finite."""
-        lo, hi = jnp.array([-4.0] * 3), jnp.array([4.0] * 3)
 
-        def i_xx(he: jnp.ndarray) -> jnp.ndarray:
-            b = Box(center=jnp.zeros(3), half_extents=he)
-            return moment_of_inertia(b.sdf, lo=lo, hi=hi, resolution=16)[0, 0]
+@pytest.mark.parametrize("richardson", [False, True])
+def test_public_mass_metrics_similarity(richardson: bool) -> None:
+    """Co-transform the SDF and grid; only grid-preserving rotations are exact."""
+    rotation = jnp.roll(jnp.eye(3), 1, axis=0)
+    shift = jnp.array([0.3, -0.4, 0.5])
+    centers = jnp.array([[-0.6, -0.3, 0.1], [0.65, 0.2, 0.4]])
+    radii = jnp.array([0.7, 0.45])
 
-        grad = jax.grad(i_xx)(jnp.array([2.0, 1.5, 1.0]))
-        assert jnp.all(jnp.isfinite(grad))
+    def compute(
+        scale: jnp.ndarray, rotate: jnp.ndarray, offset: jnp.ndarray
+    ) -> tuple[jnp.ndarray, jnp.ndarray]:
+        transformed = scale * (centers @ rotate.T) + offset
+        a = Sphere(center=transformed[0], radius=scale * radii[0])
+        b = Sphere(center=transformed[1], radius=scale * radii[1])
+
+        def sdf(points: jnp.ndarray) -> jnp.ndarray:
+            return jnp.minimum(a.sdf(points), b.sdf(points))
+
+        lo, hi = offset - 2 * scale, offset + 2 * scale
+        com = center_of_mass(sdf, lo=lo, hi=hi, resolution=24)
+        inertia = moment_of_inertia(
+            sdf, lo=lo, hi=hi, resolution=24, richardson=richardson
+        )
+        return com, inertia
+
+    com, inertia = compute(jnp.array(1.0), jnp.eye(3), jnp.zeros(3))
+    scales = jnp.array([1e-9, 1.0, 1e3])
+    actual_com, actual_inertia = jax.jit(
+        jax.vmap(lambda s: compute(s, rotation, s * shift))
+    )(scales)
+    assert jnp.allclose(
+        actual_com / scales[:, None], rotation @ com + shift, rtol=1e-11, atol=1e-12
+    )
+    assert jnp.allclose(
+        actual_inertia / scales[:, None, None] ** 5,
+        rotation @ inertia @ rotation.T,
+        rtol=1e-11,
+        atol=1e-12,
+    )
+
+
+def test_sampled_mass_derivatives() -> None:
+    """AD differentiates the sampled sigmoid moments, checked by central FD."""
+    lo, hi = -jnp.ones(3), jnp.ones(3)
+    grid, _ = make_grid_3d(lo, hi, 2)
+    sdf = jnp.linspace(-0.7, 0.9, 8).reshape(2, 2, 2)
+    direction = jnp.cos(jnp.arange(8.0)).reshape(sdf.shape)
+    probe = jnp.array([0.2, -0.3, 0.7])
+
+    def objective(values: jnp.ndarray, scale: jnp.ndarray) -> jnp.ndarray:
+        com = integrate_sdf_center_of_mass(
+            values, scale * grid, scale * lo, scale * hi, 2
+        )
+        inertia = integrate_sdf_moment_of_inertia(
+            values, scale * grid, scale * lo, scale * hi, 2
+        )
+        return jnp.stack([jnp.dot(probe, com) / scale, jnp.trace(inertia) / scale**5])
+
+    jacobian = jax.jit(jax.jacrev(objective))
+    reference = jacobian(sdf, jnp.array(1.0))
+    for scale in [1e-9, 1.0, 1e3]:
+        actual = jacobian(scale * sdf, jnp.array(scale))
+        assert jnp.allclose(scale * actual, reference, rtol=1e-12, atol=1e-12)
+    derivative = jnp.sum(reference * direction, axis=(1, 2, 3))
+    for step in [1e-3, 1e-4, 1e-5]:
+        finite_difference = (
+            objective(sdf + step * direction, jnp.array(1.0))
+            - objective(sdf - step * direction, jnp.array(1.0))
+        ) / (2 * step)
+        assert jnp.allclose(derivative, finite_difference, rtol=2e-6, atol=1e-10)
+
+
+def test_zero_sampled_mass() -> None:
+    """A zero-mass centroid is undefined; inertia about a finite point is zero."""
+    lo, hi = -jnp.ones(3), jnp.ones(3)
+    grid, _ = make_grid_3d(lo, hi, 2)
+    sdf = jnp.full((2, 2, 2), 1e6)
+    com = integrate_sdf_center_of_mass(sdf, grid, lo, hi, 2)
+    inertia = integrate_sdf_moment_of_inertia(sdf, grid, lo, hi, 2)
+    assert jnp.all(jnp.isnan(com))
+    assert jnp.all(jnp.isnan(inertia))
+    about_origin = integrate_sdf_moment_of_inertia(sdf, grid, lo, hi, 2, jnp.zeros(3))
+    assert jnp.array_equal(about_origin, jnp.zeros((3, 3)))
+
+
+@pytest.mark.parametrize("dtype, distance", [(jnp.float32, 60.0), (jnp.float64, 400.0)])
+def test_small_positive_sampled_mass(dtype: type, distance: float) -> None:
+    """Positive tail weights retain finite, accurate centroid derivatives."""
+    lo, hi = -jnp.ones(3, dtype=dtype), jnp.ones(3, dtype=dtype)
+    grid, _ = make_grid_3d(lo, hi, 2)
+    sdf = distance + jnp.arange(8, dtype=dtype).reshape(2, 2, 2) / 10
+
+    def objective(values: jnp.ndarray) -> jnp.ndarray:
+        com = integrate_sdf_center_of_mass(values, grid, lo, hi, 2)
+        inertia = integrate_sdf_moment_of_inertia(values, grid, lo, hi, 2)
+        # Normalize inertia for an accuracy check at this small mass.
+        return jnp.stack([jnp.sum(com), jnp.trace(inertia) * jnp.exp(distance)])
+
+    direction = jnp.cos(jnp.arange(8, dtype=dtype)).reshape(sdf.shape)
+    derivative = jnp.sum(
+        jax.jit(jax.jacrev(objective))(sdf) * direction, axis=(1, 2, 3)
+    )
+    step = 0.02 if dtype == jnp.float32 else 1e-3
+    finite_difference = (
+        objective(sdf + step * direction) - objective(sdf - step * direction)
+    ) / (2 * step)
+    assert jnp.allclose(derivative, finite_difference, rtol=0.005, atol=1e-5)
