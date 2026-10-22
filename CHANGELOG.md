@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.6.1](https://github.com/lv416e/brepax/compare/v0.6.0...v0.6.1) (2026-10-22)
+
+
+### Features
+
+* **benchmarks:** add single-STEP evaluation tool for ABC Dataset pipeline ([#90](https://github.com/lv416e/brepax/issues/90)) ([f67e249](https://github.com/lv416e/brepax/commit/f67e24948eeaacc709d79a88ae2444349083dfac))
+
+
+### Bug Fixes
+
+* **boolean:** remove axis bias from stratum gradient smoothing ([#96](https://github.com/lv416e/brepax/issues/96)) ([cd51481](https://github.com/lv416e/brepax/commit/cd51481fd468d875fa920cd40b46931757997714))
+* **boolean:** scale finite Boolean domains with geometry ([#98](https://github.com/lv416e/brepax/issues/98)) ([9625f96](https://github.com/lv416e/brepax/commit/9625f965b23d778c574767d24df703fe1bdc98ab))
+* **brep:** correct mesh inertia tensor cross moments ([#95](https://github.com/lv416e/brepax/issues/95)) ([ecb8126](https://github.com/lv416e/brepax/commit/ecb81265b9bbef4711d50902542f509bacfc3a8a))
+* **brep:** stabilize mesh metrics across scales and offsets ([#97](https://github.com/lv416e/brepax/issues/97)) ([da5aaeb](https://github.com/lv416e/brepax/commit/da5aaeb1ca60964df44c5d70277a62dca6d13823))
+* **ci:** authenticate Codecov uploads ([#93](https://github.com/lv416e/brepax/issues/93)) ([5dd33c2](https://github.com/lv416e/brepax/commit/5dd33c271da98e38e1019303226c9d28c361e8f3))
+* **deps:** update certifi trust store ([#102](https://github.com/lv416e/brepax/issues/102)) ([0d0fd09](https://github.com/lv416e/brepax/commit/0d0fd09030d57df0a927f47e6d7870a64bf5969b))
+* **metrics:** preserve SDF mass moments across length units ([#99](https://github.com/lv416e/brepax/issues/99)) ([1c69844](https://github.com/lv416e/brepax/commit/1c69844b7d057d81de81b2ed3bec4891e3e3fdbd))
+
+
+### Documentation
+
+* **benchmarks:** add Method-C applied convergence demo ([#88](https://github.com/lv416e/brepax/issues/88)) ([5480d56](https://github.com/lv416e/brepax/commit/5480d567679f1c7850cd40913199734b202c681a))
+
 ## [0.6.0](https://github.com/lv416e/brepax/compare/v0.5.0...v0.6.0) (2026-05-12)
 
 
