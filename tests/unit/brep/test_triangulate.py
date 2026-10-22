@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 from hypothesis import example, given, settings
 from hypothesis import strategies as st
+from OCP.BRep import BRep_Builder
 from OCP.BRepBuilderAPI import (
     BRepBuilderAPI_MakeEdge,
     BRepBuilderAPI_MakeFace,
@@ -20,9 +21,13 @@ from OCP.BRepBuilderAPI import (
 from OCP.BRepCheck import BRepCheck_Analyzer
 from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism
 from OCP.Geom import Geom_BezierCurve
-from OCP.gp import gp_Pnt, gp_Vec
+from OCP.gp import gp_Pln, gp_Pnt, gp_Vec
+from OCP.IFSelect import IFSelect_RetDone
+from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
 from OCP.TColgp import TColgp_Array1OfPnt
+from OCP.TopoDS import TopoDS_Compound
 
+from benchmarks.abc_evaluation import evaluate_step as evaluation
 from brepax._occt.backend import BRepPrimAPI_MakeBox
 from brepax.brep.gprop import compute_gprop_ground_truth
 from brepax.brep.triangulate import (
@@ -34,6 +39,7 @@ from brepax.brep.triangulate import (
     mesh_center_of_mass,
     mesh_inertia_tensor,
     mesh_surface_area,
+    per_face_geometric_params,
     triangulate_shape,
 )
 from brepax.io.step import read_step
@@ -83,9 +89,9 @@ def _rotation_matrix(
     return np.eye(3) + np.sin(angle) * skew + (1.0 - np.cos(angle)) * (skew @ skew)
 
 
-def _curved_roof_shape(unit: float):
-    """Extrude a quadratic roof with planar trimmed caps, then convert to NURBS."""
-    rotation = _rotation_matrix(0.47)
+def _curved_roof_shape(unit: float, angle: float = 0.47):
+    """Extrude a quadratic roof with planar trimmed caps."""
+    rotation = _rotation_matrix(angle)
 
     def point(x: float, z: float):
         return gp_Pnt(*(unit * (rotation @ np.array([x, 0.0, z]) + [3.0, -2.0, 4.0])))
@@ -104,9 +110,7 @@ def _curved_roof_shape(unit: float):
         wire.Add(edge.Edge())
     face = BRepBuilderAPI_MakeFace(wire.Wire()).Face()
     vector = gp_Vec(*(unit * (rotation @ np.array([0.0, 20.0, 0.0]))))
-    shape = BRepBuilderAPI_NurbsConvert(
-        BRepPrimAPI_MakePrism(face, vector).Shape(), True
-    ).Shape()
+    shape = BRepPrimAPI_MakePrism(face, vector).Shape()
     assert BRepCheck_Analyzer(shape).IsValid()
     return shape
 
@@ -154,7 +158,8 @@ class TestTriangulateShape:
     @pytest.mark.parametrize("unit", [1e-3, 1.0, 1e3])
     def test_rotated_bspline_roof_preserves_boundary(self, unit: float) -> None:
         """Mesher UV roundoff must not send boundary vertices to the origin."""
-        shape = _curved_roof_shape(unit)
+        shape = BRepBuilderAPI_NurbsConvert(_curved_roof_shape(unit), True).Shape()
+        assert BRepCheck_Analyzer(shape).IsValid()
         reference = compute_gprop_ground_truth(shape)
         triangles, params = triangulate_shape(shape, deflection=0.001 * unit)
         topology = extract_mesh_topology(shape, deflection=0.001 * unit)
@@ -195,17 +200,63 @@ class TestTriangulateShape:
         tris_fine, _ = triangulate_shape(shape, deflection=0.01)
         assert tris_fine.shape[0] > tris_coarse.shape[0]
 
+    @pytest.mark.parametrize(
+        "extract", [triangulate_shape, extract_mesh_topology, per_face_geometric_params]
+    )
+    def test_unsupported_face_rejects_partial_mesh(self, extract) -> None:
+        """A valid solid with an unsupported roof must not lose that face."""
+        shape = _curved_roof_shape(1.0)
+        with pytest.raises(NotImplementedError, match="GeomAbs_SurfaceOfExtrusion"):
+            extract(shape)
+
+    def test_unsupported_solid_is_unavailable_in_evaluation(
+        self, tmp_path: Path
+    ) -> None:
+        """Neither mesh nor CSG paths may report a volume after dropping the roof."""
+        shape = _curved_roof_shape(1.0, angle=0.0)
+        path = tmp_path / "curved_roof.step"
+        writer = STEPControl_Writer()
+        assert writer.Transfer(shape, STEPControl_AsIs) == IFSelect_RetDone
+        assert writer.Write(str(path)) == IFSelect_RetDone
+        with pytest.warns(UserWarning, match="Unsupported surface type"):
+            report = evaluation.evaluate_step_file(path, resolution=2)
+        assert {result.path for result in report.volume_paths} == {
+            "divergence",
+            "mesh_sdf",
+            "gwn",
+            "csg_stump",
+            "trimmed_csg",
+        }
+        assert all(
+            result.value is None and result.note for result in report.volume_paths
+        )
+        assert len(report.face_metrics) == 4
+        assert all(
+            result.n_finite == 0 and result.note for result in report.face_metrics
+        )
+        assert report.n_faces == 6
+        assert report.occt_volume == pytest.approx(40 * 20 * (10 + 10 / 3))
+
+    @pytest.mark.parametrize("extract", [triangulate_shape, extract_mesh_topology])
+    def test_unmeshed_face_rejects_partial_mesh(self, extract) -> None:
+        """A bounded plane must not conceal a second face that cannot be meshed."""
+        builder = BRep_Builder()
+        compound = TopoDS_Compound()
+        builder.MakeCompound(compound)
+        builder.Add(compound, BRepBuilderAPI_MakeFace(gp_Pln(), 0, 1, 0, 1).Face())
+        builder.Add(compound, BRepBuilderAPI_MakeFace(gp_Pln()).Face())
+        with pytest.raises(ValueError, match="no triangulation"):
+            extract(compound)
+
     def test_empty_shape_returns_empty(self) -> None:
         """Shape with no faces returns empty array."""
-        from OCP.BRep import BRep_Builder
-        from OCP.TopoDS import TopoDS_Compound
-
         builder = BRep_Builder()
         compound = TopoDS_Compound()
         builder.MakeCompound(compound)
         tris, params = triangulate_shape(compound)
         assert tris.shape == (0, 3, 3)
         assert params == []
+        assert extract_mesh_topology(compound) == []
 
 
 class TestMeshMetrics:

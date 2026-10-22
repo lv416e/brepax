@@ -621,7 +621,8 @@ def reconstruct_csg_stump(
         seed: Random seed for reproducibility.
 
     Returns:
-        A :class:`CSGStump`, or ``None`` if reconstruction fails.
+        A :class:`CSGStump`, or ``None`` if any face is unsupported or
+        reconstruction fails.
     """
     # Lazy imports to avoid circular dependency
     from brepax.brep.convert import face_to_primitive
@@ -632,9 +633,12 @@ def reconstruct_csg_stump(
     valid_primitives: list[Primitive] = []
     face_id_map: list[int] = []
     for i, p in enumerate(primitives):
-        if p is not None:
-            face_id_map.append(i)
-            valid_primitives.append(p)
+        # Missing a surface leaves cells that straddle the actual boundary;
+        # one sampled representative cannot classify such a cell correctly.
+        if p is None:
+            return None
+        face_id_map.append(i)
+        valid_primitives.append(p)
 
     if not valid_primitives:
         return None

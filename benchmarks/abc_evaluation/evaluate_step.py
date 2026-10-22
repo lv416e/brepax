@@ -252,7 +252,8 @@ def evaluate_step_file(
     """Evaluate one STEP file against OCCT references.
 
     Resolution must be at least two. Failed volume paths have a null value
-    and an explanatory note; unsupported surface types retain metric NaNs.
+    and an explanatory note. Unavailable face metrics carry an error note
+    or per-face NaNs, depending on the metric.
     """
     if resolution < 2:
         raise ValueError("resolution must be at least 2")
@@ -280,7 +281,7 @@ def evaluate_step_file(
             r.err_pct = abs(r.value - occt_volume) / abs(occt_volume) * 100
 
     face_results = _evaluate_face_metrics(shape)
-    n_faces = max((m.n_faces for m in face_results), default=0)
+    n_faces = shape_metadata(shape).n_faces
 
     return ModelResult(
         file=str(path),
