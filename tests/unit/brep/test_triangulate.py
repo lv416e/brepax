@@ -12,6 +12,7 @@ import pytest
 from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
+from brepax._occt.backend import BRepPrimAPI_MakeBox
 from brepax.brep.gprop import compute_gprop_ground_truth
 from brepax.brep.triangulate import (
     _eval_sphere,
@@ -27,6 +28,39 @@ from brepax.brep.triangulate import (
 from brepax.io.step import read_step
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
+
+
+def _assert_closed_mesh(triangles: jnp.ndarray) -> None:
+    """Check opposite edge pairs after 8-decimal coordinate quantization in mm."""
+    points = np.round(np.asarray(triangles).reshape(-1, 3), decimals=8)
+    _, indices = np.unique(points, axis=0, return_inverse=True)
+    faces = indices.reshape(-1, 3)
+    directed_edges = np.concatenate(
+        [faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]]
+    )
+    _, edge_ids, counts = np.unique(
+        np.sort(directed_edges, axis=1), axis=0, return_inverse=True, return_counts=True
+    )
+    assert np.all(counts == 2), f"Unpaired edges: {np.count_nonzero(counts != 2)}"
+    signs = np.where(directed_edges[:, 0] < directed_edges[:, 1], 1, -1)
+    assert np.all(np.bincount(edge_ids, weights=signs) == 0)
+
+
+def _scaled_bspline_mesh(topology, scales: jnp.ndarray) -> jnp.ndarray:
+    """Apply one shared affine map to the control points of every patch."""
+    linked = [
+        {**face, "control_points": face["control_points"] * scales} for face in topology
+    ]
+    return evaluate_mesh(linked)
+
+
+def _box_cad_metrics(dimensions: np.ndarray) -> np.ndarray:
+    """Rebuild the corresponding planar box independently of its mesh."""
+    builder = BRepPrimAPI_MakeBox(*map(float, dimensions))
+    shape = builder.Shape()
+    assert builder.IsDone() and not shape.IsNull()
+    reference = compute_gprop_ground_truth(shape)
+    return np.array([reference["volume"], reference["surface_area"]])
 
 
 def _rotation_matrix(
@@ -442,57 +476,83 @@ class TestParametricOptimization:
         assert float(volume_fn(radius)) == pytest.approx(target, rel=1e-3)
         assert float(radius) == pytest.approx(r_analytical, rel=0.01)
 
-    def test_optimize_bspline_control_points(self) -> None:
-        """BSpline CP optimization converges to target volume."""
+    def test_optimize_linked_bspline_control_points(self) -> None:
+        """A Newton update fits height while keeping the planar patches closed."""
         shape = read_step(FIXTURES / "nurbs_box.step")
         topology = extract_mesh_topology(shape)
 
-        face_idx = 0
-        original_cp = topology[face_idx]["control_points"]
+        def mesh(height_scale: jnp.ndarray) -> jnp.ndarray:
+            return _scaled_bspline_mesh(topology, jnp.array([1.0, 1.0, height_scale]))
 
-        # Identify normal axis (constant coordinate across all CPs)
-        cp_ranges = original_cp.max(axis=(0, 1)) - original_cp.min(axis=(0, 1))
-        normal_axis = int(jnp.argmin(cp_ranges))
+        def volume_fn(height_scale: jnp.ndarray) -> jnp.ndarray:
+            return divergence_volume(mesh(height_scale))
 
-        def volume_fn(offset: jnp.ndarray) -> jnp.ndarray:
-            cp_new = original_cp.at[:, :, normal_axis].add(offset)
-            topo = [{**f} for f in topology]
-            topo[face_idx] = {**topo[face_idx], "control_points": cp_new}
-            return divergence_volume(evaluate_mesh(topo))
+        target = 300.0  # mm^3; the fixture is a 10 x 8 x 6 mm box.
+        height_scale = jnp.array(1.0)
+        volume, derivative = jax.jit(jax.value_and_grad(volume_fn))(height_scale)
+        np.testing.assert_allclose(derivative, 480.0, rtol=1e-12)
+        height_scale = height_scale - (volume - target) / derivative
+        assert float(height_scale) == pytest.approx(0.625, abs=1e-12)
 
-        target = 300.0
-        offset = jnp.array(0.0)
-        vg_fn = jax.value_and_grad(volume_fn)
+        for scale in (1.0, float(height_scale)):
+            triangles = mesh(jnp.array(scale))
+            _assert_closed_mesh(triangles)
+            actual = jnp.stack(
+                [divergence_volume(triangles), mesh_surface_area(triangles)]
+            )
+            reference = _box_cad_metrics(np.array([10.0, 8.0, 6.0 * scale]))
+            np.testing.assert_allclose(actual, reference, rtol=1e-12, atol=1e-10)
+        assert float(volume_fn(height_scale)) == pytest.approx(target, abs=1e-10)
 
-        for _ in range(10):
-            vol, dvdo = vg_fn(offset)
-            offset = offset - (vol - target) / dvdo
-
-        assert float(volume_fn(offset)) == pytest.approx(target, rel=1e-3)
-
-    def test_bspline_cp_gradient_physically_correct(self) -> None:
-        """Moving BSpline CPs outward changes volume in expected direction."""
+    def test_linked_bspline_gradients_match_rebuilt_cad(self) -> None:
+        """Differentiate a closed fixed-volume map, not independent face motion."""
         shape = read_step(FIXTURES / "nurbs_box.step")
         topology = extract_mesh_topology(shape)
 
-        face_idx = 0
-        original_cp = topology[face_idx]["control_points"]
-        cp_ranges = original_cp.max(axis=(0, 1)) - original_cp.min(axis=(0, 1))
-        normal_axis = int(jnp.argmin(cp_ranges))
-        face_pos = float(original_cp[0, 0, normal_axis])
+        def scales(parameters: jnp.ndarray) -> jnp.ndarray:
+            a, b = parameters
+            return jnp.exp(jnp.array([a, b, -a - b]))
 
-        def volume_fn(cp_new: jnp.ndarray) -> jnp.ndarray:
-            topo = [{**f} for f in topology]
-            topo[face_idx] = {**topo[face_idx], "control_points": cp_new}
-            return divergence_volume(evaluate_mesh(topo))
+        def metrics(parameters: jnp.ndarray) -> jnp.ndarray:
+            triangles = _scaled_bspline_mesh(topology, scales(parameters))
+            return jnp.stack(
+                [divergence_volume(triangles), mesh_surface_area(triangles)]
+            )
 
-        grad = jax.grad(volume_fn)(original_cp)
-        assert jnp.all(jnp.isfinite(grad))
+        def cad_metrics(parameters: np.ndarray) -> np.ndarray:
+            a, b = parameters
+            dimensions = np.array([10.0, 8.0, 6.0]) * np.exp([a, b, -a - b])
+            return _box_cad_metrics(dimensions)
 
-        # Gradient along normal axis should have consistent sign:
-        # if face is at x=0, moving CPs in -x shrinks box → dV/d(cp_x) < 0
-        grad_normal = grad[:, :, normal_axis]
-        if face_pos < 1.0:
-            assert float(jnp.mean(grad_normal)) < 0
-        else:
-            assert float(jnp.mean(grad_normal)) > 0
+        @jax.jit
+        def value_and_jacobian(parameters):
+            return metrics(parameters), jax.jacrev(metrics)(parameters)
+
+        points = jnp.array([[0.0, 0.0], [-0.1, 0.1], [0.1, -0.15]])
+        values, jacobians = jax.vmap(value_and_jacobian)(points)
+        for point, value, jacobian in zip(points, values, jacobians, strict=True):
+            _assert_closed_mesh(_scaled_bspline_mesh(topology, scales(point)))
+            np.testing.assert_allclose(
+                value, cad_metrics(np.asarray(point)), rtol=1e-12
+            )
+            assert float(value[0]) == pytest.approx(480.0, abs=1e-10)
+            a, b = np.asarray(point)
+            # A = 2*(80*exp(a+b) + 60*exp(-b) + 48*exp(-a)) mm^2.
+            expected = np.array(
+                [
+                    [0.0, 0.0],
+                    [
+                        2 * (80 * np.exp(a + b) - 48 * np.exp(-a)),
+                        2 * (80 * np.exp(a + b) - 60 * np.exp(-b)),
+                    ],
+                ]
+            )
+            np.testing.assert_allclose(jacobian, expected, rtol=1e-11, atol=1e-10)
+            for direction in np.eye(2):
+                for step in (1e-3, 1e-4, 1e-5):
+                    forward = cad_metrics(np.asarray(point) + step * direction)
+                    backward = cad_metrics(np.asarray(point) - step * direction)
+                    finite_difference = (forward - backward) / (2 * step)
+                    np.testing.assert_allclose(
+                        jacobian @ direction, finite_difference, rtol=1e-6, atol=1e-7
+                    )
