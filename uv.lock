@@ -256,6 +256,9 @@ viz = [
 ]
 
 [package.dev-dependencies]
+benchmark = [
+    { name = "scipy" },
+]
 dev = [
     { name = "nbstripout" },
 ]
@@ -316,6 +319,7 @@ requires-dist = [
 provides-extras = ["all", "dev", "docs", "examples", "mesh", "opt", "persistence", "viz"]
 
 [package.metadata.requires-dev]
+benchmark = [{ name = "scipy", specifier = ">=1.13" }]
 dev = [{ name = "nbstripout", specifier = ">=0.9.1" }]
 
 [[package]]
