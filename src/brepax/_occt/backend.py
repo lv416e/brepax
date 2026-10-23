@@ -9,7 +9,12 @@ from OCP.Bnd import Bnd_Box
 from OCP.BRep import BRep_Tool
 from OCP.BRepAdaptor import BRepAdaptor_Curve2d, BRepAdaptor_Surface
 from OCP.BRepBndLib import BRepBndLib
-from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakeVertex
+from OCP.BRepBuilderAPI import (
+    BRepBuilderAPI_MakeFace,
+    BRepBuilderAPI_MakeVertex,
+    BRepBuilderAPI_Transform,
+)
+from OCP.BRepCheck import BRepCheck_Analyzer
 from OCP.BRepClass3d import BRepClass3d_SolidClassifier
 from OCP.BRepExtrema import BRepExtrema_DistShapeShape
 from OCP.BRepGProp import BRepGProp
@@ -32,7 +37,7 @@ from OCP.GeomAbs import (
     GeomAbs_Sphere,
     GeomAbs_Torus,
 )
-from OCP.gp import gp_Ax2, gp_Dir, gp_Pln, gp_Pnt
+from OCP.gp import gp_Ax2, gp_Dir, gp_Pln, gp_Pnt, gp_Trsf
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.STEPControl import STEPControl_Reader
@@ -60,6 +65,8 @@ __all__ = [
     "BRepBndLib",
     "BRepBuilderAPI_MakeFace",
     "BRepBuilderAPI_MakeVertex",
+    "BRepBuilderAPI_Transform",
+    "BRepCheck_Analyzer",
     "BRepClass3d_SolidClassifier",
     "BRepExtrema_DistShapeShape",
     "BRepGProp",
@@ -103,4 +110,5 @@ __all__ = [
     "gp_Dir",
     "gp_Pln",
     "gp_Pnt",
+    "gp_Trsf",
 ]

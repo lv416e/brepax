@@ -126,6 +126,7 @@ exclude_lines = [
 ]
 
 [dependency-groups]
+benchmark = ["scipy>=1.13"]
 dev = [
     "nbstripout>=0.9.1",
 ]
