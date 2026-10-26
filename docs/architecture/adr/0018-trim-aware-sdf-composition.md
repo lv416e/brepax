@@ -2,7 +2,15 @@
 
 ## Status
 
-Proposed
+Proposed; standalone-face use retained by
+[ADR-0019](0019-marschner-composition-scope.md) and
+[ADR-0020](0020-marschner-bspline-csg-scope.md).
+
+The proposal below records the original motivation and formula. Its assumption
+that the signed blend is a valid CSG-Stump ingredient was rejected by those
+later decisions, for analytical surfaces and B-splines respectively. Current
+DNF composition uses raw primitive SDFs for every surface type. The formula
+remains in use for standalone trimmed-face queries.
 
 ## Context
 

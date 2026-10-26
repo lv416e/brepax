@@ -2,7 +2,13 @@
 
 ## Status
 
-Accepted
+Accepted for analytical primitives; the proposed B-spline extension below
+is superseded by [ADR-0020](0020-marschner-bspline-csg-scope.md).
+
+This record preserves the reasoning at the time. ADR-0020 rejects the
+Marschner blend inside CSG-Stump for B-splines too, and corrects the comparison
+between the Linkrods +219% result and the separate CSG-Stump failure. Follow
+ADR-0020 for the current composition contract.
 
 ## Context
 
@@ -96,8 +102,8 @@ and its per-primitive wrappers (`brep/trim_frame.py`'s
    Verified against `BRepExtrema_DistShapeShape` on plane in PR #67;
    sphere / cylinder / cone / torus wrappers extend the same
    semantics.
-2. **BSpline-patch composition inside a CSG-Stump.**  When a future
-   PR wires BSpline primitives into the trim-aware composition,
+2. **BSpline-patch composition inside a CSG-Stump (later rejected by ADR-0020).**
+   When a future PR wires BSpline primitives into the trim-aware composition,
    their dispatch path uses `trim_aware_sdf` because BSpline patches
    are finite in parameter and their untrimmed extension is the
    phantom source.

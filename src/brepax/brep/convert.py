@@ -131,11 +131,11 @@ def _gp_dir_to_array(direction: Any) -> jnp.ndarray:
 def face_to_primitive(face: TopoDS_Face) -> Primitive | None:
     """Convert a single OCP face to a BRepAX Primitive.
 
-    Maps the underlying surface type (plane, cylinder, sphere, cone, torus)
-    to the corresponding BRepAX primitive, extracting geometric parameters
-    via OCCT adaptor classes.
+    Maps planes, cylinders, spheres, cones, tori, and B-spline surfaces
+    (including rational weights) to BRepAX primitives, extracting geometric
+    parameters via OCCT adaptor classes. This is host-side preparation.
 
-    Returns None with a warning for unsupported surface types (NURBS, etc.).
+    Returns None with a warning for other surface types.
 
     Args:
         face: An OCCT topological face.

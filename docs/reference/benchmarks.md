@@ -3,10 +3,11 @@
 A reproducible measurement of BRepAX's volume paths and face-level
 metric coverage on the project's standard STEP fixture set.
 
-The report below is the **output of one command**, regenerated from
-the same commit this documentation was built from (so the numbers
-shown here and the version of BRepAX you are reading docs for are
-guaranteed to be in sync):
+The report below is a checked-in measurement snapshot. Building the docs
+includes it without rerunning the benchmark, so its results need not describe
+the current source revision. Its update history is available in
+[Git history](https://github.com/lv416e/brepax/commits/main/benchmarks/integration_report/REPORT.md).
+Regenerate it on the revision being evaluated with:
 
 ```bash
 uv run python -m benchmarks.integration_report.run_benchmark

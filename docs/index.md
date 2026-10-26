@@ -1,22 +1,11 @@
 # BRepAX
 
-**Differentiable rasterizer for CAD Boolean operations.**
+**JAX-native differentiable geometry and STEP/B-Rep evaluation.**
 
-BRepAX is a JAX-native library that brings differentiable computation to B-Rep
-CAD operations. It translates contact dynamics formulations from differentiable
-physics into the CAD domain, enabling gradient-based optimization through
-topology changes where edges and faces appear or disappear.
-
-## Key Features
-
-- **9 geometric primitives** -- Disk, Sphere, Box, Cylinder, Cone, Torus, FiniteCylinder, Plane, BSplineSurface, all with SDF interface
-- **Divergence theorem volume** -- exact mesh-based volume computation for all surface types including freeform B-spline (< 0.5% on 32 validated models)
-- **Mesh-based mass properties** -- surface area, center of mass, and inertia tensor via surface integrals, polynomial and singularity-free
-- **Parametric optimization** -- design parameters (radius, control points) flow through mesh vertices to volume via `jax.grad`
-- **Differentiable Boolean operations** -- union, intersection, subtraction with gradients that flow through topology changes
-- **Stratum-dispatched gradients** -- exact analytical gradients via topological classification, not smoothing approximations
-- **Full JAX compatibility** -- every operation works with `jit`, `vmap`, and `grad`
-- **Equinox PyTree integration** -- primitives are `equinox.Module` instances, composable with the JAX ecosystem
+BRepAX combines OCCT preparation with JAX numerical kernels for CAD
+experiments and geometry evaluation. Start with the
+[API overview](reference/index.md#capabilities-and-limits) for supported
+inputs, differentiation assumptions, and known limits.
 
 ## Quick Install
 
