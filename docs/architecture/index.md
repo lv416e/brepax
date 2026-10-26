@@ -23,3 +23,6 @@ This section documents the key architectural decisions made during BRepAX develo
 | [0015](adr/0015-face-to-primitive-conversion.md) | Face-to-Primitive Conversion | Accepted |
 | [0016](adr/0016-divergence-theorem-volume.md) | Divergence Theorem Volume | Accepted |
 | [0017](adr/0017-cold-subsequent-warm-gate.md) | Triangulation Cold / Subsequent / Warm Performance Regions | Accepted |
+| [0018](adr/0018-trim-aware-sdf-composition.md) | Trim-aware surface SDF composition | Proposed; scope narrowed by 0019 and 0020 |
+| [0019](adr/0019-marschner-composition-scope.md) | Marschner trim-aware composition scope | Accepted; B-spline extension superseded by 0020 |
+| [0020](adr/0020-marschner-bspline-csg-scope.md) | Marschner B-spline CSG scope | Accepted |

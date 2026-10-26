@@ -43,7 +43,9 @@ under `src/brepax/experimental/applications/mold_direction.py`.
 - Formal r-set based undercut definition — requires topology layer.
 - Riemannian optimization on S^2 (exponential map retraction).
 - Integration with external cost models.
-- STEP file input — BRepAX STEP I/O is not yet implemented.
+- STEP file input to this demonstrator. STEP I/O was added separately in
+  [ADR-0014](0014-step-io-initial.md); that does not integrate it into the
+  mold direction optimizer.
 
 ### Design choices
 

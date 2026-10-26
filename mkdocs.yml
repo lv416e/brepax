@@ -1,6 +1,6 @@
 site_name: BRepAX
 site_url: https://lv416e.github.io/brepax
-site_description: Differentiable rasterizer for CAD Boolean operations
+site_description: JAX-native differentiable geometry and STEP/B-Rep evaluation
 repo_url: https://github.com/lv416e/brepax
 repo_name: lv416e/brepax
 
@@ -71,7 +71,7 @@ nav:
       - Hybrid Optimization Strategy: explanation/hybrid_optimization_strategy.md
       - Concept Proof Evaluation: explanation/concept_proof_evaluation.md
       - 3D Extension Evaluation: explanation/3d_extension_evaluation.md
-      - NURBS B-Rep Feasibility: explanation/nurbs_brep_feasibility.md
+      - NURBS Differentiation Scope: explanation/nurbs_brep_feasibility.md
       - NIST Evaluation: explanation/nist_evaluation.md
       - CSG Reconstruction Feasibility: explanation/csg_reconstruction_feasibility.md
   - Reference:
@@ -101,3 +101,7 @@ nav:
           - "ADR-0014: STEP I/O Initial": architecture/adr/0014-step-io-initial.md
           - "ADR-0015: Face-to-Primitive Conversion": architecture/adr/0015-face-to-primitive-conversion.md
           - "ADR-0016: Divergence Theorem Volume": architecture/adr/0016-divergence-theorem-volume.md
+          - "ADR-0017: Triangulation Performance Regions": architecture/adr/0017-cold-subsequent-warm-gate.md
+          - "ADR-0018: Trim-aware Surface SDF Composition": architecture/adr/0018-trim-aware-sdf-composition.md
+          - "ADR-0019: Marschner Composition Scope": architecture/adr/0019-marschner-composition-scope.md
+          - "ADR-0020: Marschner B-spline CSG Scope": architecture/adr/0020-marschner-bspline-csg-scope.md

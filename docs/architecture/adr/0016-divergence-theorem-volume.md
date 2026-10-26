@@ -35,15 +35,19 @@ part of any closed solid.
 The `gwn_signed_sdf` and `gwn_signed_volume` functions (grid-based GWN approach)
 are removed as they are superseded and carry OOM risk from nested vmap.
 
-CSG-Stump volume is retained for models with only analytical faces, but the
-divergence theorem path works for all surface types.
+CSG-Stump volume is retained as a separate path. The divergence theorem
+applies to closed triangle meshes independent of the source surface type;
+the implemented CAD-to-mesh extraction supports only the surface types
+listed in the [API overview](../../reference/index.md#capabilities-and-limits).
+Unsupported evaluated faces are rejected.
 
 ## Consequences
 
 Easier:
 
-- Volume computation works for all surface types including BSpline (32 models,
-  all < 0.5% error).
+- The original validation reported < 0.5% error on its 32-model fixture set,
+  including B-splines. This is historical fixture evidence, not a bound for
+  arbitrary CAD or a measurement of every later revision.
 - Gradient `dV/dv = (1/6)(v_j x v_k)` is polynomial with no singularities
   (no arctan2, sigmoid, or grid artifacts).
 - No grid resolution tuning needed for volume.
@@ -52,6 +56,8 @@ Harder:
 
 - Mesh topology is frozen at tessellation time; large parameter perturbations
   require re-tessellation.
-- BSpline face re-evaluation via vmap triggers per-face JIT compilation
-  (~95 seconds for CTC-02 with 34 BSpline faces, 247K triangles).
+- The original implementation triggered per-face JIT compilation (~95 seconds
+  for CTC-02 with 34 B-spline faces, 247K triangles). Subsequent batching and
+  cache work changed this behavior; see
+  [ADR-0017](0017-cold-subsequent-warm-gate.md) for performance regions.
 - OCCT dependency for tessellation; pure JAX end-to-end is not possible.
