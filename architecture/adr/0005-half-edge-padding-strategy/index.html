@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Differentiable rasterizer for CAD Boolean operations">
+        <meta name="description" content="JAX-native differentiable geometry and STEP/B-Rep evaluation">
       
       
       
@@ -747,7 +747,7 @@
   <span class="md-ellipsis">
     
   
-    NURBS B-Rep Feasibility
+    NURBS Differentiation Scope
   
 
     
@@ -1753,6 +1753,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0017-cold-subsequent-warm-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0017: Triangulation Performance Regions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0018-trim-aware-sdf-composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Trim-aware Surface SDF Composition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0019-marschner-composition-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: Marschner Composition Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0020-marschner-bspline-csg-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0020: Marschner B-spline CSG Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1860,7 +1972,7 @@
 
 <h1 id="adr-0005-half-edge-padding-strategy">ADR-0005: Half-Edge Padding Strategy<a class="headerlink" href="#adr-0005-half-edge-padding-strategy" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Proposed</p>
+<p>Accepted</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>JAX requires static shapes for jit compilation. Topological data structures (half-edge meshes) have dynamic sizes that change with Boolean operations. A strategy is needed to represent variable-topology meshes within JAX's static shape constraint.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>

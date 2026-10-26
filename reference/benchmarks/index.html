@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Differentiable rasterizer for CAD Boolean operations">
+        <meta name="description" content="JAX-native differentiable geometry and STEP/B-Rep evaluation">
       
       
       
@@ -747,7 +747,7 @@
   <span class="md-ellipsis">
     
   
-    NURBS B-Rep Feasibility
+    NURBS Differentiation Scope
   
 
     
@@ -1731,6 +1731,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0017-cold-subsequent-warm-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0017: Triangulation Performance Regions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0018-trim-aware-sdf-composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Trim-aware Surface SDF Composition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0019-marschner-composition-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: Marschner Composition Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0020-marschner-bspline-csg-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0020: Marschner B-spline CSG Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1817,10 +1929,11 @@
 <h1 id="integration-benchmark-report">Integration benchmark report<a class="headerlink" href="#integration-benchmark-report" title="Permanent link">&para;</a></h1>
 <p>A reproducible measurement of BRepAX's volume paths and face-level
 metric coverage on the project's standard STEP fixture set.</p>
-<p>The report below is the <strong>output of one command</strong>, regenerated from
-the same commit this documentation was built from (so the numbers
-shown here and the version of BRepAX you are reading docs for are
-guaranteed to be in sync):</p>
+<p>The report below is a checked-in measurement snapshot. Building the docs
+includes it without rerunning the benchmark, so its results need not describe
+the current source revision. Its update history is available in
+<a href="https://github.com/lv416e/brepax/commits/main/benchmarks/integration_report/REPORT.md">Git history</a>.
+Regenerate it on the revision being evaluated with:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.integration_report.run_benchmark
 </code></pre></div>
 <h2 id="what-this-report-does-not-claim">What this report does not claim<a class="headerlink" href="#what-this-report-does-not-claim" title="Permanent link">&para;</a></h2>

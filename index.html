@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Differentiable rasterizer for CAD Boolean operations">
+        <meta name="description" content="JAX-native differentiable geometry and STEP/B-Rep evaluation">
       
       
       
@@ -318,17 +318,6 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#key-features" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Features
-      
-    </span>
-  </a>
-  
-</li>
       
         <li class="md-nav__item">
   <a href="#quick-install" class="md-nav__link">
@@ -836,7 +825,7 @@
   <span class="md-ellipsis">
     
   
-    NURBS B-Rep Feasibility
+    NURBS Differentiation Scope
   
 
     
@@ -1751,6 +1740,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="architecture/adr/0017-cold-subsequent-warm-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0017: Triangulation Performance Regions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="architecture/adr/0018-trim-aware-sdf-composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Trim-aware Surface SDF Composition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="architecture/adr/0019-marschner-composition-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: Marschner Composition Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="architecture/adr/0020-marschner-bspline-csg-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0020: Marschner B-spline CSG Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1791,17 +1892,6 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#key-features" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Features
-      
-    </span>
-  </a>
-  
-</li>
       
         <li class="md-nav__item">
   <a href="#quick-install" class="md-nav__link">
@@ -1857,22 +1947,11 @@
 
 
 <h1 id="brepax">BRepAX<a class="headerlink" href="#brepax" title="Permanent link">&para;</a></h1>
-<p><strong>Differentiable rasterizer for CAD Boolean operations.</strong></p>
-<p>BRepAX is a JAX-native library that brings differentiable computation to B-Rep
-CAD operations. It translates contact dynamics formulations from differentiable
-physics into the CAD domain, enabling gradient-based optimization through
-topology changes where edges and faces appear or disappear.</p>
-<h2 id="key-features">Key Features<a class="headerlink" href="#key-features" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>9 geometric primitives</strong> -- Disk, Sphere, Box, Cylinder, Cone, Torus, FiniteCylinder, Plane, BSplineSurface, all with SDF interface</li>
-<li><strong>Divergence theorem volume</strong> -- exact mesh-based volume computation for all surface types including freeform B-spline (&lt; 0.5% on 32 validated models)</li>
-<li><strong>Mesh-based mass properties</strong> -- surface area, center of mass, and inertia tensor via surface integrals, polynomial and singularity-free</li>
-<li><strong>Parametric optimization</strong> -- design parameters (radius, control points) flow through mesh vertices to volume via <code>jax.grad</code></li>
-<li><strong>Differentiable Boolean operations</strong> -- union, intersection, subtraction with gradients that flow through topology changes</li>
-<li><strong>Stratum-dispatched gradients</strong> -- exact analytical gradients via topological classification, not smoothing approximations</li>
-<li><strong>Full JAX compatibility</strong> -- every operation works with <code>jit</code>, <code>vmap</code>, and <code>grad</code></li>
-<li><strong>Equinox PyTree integration</strong> -- primitives are <code>equinox.Module</code> instances, composable with the JAX ecosystem</li>
-</ul>
+<p><strong>JAX-native differentiable geometry and STEP/B-Rep evaluation.</strong></p>
+<p>BRepAX combines OCCT preparation with JAX numerical kernels for CAD
+experiments and geometry evaluation. Start with the
+<a href="reference/#capabilities-and-limits">API overview</a> for supported
+inputs, differentiation assumptions, and known limits.</p>
 <h2 id="quick-install">Quick Install<a class="headerlink" href="#quick-install" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>brepax
 </code></pre></div>

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Differentiable rasterizer for CAD Boolean operations">
+        <meta name="description" content="JAX-native differentiable geometry and STEP/B-Rep evaluation">
       
       
       
@@ -747,7 +747,7 @@
   <span class="md-ellipsis">
     
   
-    NURBS B-Rep Feasibility
+    NURBS Differentiation Scope
   
 
     
@@ -945,6 +945,56 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#capabilities-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capabilities and limits
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Capabilities and limits">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-preparation-and-jax-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        STEP preparation and JAX evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mesh-mass-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mesh mass properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#boolean-measures-and-trimmed-surfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Boolean measures and trimmed surfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#primitives" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -985,6 +1035,133 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-and-mesh-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        STEP and mesh APIs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.io.step.read_step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        read_step
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.brep.convert.face_to_primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        face_to_primitive
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        triangulate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="triangulate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.triangulate_shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        triangulate_shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.extract_mesh_topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_mesh_topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.evaluate_mesh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluate_mesh
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.divergence_volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        divergence_volume
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.mesh_surface_area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mesh_surface_area
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.mesh_center_of_mass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mesh_center_of_mass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.mesh_inertia_tensor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mesh_inertia_tensor
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1753,6 +1930,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/adr/0017-cold-subsequent-warm-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0017: Triangulation Performance Regions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/adr/0018-trim-aware-sdf-composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Trim-aware Surface SDF Composition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/adr/0019-marschner-composition-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: Marschner Composition Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/adr/0020-marschner-bspline-csg-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0020: Marschner B-spline CSG Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1793,6 +2082,56 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#capabilities-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capabilities and limits
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Capabilities and limits">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-preparation-and-jax-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        STEP preparation and JAX evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mesh-mass-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mesh mass properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#boolean-measures-and-trimmed-surfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Boolean measures and trimmed surfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#primitives" class="md-nav__link">
@@ -1838,6 +2177,133 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#step-and-mesh-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        STEP and mesh APIs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.io.step.read_step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        read_step
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.brep.convert.face_to_primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        face_to_primitive
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        triangulate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="triangulate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.triangulate_shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        triangulate_shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.extract_mesh_topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_mesh_topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.evaluate_mesh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluate_mesh
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.divergence_volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        divergence_volume
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.mesh_surface_area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mesh_surface_area
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.mesh_center_of_mass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mesh_center_of_mass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.brep.triangulate.mesh_inertia_tensor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mesh_inertia_tensor
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1859,6 +2325,73 @@
 
 
 <h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
+<h2 id="capabilities-and-limits">Capabilities and limits<a class="headerlink" href="#capabilities-and-limits" title="Permanent link">&para;</a></h2>
+<h3 id="step-preparation-and-jax-evaluation">STEP preparation and JAX evaluation<a class="headerlink" href="#step-preparation-and-jax-evaluation" title="Permanent link">&para;</a></h3>
+<p>STEP reading and OCCT extraction run on the host, outside <code>jit</code>, <code>vmap</code>,
+and differentiation. The numerical kernels operate on the resulting arrays
+and geometric models; JAX transformation support follows each API's contract.</p>
+<p>Face conversion and mesh extraction support planes, cylinders, spheres,
+cones, tori, and B-spline surfaces (including rational weights). Other OCCT
+surface types are unsupported. <code>face_to_primitive</code> warns and returns <code>None</code>
+for them; mesh extraction raises <code>NotImplementedError</code> rather than returning
+an incomplete mesh. CSG reconstruction also rejects unsupported faces.
+Successful conversion alone does not establish an accurate solid SDF.</p>
+<p><code>extract_mesh_topology</code> and <code>evaluate_mesh</code> separate OCCT preparation from
+JAX vertex evaluation. Connectivity and the extracted UV samples form a fixed
+discretization; <code>uv_scale_param</code> can scale plane UV coordinates so that caps
+follow a linked parameter. Parameter changes must preserve closure and shared
+boundaries; a derivative of this discretization is not a derivative through OCCT
+reconstruction or remeshing. Topology-changing edits require separate
+validation.</p>
+<h3 id="mesh-mass-properties">Mesh mass properties<a class="headerlink" href="#mesh-mass-properties" title="Permanent link">&para;</a></h3>
+<p>For a watertight, consistently oriented mesh, the divergence theorem gives
+the mesh's signed volume. Accuracy against the original curved CAD depends
+on tessellation. The <a href="benchmarks/">integration report</a> records fixture
+measurements, not an error bound for every supported surface or input.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Numerical contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>divergence_volume</code></td>
+<td>Cubic polynomial in triangle vertices; signed volume in length cubed.</td>
+</tr>
+<tr>
+<td><code>mesh_surface_area</code></td>
+<td>Sum of triangle areas, in length squared; uses a norm, not a polynomial. Collapsed triangles use a chosen zero subgradient.</td>
+</tr>
+<tr>
+<td><code>mesh_center_of_mass</code></td>
+<td>First moments divided by volume, in length units; undefined for nonempty zero-volume inputs.</td>
+</tr>
+<tr>
+<td><code>mesh_inertia_tensor</code></td>
+<td>Tensor about the center of mass at unit density, in length to the fifth power; requires nonzero volume and outward orientation.</td>
+</tr>
+</tbody>
+</table>
+<p>Nearly degenerate solids can make the normalized moments ill-conditioned.
+See the function contracts below for empty-input behavior and other assumptions.</p>
+<h3 id="boolean-measures-and-trimmed-surfaces">Boolean measures and trimmed surfaces<a class="headerlink" href="#boolean-measures-and-trimmed-surfaces" title="Permanent link">&para;</a></h3>
+<p>Union, intersection, and subtraction have stratum-dispatched measure
+implementations. Where finite primitive volume formulas apply, disjoint and
+contained configurations use analytical gradients. Intersecting configurations
+and other fallbacks differentiate a smoothed indicator on a frozen grid as a
+surrogate for the hard sampled forward measure. These estimators have
+discretization error and do not establish exact derivatives through arbitrary
+CAD topology changes.
+See <a href="boolean/">Boolean operations</a> for the APIs.</p>
+<p>Standalone trimmed-face distances and CSG half-space composition have
+different contracts. <code>TrimmedCSGStump</code> uses raw primitive SDFs in its DNF
+composition, including B-splines; trim frames are retained as metadata.
+<a href="../architecture/adr/0020-marschner-bspline-csg-scope/">ADR-0020</a> explains
+why the trim-aware blend is excluded from that composition. See
+<a href="../explanation/nurbs_brep_feasibility/">NURBS differentiation scope</a> for
+the remaining distinction between surface, face, and solid derivatives.</p>
 <h2 id="primitives">Primitives<a class="headerlink" href="#primitives" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="primitives/">Primitives</a> -- Geometric primitives with SDF interface</li>
@@ -1875,6 +2408,1220 @@
 <ul>
 <li><a href="applications/">Applications</a> -- Application demonstrators (mold direction optimizer)</li>
 </ul>
+<h2 id="step-and-mesh-apis">STEP and mesh APIs<a class="headerlink" href="#step-and-mesh-apis" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="brepax.io.step.read_step" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">brepax</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">step</span><span class="o">.</span><span class="n">read_step</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></code>
+
+<a href="#brepax.io.step.read_step" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Read a STEP file and return the top-level shape.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the STEP file (.step or .stp).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="brepax._occt.types.TopoDS_Shape">TopoDS_Shape</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The parsed OCCT shape.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="FileNotFoundError">FileNotFoundError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the file does not exist.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the STEP file cannot be parsed.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/io/step.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">read_step</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TopoDS_Shape</span><span class="p">:</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a STEP file and return the top-level shape.</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">        path: Path to the STEP file (.step or .stp).</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a>
+<a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">        The parsed OCCT shape.</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19"></a>
+<a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">        FileNotFoundError: If the file does not exist.</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">        ValueError: If the STEP file cannot be parsed.</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24"></a>    <span class="n">resolved</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">resolved</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a>        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;STEP file not found: </span><span class="si">{</span><span class="n">resolved</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a>        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a>
+<a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="n">reader</span> <span class="o">=</span> <span class="n">STEPControl_Reader</span><span class="p">()</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="n">status</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">resolved</span><span class="p">))</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="n">IFSelect_RetDone</span><span class="p">:</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32"></a>        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Failed to read STEP file (status=</span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">resolved</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34"></a>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="n">reader</span><span class="o">.</span><span class="n">TransferRoots</span><span class="p">()</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a>    <span class="n">shape</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">OneShape</span><span class="p">()</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37"></a>    <span class="k">if</span> <span class="n">shape</span><span class="o">.</span><span class="n">IsNull</span><span class="p">():</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38"></a>        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;STEP file produced a null shape: </span><span class="si">{</span><span class="n">resolved</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a>    <span class="k">return</span> <span class="n">shape</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="brepax.brep.convert.face_to_primitive" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">brepax</span><span class="o">.</span><span class="n">brep</span><span class="o">.</span><span class="n">convert</span><span class="o">.</span><span class="n">face_to_primitive</span><span class="p">(</span><span class="n">face</span><span class="p">)</span></code>
+
+<a href="#brepax.brep.convert.face_to_primitive" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Convert a single OCP face to a BRepAX Primitive.</p>
+<p>Maps planes, cylinders, spheres, cones, tori, and B-spline surfaces
+(including rational weights) to BRepAX primitives, extracting geometric
+parameters via OCCT adaptor classes. This is host-side preparation.</p>
+<p>Returns None with a warning for other surface types.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>face</code>
+            </td>
+            <td>
+                  <code><span title="brepax._occt.types.TopoDS_Face">TopoDS_Face</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An OCCT topological face.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>A</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="Primitive (brepax.primitives._base.Primitive)" href="primitives/#brepax.primitives.Primitive">Primitive</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>class:<code>Primitive</code> instance, or <code>None</code> if the surface type</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="Primitive (brepax.primitives._base.Primitive)" href="primitives/#brepax.primitives.Primitive">Primitive</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>is not supported.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/brepax/brep/convert.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-131">131</a></span>
+<span class="normal"><a href="#__codelineno-0-132">132</a></span>
+<span class="normal"><a href="#__codelineno-0-133">133</a></span>
+<span class="normal"><a href="#__codelineno-0-134">134</a></span>
+<span class="normal"><a href="#__codelineno-0-135">135</a></span>
+<span class="normal"><a href="#__codelineno-0-136">136</a></span>
+<span class="normal"><a href="#__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#__codelineno-0-138">138</a></span>
+<span class="normal"><a href="#__codelineno-0-139">139</a></span>
+<span class="normal"><a href="#__codelineno-0-140">140</a></span>
+<span class="normal"><a href="#__codelineno-0-141">141</a></span>
+<span class="normal"><a href="#__codelineno-0-142">142</a></span>
+<span class="normal"><a href="#__codelineno-0-143">143</a></span>
+<span class="normal"><a href="#__codelineno-0-144">144</a></span>
+<span class="normal"><a href="#__codelineno-0-145">145</a></span>
+<span class="normal"><a href="#__codelineno-0-146">146</a></span>
+<span class="normal"><a href="#__codelineno-0-147">147</a></span>
+<span class="normal"><a href="#__codelineno-0-148">148</a></span>
+<span class="normal"><a href="#__codelineno-0-149">149</a></span>
+<span class="normal"><a href="#__codelineno-0-150">150</a></span>
+<span class="normal"><a href="#__codelineno-0-151">151</a></span>
+<span class="normal"><a href="#__codelineno-0-152">152</a></span>
+<span class="normal"><a href="#__codelineno-0-153">153</a></span>
+<span class="normal"><a href="#__codelineno-0-154">154</a></span>
+<span class="normal"><a href="#__codelineno-0-155">155</a></span>
+<span class="normal"><a href="#__codelineno-0-156">156</a></span>
+<span class="normal"><a href="#__codelineno-0-157">157</a></span>
+<span class="normal"><a href="#__codelineno-0-158">158</a></span>
+<span class="normal"><a href="#__codelineno-0-159">159</a></span>
+<span class="normal"><a href="#__codelineno-0-160">160</a></span>
+<span class="normal"><a href="#__codelineno-0-161">161</a></span>
+<span class="normal"><a href="#__codelineno-0-162">162</a></span>
+<span class="normal"><a href="#__codelineno-0-163">163</a></span>
+<span class="normal"><a href="#__codelineno-0-164">164</a></span>
+<span class="normal"><a href="#__codelineno-0-165">165</a></span>
+<span class="normal"><a href="#__codelineno-0-166">166</a></span>
+<span class="normal"><a href="#__codelineno-0-167">167</a></span>
+<span class="normal"><a href="#__codelineno-0-168">168</a></span>
+<span class="normal"><a href="#__codelineno-0-169">169</a></span>
+<span class="normal"><a href="#__codelineno-0-170">170</a></span>
+<span class="normal"><a href="#__codelineno-0-171">171</a></span>
+<span class="normal"><a href="#__codelineno-0-172">172</a></span>
+<span class="normal"><a href="#__codelineno-0-173">173</a></span>
+<span class="normal"><a href="#__codelineno-0-174">174</a></span>
+<span class="normal"><a href="#__codelineno-0-175">175</a></span>
+<span class="normal"><a href="#__codelineno-0-176">176</a></span>
+<span class="normal"><a href="#__codelineno-0-177">177</a></span>
+<span class="normal"><a href="#__codelineno-0-178">178</a></span>
+<span class="normal"><a href="#__codelineno-0-179">179</a></span>
+<span class="normal"><a href="#__codelineno-0-180">180</a></span>
+<span class="normal"><a href="#__codelineno-0-181">181</a></span>
+<span class="normal"><a href="#__codelineno-0-182">182</a></span>
+<span class="normal"><a href="#__codelineno-0-183">183</a></span>
+<span class="normal"><a href="#__codelineno-0-184">184</a></span>
+<span class="normal"><a href="#__codelineno-0-185">185</a></span>
+<span class="normal"><a href="#__codelineno-0-186">186</a></span>
+<span class="normal"><a href="#__codelineno-0-187">187</a></span>
+<span class="normal"><a href="#__codelineno-0-188">188</a></span>
+<span class="normal"><a href="#__codelineno-0-189">189</a></span>
+<span class="normal"><a href="#__codelineno-0-190">190</a></span>
+<span class="normal"><a href="#__codelineno-0-191">191</a></span>
+<span class="normal"><a href="#__codelineno-0-192">192</a></span>
+<span class="normal"><a href="#__codelineno-0-193">193</a></span>
+<span class="normal"><a href="#__codelineno-0-194">194</a></span>
+<span class="normal"><a href="#__codelineno-0-195">195</a></span>
+<span class="normal"><a href="#__codelineno-0-196">196</a></span>
+<span class="normal"><a href="#__codelineno-0-197">197</a></span>
+<span class="normal"><a href="#__codelineno-0-198">198</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-131" name="__codelineno-0-131"></a><span class="k">def</span><span class="w"> </span><span class="nf">face_to_primitive</span><span class="p">(</span><span class="n">face</span><span class="p">:</span> <span class="n">TopoDS_Face</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Primitive</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a single OCP face to a BRepAX Primitive.</span>
+<a id="__codelineno-0-133" name="__codelineno-0-133"></a>
+<a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="sd">    Maps planes, cylinders, spheres, cones, tori, and B-spline surfaces</span>
+<a id="__codelineno-0-135" name="__codelineno-0-135"></a><span class="sd">    (including rational weights) to BRepAX primitives, extracting geometric</span>
+<a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="sd">    parameters via OCCT adaptor classes. This is host-side preparation.</span>
+<a id="__codelineno-0-137" name="__codelineno-0-137"></a>
+<a id="__codelineno-0-138" name="__codelineno-0-138"></a><span class="sd">    Returns None with a warning for other surface types.</span>
+<a id="__codelineno-0-139" name="__codelineno-0-139"></a>
+<a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-141" name="__codelineno-0-141"></a><span class="sd">        face: An OCCT topological face.</span>
+<a id="__codelineno-0-142" name="__codelineno-0-142"></a>
+<a id="__codelineno-0-143" name="__codelineno-0-143"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-144" name="__codelineno-0-144"></a><span class="sd">        A :class:`Primitive` instance, or ``None`` if the surface type</span>
+<a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="sd">        is not supported.</span>
+<a id="__codelineno-0-146" name="__codelineno-0-146"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-147" name="__codelineno-0-147"></a>    <span class="n">adaptor</span> <span class="o">=</span> <span class="n">BRepAdaptor_Surface</span><span class="p">(</span><span class="n">face</span><span class="p">)</span>
+<a id="__codelineno-0-148" name="__codelineno-0-148"></a>    <span class="n">stype</span> <span class="o">=</span> <span class="n">adaptor</span><span class="o">.</span><span class="n">GetType</span><span class="p">()</span>
+<a id="__codelineno-0-149" name="__codelineno-0-149"></a>
+<a id="__codelineno-0-150" name="__codelineno-0-150"></a>    <span class="k">if</span> <span class="n">stype</span> <span class="o">==</span> <span class="n">GeomAbs_Plane</span><span class="p">:</span>
+<a id="__codelineno-0-151" name="__codelineno-0-151"></a>        <span class="n">gp_plane</span> <span class="o">=</span> <span class="n">adaptor</span><span class="o">.</span><span class="n">Plane</span><span class="p">()</span>
+<a id="__codelineno-0-152" name="__codelineno-0-152"></a>        <span class="n">point</span> <span class="o">=</span> <span class="n">_gp_pnt_to_array</span><span class="p">(</span><span class="n">gp_plane</span><span class="o">.</span><span class="n">Location</span><span class="p">())</span>
+<a id="__codelineno-0-153" name="__codelineno-0-153"></a>        <span class="n">normal</span> <span class="o">=</span> <span class="n">_gp_dir_to_array</span><span class="p">(</span><span class="n">gp_plane</span><span class="o">.</span><span class="n">Axis</span><span class="p">()</span><span class="o">.</span><span class="n">Direction</span><span class="p">())</span>
+<a id="__codelineno-0-154" name="__codelineno-0-154"></a>        <span class="n">offset</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">normal</span><span class="p">,</span> <span class="n">point</span><span class="p">)</span>
+<a id="__codelineno-0-155" name="__codelineno-0-155"></a>        <span class="k">return</span> <span class="n">PlanePrim</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="n">normal</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">)</span>
+<a id="__codelineno-0-156" name="__codelineno-0-156"></a>
+<a id="__codelineno-0-157" name="__codelineno-0-157"></a>    <span class="k">if</span> <span class="n">stype</span> <span class="o">==</span> <span class="n">GeomAbs_Cylinder</span><span class="p">:</span>
+<a id="__codelineno-0-158" name="__codelineno-0-158"></a>        <span class="n">gp_cyl</span> <span class="o">=</span> <span class="n">adaptor</span><span class="o">.</span><span class="n">Cylinder</span><span class="p">()</span>
+<a id="__codelineno-0-159" name="__codelineno-0-159"></a>        <span class="n">point</span> <span class="o">=</span> <span class="n">_gp_pnt_to_array</span><span class="p">(</span><span class="n">gp_cyl</span><span class="o">.</span><span class="n">Location</span><span class="p">())</span>
+<a id="__codelineno-0-160" name="__codelineno-0-160"></a>        <span class="n">axis</span> <span class="o">=</span> <span class="n">_gp_dir_to_array</span><span class="p">(</span><span class="n">gp_cyl</span><span class="o">.</span><span class="n">Axis</span><span class="p">()</span><span class="o">.</span><span class="n">Direction</span><span class="p">())</span>
+<a id="__codelineno-0-161" name="__codelineno-0-161"></a>        <span class="n">radius</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gp_cyl</span><span class="o">.</span><span class="n">Radius</span><span class="p">())</span>
+<a id="__codelineno-0-162" name="__codelineno-0-162"></a>        <span class="k">return</span> <span class="n">CylinderPrim</span><span class="p">(</span><span class="n">point</span><span class="o">=</span><span class="n">point</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">)</span>
+<a id="__codelineno-0-163" name="__codelineno-0-163"></a>
+<a id="__codelineno-0-164" name="__codelineno-0-164"></a>    <span class="k">if</span> <span class="n">stype</span> <span class="o">==</span> <span class="n">GeomAbs_Sphere</span><span class="p">:</span>
+<a id="__codelineno-0-165" name="__codelineno-0-165"></a>        <span class="n">gp_sph</span> <span class="o">=</span> <span class="n">adaptor</span><span class="o">.</span><span class="n">Sphere</span><span class="p">()</span>
+<a id="__codelineno-0-166" name="__codelineno-0-166"></a>        <span class="n">center</span> <span class="o">=</span> <span class="n">_gp_pnt_to_array</span><span class="p">(</span><span class="n">gp_sph</span><span class="o">.</span><span class="n">Location</span><span class="p">())</span>
+<a id="__codelineno-0-167" name="__codelineno-0-167"></a>        <span class="n">radius</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gp_sph</span><span class="o">.</span><span class="n">Radius</span><span class="p">())</span>
+<a id="__codelineno-0-168" name="__codelineno-0-168"></a>        <span class="k">return</span> <span class="n">SpherePrim</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">)</span>
+<a id="__codelineno-0-169" name="__codelineno-0-169"></a>
+<a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="k">if</span> <span class="n">stype</span> <span class="o">==</span> <span class="n">GeomAbs_Cone</span><span class="p">:</span>
+<a id="__codelineno-0-171" name="__codelineno-0-171"></a>        <span class="n">gp_cone</span> <span class="o">=</span> <span class="n">adaptor</span><span class="o">.</span><span class="n">Cone</span><span class="p">()</span>
+<a id="__codelineno-0-172" name="__codelineno-0-172"></a>        <span class="n">apex</span> <span class="o">=</span> <span class="n">_gp_pnt_to_array</span><span class="p">(</span><span class="n">gp_cone</span><span class="o">.</span><span class="n">Apex</span><span class="p">())</span>
+<a id="__codelineno-0-173" name="__codelineno-0-173"></a>        <span class="n">axis</span> <span class="o">=</span> <span class="n">_gp_dir_to_array</span><span class="p">(</span><span class="n">gp_cone</span><span class="o">.</span><span class="n">Axis</span><span class="p">()</span><span class="o">.</span><span class="n">Direction</span><span class="p">())</span>
+<a id="__codelineno-0-174" name="__codelineno-0-174"></a>        <span class="n">angle</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">gp_cone</span><span class="o">.</span><span class="n">SemiAngle</span><span class="p">()))</span>
+<a id="__codelineno-0-175" name="__codelineno-0-175"></a>        <span class="k">return</span> <span class="n">ConePrim</span><span class="p">(</span><span class="n">apex</span><span class="o">=</span><span class="n">apex</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="n">angle</span><span class="p">)</span>
+<a id="__codelineno-0-176" name="__codelineno-0-176"></a>
+<a id="__codelineno-0-177" name="__codelineno-0-177"></a>    <span class="k">if</span> <span class="n">stype</span> <span class="o">==</span> <span class="n">GeomAbs_Torus</span><span class="p">:</span>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a>        <span class="n">gp_torus</span> <span class="o">=</span> <span class="n">adaptor</span><span class="o">.</span><span class="n">Torus</span><span class="p">()</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a>        <span class="n">center</span> <span class="o">=</span> <span class="n">_gp_pnt_to_array</span><span class="p">(</span><span class="n">gp_torus</span><span class="o">.</span><span class="n">Location</span><span class="p">())</span>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a>        <span class="n">axis</span> <span class="o">=</span> <span class="n">_gp_dir_to_array</span><span class="p">(</span><span class="n">gp_torus</span><span class="o">.</span><span class="n">Axis</span><span class="p">()</span><span class="o">.</span><span class="n">Direction</span><span class="p">())</span>
+<a id="__codelineno-0-181" name="__codelineno-0-181"></a>        <span class="n">major_radius</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gp_torus</span><span class="o">.</span><span class="n">MajorRadius</span><span class="p">())</span>
+<a id="__codelineno-0-182" name="__codelineno-0-182"></a>        <span class="n">minor_radius</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gp_torus</span><span class="o">.</span><span class="n">MinorRadius</span><span class="p">())</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a>        <span class="k">return</span> <span class="n">TorusPrim</span><span class="p">(</span>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a>            <span class="n">center</span><span class="o">=</span><span class="n">center</span><span class="p">,</span>
+<a id="__codelineno-0-185" name="__codelineno-0-185"></a>            <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a>            <span class="n">major_radius</span><span class="o">=</span><span class="n">major_radius</span><span class="p">,</span>
+<a id="__codelineno-0-187" name="__codelineno-0-187"></a>            <span class="n">minor_radius</span><span class="o">=</span><span class="n">minor_radius</span><span class="p">,</span>
+<a id="__codelineno-0-188" name="__codelineno-0-188"></a>        <span class="p">)</span>
+<a id="__codelineno-0-189" name="__codelineno-0-189"></a>
+<a id="__codelineno-0-190" name="__codelineno-0-190"></a>    <span class="k">if</span> <span class="n">stype</span> <span class="o">==</span> <span class="n">GeomAbs_BSplineSurface</span><span class="p">:</span>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a>        <span class="k">return</span> <span class="n">_convert_bspline_face</span><span class="p">(</span><span class="n">adaptor</span><span class="p">,</span> <span class="n">face</span><span class="p">)</span>
+<a id="__codelineno-0-192" name="__codelineno-0-192"></a>
+<a id="__codelineno-0-193" name="__codelineno-0-193"></a>    <span class="n">type_name</span> <span class="o">=</span> <span class="n">_SURFACE_TYPE_NAMES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">stype</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-194" name="__codelineno-0-194"></a>    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a>        <span class="sa">f</span><span class="s2">&quot;Unsupported surface type: </span><span class="si">{</span><span class="n">type_name</span><span class="si">}</span><span class="s2">, skipping face&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-196" name="__codelineno-0-196"></a>        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="p">)</span>
+<a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="k">return</span> <span class="kc">None</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="brepax.brep.triangulate" class="doc doc-heading">
+            <code>brepax.brep.triangulate</code>
+
+
+<a href="#brepax.brep.triangulate" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Triangulation of B-Rep faces for divergence theorem volume.</p>
+<p>Uses OCCT BRepMesh for watertight mesh topology, then re-evaluates
+vertex positions inside the JAX computation graph using parametric
+surface functions.  This gives <code>jax.grad</code> flow from volume through
+triangle vertices to primitive parameters (control points, radius,
+etc.) while preserving mesh watertightness.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.brep.triangulate.triangulate_shape" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">triangulate_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">deflection</span><span class="o">=</span><span class="n">_DEFAULT_DEFLECTION</span><span class="p">)</span></code>
+
+<a href="#brepax.brep.triangulate.triangulate_shape" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Triangulate all faces of a shape with JAX-native vertices.</p>
+<p>Uses OCCT BRepMesh for watertight mesh topology, then re-evaluates
+each vertex position using JAX-native parametric surface functions.
+Faces are grouped by surface type (and BSpline signature) so each
+group is evaluated with a single batched <code>jax.vmap</code>, eliminating
+per-face Python dispatch overhead.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>shape</code>
+            </td>
+            <td>
+                  <code><span title="brepax._occt.types.TopoDS_Shape">TopoDS_Shape</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An OCCT topological shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>deflection</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mesh deflection tolerance for OCCT tessellation.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="brepax.brep.triangulate._DEFAULT_DEFLECTION">_DEFAULT_DEFLECTION</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tuple of <code>(triangles, params_list)</code> where triangles has</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>shape <code>(n_total, 3, 3)</code> and params_list contains one</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="jax.numpy.ndarray">ndarray</span>, <span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>parameter dict per face, in traversal order.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="NotImplementedError">NotImplementedError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An evaluated face has an unsupported surface type.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An evaluated face has no triangulation or no triangles.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>If solids are present, only their faces are evaluated. Otherwise all
+faces are evaluated. A shape with no faces returns empty arrays and metadata.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.brep.triangulate.extract_mesh_topology" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">extract_mesh_topology</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">deflection</span><span class="o">=</span><span class="n">_DEFAULT_DEFLECTION</span><span class="p">)</span></code>
+
+<a href="#brepax.brep.triangulate.extract_mesh_topology" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Extract watertight mesh topology from an OCCT shape.</p>
+<p>Tessellates the shape via OCCT BRepMesh, then extracts per-face
+UV coordinates, triangle connectivity, and surface parameters.
+The returned data is static (not in the JAX graph) and serves
+as input to :func:<code>evaluate_mesh</code> for differentiable vertex
+re-evaluation.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>shape</code>
+            </td>
+            <td>
+                  <code><span title="brepax._occt.types.TopoDS_Shape">TopoDS_Shape</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An OCCT topological shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>deflection</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mesh deflection tolerance for OCCT tessellation.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="brepax.brep.triangulate._DEFAULT_DEFLECTION">_DEFAULT_DEFLECTION</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of face dicts, each containing <code>us</code>, <code>vs</code> (numpy),</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>conn</code> (numpy int32), <code>reverse</code> (bool), and surface</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>parameters (JAX arrays).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="NotImplementedError">NotImplementedError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An evaluated face has an unsupported surface type.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An evaluated face has no triangulation or no triangles.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Face selection and empty-shape behavior follow :func:<code>triangulate_shape</code>.</p>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">topology</span> <span class="o">=</span> <span class="n">extract_mesh_topology</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">triangles</span> <span class="o">=</span> <span class="n">evaluate_mesh</span><span class="p">(</span><span class="n">topology</span><span class="p">)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">vol</span> <span class="o">=</span> <span class="n">divergence_volume</span><span class="p">(</span><span class="n">triangles</span><span class="p">)</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.brep.triangulate.evaluate_mesh" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">evaluate_mesh</span><span class="p">(</span><span class="n">topology</span><span class="p">,</span> <span class="n">overrides</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">uv_scale_param</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#brepax.brep.triangulate.evaluate_mesh" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Re-evaluate mesh vertices from topology with parameter overrides.</p>
+<p>For each face, evaluates the surface function at the stored UV
+coordinates using surface parameters.  Any parameter in
+<code>overrides</code> replaces the corresponding stored value, allowing
+<code>jax.grad</code> to flow from volume through vertices to the
+overridden design parameter.</p>
+<p>When <code>uv_scale_param</code> is set, plane faces scale their UV
+coordinates by <code>overrides[uv_scale_param] / uv_scale_ref</code> so
+that flat caps follow curved-surface parameter changes (e.g.
+disk caps scale with cylinder radius).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>topology</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Face list from :func:<code>extract_mesh_topology</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>overrides</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="jax.numpy.ndarray">ndarray</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Parameter name-value pairs to override.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>uv_scale_param</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Override key used to scale plane UV
+coordinates.  Required for multi-face optimization
+where flat caps must track a curved-surface parameter.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Triangle vertices, shape <code>(n_total, 3, 3)</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">topology</span> <span class="o">=</span> <span class="n">extract_mesh_topology</span><span class="p">(</span><span class="n">cylinder_shape</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">volume_fn</span><span class="p">(</span><span class="n">radius</span><span class="p">):</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="k">return</span> <span class="n">divergence_volume</span><span class="p">(</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>        <span class="n">evaluate_mesh</span><span class="p">(</span><span class="n">topology</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;radius&quot;</span><span class="p">:</span> <span class="n">radius</span><span class="p">},</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span>                      <span class="n">uv_scale_param</span><span class="o">=</span><span class="s2">&quot;radius&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">... </span>    <span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">grad</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">volume_fn</span><span class="p">)(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mf">5.0</span><span class="p">))</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.brep.triangulate.divergence_volume" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">divergence_volume</span><span class="p">(</span><span class="n">triangles</span><span class="p">)</span></code>
+
+<a href="#brepax.brep.triangulate.divergence_volume" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute volume of a closed triangle mesh via the divergence theorem.</p>
+<p>Uses the signed-tetrahedra formula in a local frame near the mesh:
+each triangle and the local origin form a tetrahedron whose signed
+volume is <code>v0 . (v1 x v2) / 6</code>.
+The sum over all triangles gives the enclosed volume for a
+watertight mesh with outward-facing normals.</p>
+<p>Local coordinates reduce cancellation for solids far from the world
+origin. Units are length cubed. Empty meshes return zero.</p>
+<p><code>jax.grad</code> differentiates the frozen mesh. Geometric shape derivatives
+require shared boundaries to move consistently and preserve closure;
+independently moving duplicated triangle corners can open the mesh.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>triangles</code>
+            </td>
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Triangle vertices, shape <code>(n, 3, 3)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Enclosed volume (scalar).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">shape</span> <span class="o">=</span> <span class="n">read_step</span><span class="p">(</span><span class="s2">&quot;model.step&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tris</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">triangulate_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">vol</span> <span class="o">=</span> <span class="n">divergence_volume</span><span class="p">(</span><span class="n">tris</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">grad</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">divergence_volume</span><span class="p">)(</span><span class="n">tris</span><span class="p">)</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.brep.triangulate.mesh_surface_area" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">mesh_surface_area</span><span class="p">(</span><span class="n">triangles</span><span class="p">)</span></code>
+
+<a href="#brepax.brep.triangulate.mesh_surface_area" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute surface area of a triangle mesh.</p>
+<p>Sums the area of each triangle: <code>(1/2) ||cross(e1, e2)||</code>.
+Units are length squared. No absolute area floor is applied. Collapsed
+or collinear triangles have zero area with a chosen zero subgradient
+at the nondifferentiable point. Empty meshes return zero.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>triangles</code>
+            </td>
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Triangle vertices, shape <code>(n, 3, 3)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Total surface area (scalar).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tris</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">triangulate_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">area</span> <span class="o">=</span> <span class="n">mesh_surface_area</span><span class="p">(</span><span class="n">tris</span><span class="p">)</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.brep.triangulate.mesh_center_of_mass" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">mesh_center_of_mass</span><span class="p">(</span><span class="n">triangles</span><span class="p">)</span></code>
+
+<a href="#brepax.brep.triangulate.mesh_center_of_mass" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute center of mass of a closed triangle mesh.</p>
+<p>Integrates signed tetrahedron first moments in a local frame, then
+divides by signed volume. This avoids cancelling world-origin moments
+and introducing a dimensionful epsilon into the denominator.</p>
+<p>Assumes a watertight mesh with nonzero volume. Units are length.
+Empty meshes return zero. For nonempty zero-volume inputs the center
+is undefined; nearly degenerate solids are ill-conditioned. Shape
+derivatives require closure-preserving shared-boundary motion.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>triangles</code>
+            </td>
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Triangle vertices, shape <code>(n, 3, 3)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Center of mass, shape <code>(3,)</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tris</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">triangulate_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">com</span> <span class="o">=</span> <span class="n">mesh_center_of_mass</span><span class="p">(</span><span class="n">tris</span><span class="p">)</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.brep.triangulate.mesh_inertia_tensor" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">mesh_inertia_tensor</span><span class="p">(</span><span class="n">triangles</span><span class="p">)</span></code>
+
+<a href="#brepax.brep.triangulate.mesh_inertia_tensor" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the inertia tensor of a closed triangle mesh about its center of mass.</p>
+<p>Integrates signed tetrahedron moments (Tonon 2005), then applies
+the parallel axis theorem in a local frame near the center of mass.
+See https://doi.org/10.3844/jmssp.2005.8.11 for tetrahedron moments.</p>
+<p>Assumes a watertight, outward-oriented mesh with nonzero volume and
+uniform density <code>rho = 1</code>. Empty meshes return zero. Length units
+<code>L</code> give inertia units <code>L**5</code>; uniform scaling by <code>s</code> multiplies
+the tensor by <code>s**5</code>. Nearly degenerate solids are ill-conditioned.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>triangles</code>
+            </td>
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Triangle vertices, shape <code>(n, 3, 3)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Symmetric 3x3 inertia tensor about center of mass.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tris</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">triangulate_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">I</span> <span class="o">=</span> <span class="n">mesh_inertia_tensor</span><span class="p">(</span><span class="n">tris</span><span class="p">)</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 

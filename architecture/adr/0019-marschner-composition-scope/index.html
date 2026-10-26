@@ -6,13 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Differentiable rasterizer for CAD Boolean operations">
+        <meta name="description" content="JAX-native differentiable geometry and STEP/B-Rep evaluation">
       
       
       
         <link rel="canonical" href="https://lv416e.github.io/brepax/architecture/adr/0019-marschner-composition-scope/">
       
       
+        <link rel="prev" href="../0018-trim-aware-sdf-composition/">
+      
+      
+        <link rel="next" href="../0020-marschner-bspline-csg-scope/">
       
       
         
@@ -23,7 +27,7 @@
     
     
       
-        <title>ADR-0019: Marschner trim-aware composition scope - BRepAX</title>
+        <title>ADR-0019: Marschner Composition Scope - BRepAX</title>
       
     
     
@@ -112,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0019: Marschner trim-aware composition scope
+              ADR-0019: Marschner Composition Scope
             
           </span>
         </div>
@@ -743,7 +747,7 @@
   <span class="md-ellipsis">
     
   
-    NURBS B-Rep Feasibility
+    NURBS Differentiation Scope
   
 
     
@@ -1081,8 +1085,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -1093,13 +1099,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
@@ -1120,7 +1124,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1163,6 +1167,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1172,13 +1178,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" checked>
         
           
           <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
@@ -1199,7 +1203,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1658,6 +1662,209 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0017-cold-subsequent-warm-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0017: Triangulation Performance Regions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0018-trim-aware-sdf-composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Trim-aware Surface SDF Composition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: Marschner Composition Scope
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: Marschner Composition Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0020-marschner-bspline-csg-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0020: Marschner B-spline CSG Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1765,7 +1972,12 @@
 
 <h1 id="adr-0019-marschner-trim-aware-composition-scope">ADR-0019: Marschner trim-aware composition scope<a class="headerlink" href="#adr-0019-marschner-trim-aware-composition-scope" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
+<p>Accepted for analytical primitives; the proposed B-spline extension below
+is superseded by <a href="../0020-marschner-bspline-csg-scope/">ADR-0020</a>.</p>
+<p>This record preserves the reasoning at the time. ADR-0020 rejects the
+Marschner blend inside CSG-Stump for B-splines too, and corrects the comparison
+between the Linkrods +219% result and the separate CSG-Stump failure. Follow
+ADR-0020 for the current composition contract.</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>ADR-0018 fixes the composition formula</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>d_T(p) = chi_T(pi_S(p)) * d_S(p)
@@ -1873,8 +2085,8 @@ and its per-primitive wrappers (<code>brep/trim_frame.py</code>'s
    Verified against <code>BRepExtrema_DistShapeShape</code> on plane in PR #67;
    sphere / cylinder / cone / torus wrappers extend the same
    semantics.</li>
-<li><strong>BSpline-patch composition inside a CSG-Stump.</strong>  When a future
-   PR wires BSpline primitives into the trim-aware composition,
+<li><strong>BSpline-patch composition inside a CSG-Stump (later rejected by ADR-0020).</strong>
+   When a future PR wires BSpline primitives into the trim-aware composition,
    their dispatch path uses <code>trim_aware_sdf</code> because BSpline patches
    are finite in parameter and their untrimmed extension is the
    phantom source.</li>

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Differentiable rasterizer for CAD Boolean operations">
+        <meta name="description" content="JAX-native differentiable geometry and STEP/B-Rep evaluation">
       
       
       
@@ -15,6 +15,8 @@
       
         <link rel="prev" href="../0015-face-to-primitive-conversion/">
       
+      
+        <link rel="next" href="../0017-cold-subsequent-warm-gate/">
       
       
         
@@ -745,7 +747,7 @@
   <span class="md-ellipsis">
     
   
-    NURBS B-Rep Feasibility
+    NURBS Differentiation Scope
   
 
     
@@ -1751,6 +1753,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0017-cold-subsequent-warm-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0017: Triangulation Performance Regions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0018-trim-aware-sdf-composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Trim-aware Surface SDF Composition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0019-marschner-composition-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: Marschner Composition Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0020-marschner-bspline-csg-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0020: Marschner B-spline CSG Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1879,13 +1993,17 @@ positions re-evaluated through JAX-native parametric surface functions so that
 part of any closed solid.</p>
 <p>The <code>gwn_signed_sdf</code> and <code>gwn_signed_volume</code> functions (grid-based GWN approach)
 are removed as they are superseded and carry OOM risk from nested vmap.</p>
-<p>CSG-Stump volume is retained for models with only analytical faces, but the
-divergence theorem path works for all surface types.</p>
+<p>CSG-Stump volume is retained as a separate path. The divergence theorem
+applies to closed triangle meshes independent of the source surface type;
+the implemented CAD-to-mesh extraction supports only the surface types
+listed in the <a href="../../../reference/#capabilities-and-limits">API overview</a>.
+Unsupported evaluated faces are rejected.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <p>Easier:</p>
 <ul>
-<li>Volume computation works for all surface types including BSpline (32 models,
-  all &lt; 0.5% error).</li>
+<li>The original validation reported &lt; 0.5% error on its 32-model fixture set,
+  including B-splines. This is historical fixture evidence, not a bound for
+  arbitrary CAD or a measurement of every later revision.</li>
 <li>Gradient <code>dV/dv = (1/6)(v_j x v_k)</code> is polynomial with no singularities
   (no arctan2, sigmoid, or grid artifacts).</li>
 <li>No grid resolution tuning needed for volume.</li>
@@ -1894,8 +2012,10 @@ divergence theorem path works for all surface types.</p>
 <ul>
 <li>Mesh topology is frozen at tessellation time; large parameter perturbations
   require re-tessellation.</li>
-<li>BSpline face re-evaluation via vmap triggers per-face JIT compilation
-  (~95 seconds for CTC-02 with 34 BSpline faces, 247K triangles).</li>
+<li>The original implementation triggered per-face JIT compilation (~95 seconds
+  for CTC-02 with 34 B-spline faces, 247K triangles). Subsequent batching and
+  cache work changed this behavior; see
+  <a href="../0017-cold-subsequent-warm-gate/">ADR-0017</a> for performance regions.</li>
 <li>OCCT dependency for tessellation; pure JAX end-to-end is not possible.</li>
 </ul>
 
