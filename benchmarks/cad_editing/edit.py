@@ -25,7 +25,7 @@ import numpy as np
 
 from .geometry import reference_measures
 from .mesh import prepare_mesh
-from .optimization import EditSolver
+from .optimization import DEFAULT_MAX_UPDATES, RESIDUAL_TOLERANCE, EditSolver
 from .verification import RELATIVE_TOLERANCE, verify_edit
 
 # Fixed before running: changing both coordinates together and in opposite directions.
@@ -45,8 +45,8 @@ def run(deflection: float, artifact_dir: Path) -> dict[str, Any]:
             else str(deflection),
             "required_dtype": "float64",
             "relative_tolerance": RELATIVE_TOLERANCE,
-            "solver_residual_tolerance": 1e-10,
-            "max_updates": 8,
+            "solver_residual_tolerance": RESIDUAL_TOLERANCE,
+            "max_updates": DEFAULT_MAX_UPDATES,
             "scope": "Supplied roof/hole family with fixed topology",
         },
         "cases": [],
@@ -91,12 +91,18 @@ def run(deflection: float, artifact_dir: Path) -> dict[str, Any]:
 
     target = np.asarray(reference_measures(np.array([6.0, 3.45])), dtype=np.float64)
     controls = (
-        ("outside_edit_box", np.array([3.0, 3.0]), target, 8, "invalid_input"),
+        (
+            "outside_edit_box",
+            np.array([3.0, 3.0]),
+            target,
+            DEFAULT_MAX_UPDATES,
+            "invalid_input",
+        ),
         (
             "unreachable_target",
             np.array([5.0, 3.0]),
             np.array([1e6, 1e6]),
-            8,
+            DEFAULT_MAX_UPDATES,
             "no_descent",
         ),
         ("zero_budget", np.array([4.0, 2.55]), target, 0, "iteration_limit"),

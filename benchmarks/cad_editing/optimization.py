@@ -15,6 +15,9 @@ from brepax.brep.triangulate import divergence_volume, mesh_surface_area
 from .geometry import cad_measures, in_edit_box, make_shape
 from .mesh import RoofMesh, check_mesh
 
+RESIDUAL_TOLERANCE = 1e-10
+DEFAULT_MAX_UPDATES = 8
+
 EditStatus = Literal[
     "converged", "invalid_input", "iteration_limit", "no_descent", "evaluation_failed"
 ]
@@ -66,7 +69,7 @@ class EditSolver:
         initial: NDArray[np.float64],
         target: NDArray[np.float64],
         *,
-        max_updates: int = 8,
+        max_updates: int = DEFAULT_MAX_UPDATES,
     ) -> EditResult:
         """Damped Newton with bounded candidates and an evaluated final iterate.
 
@@ -105,7 +108,7 @@ class EditSolver:
                         dimensions.tolist(), residual.tolist(), cad_residual.tolist()
                     )
                 )
-                if np.max(abs(residual)) <= 1e-10:
+                if np.max(abs(residual)) <= RESIDUAL_TOLERANCE:
                     result.status = "converged"
                     return result
                 if update == max_updates:
