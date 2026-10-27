@@ -36,11 +36,21 @@ BASE_DIMENSIONS = np.array([5.0, 3.0])
 EDIT_POINTS = BASE_DIMENSIONS * np.array([[0.8, 0.85], [1.0, 1.0], [1.2, 1.15]])
 
 
+def in_edit_box(dimensions: NDArray[np.float64]) -> bool:
+    """Whether two finite working lengths belong to the supplied CAD family."""
+    return bool(
+        dimensions.shape == (2,)
+        and np.isfinite(dimensions).all()
+        and np.all(dimensions >= [3.5, 2.25])
+        and np.all(dimensions <= [6.5, 3.75])
+    )
+
+
 def make_shape(dimensions: NDArray[np.float64]) -> TopoDS_Shape:
     """Construct and cut only AFTER external dimensions have been normalized."""
-    amplitude, radius = dimensions
-    if not (3.5 <= amplitude <= 6.5 and 2.25 <= radius <= 3.75):
+    if not in_edit_box(dimensions):
         raise ValueError("Dimensions outside the supplied fixed-topology edit box")
+    amplitude, radius = dimensions
     points = [
         gp_Pnt(0, 0, 0),
         gp_Pnt(LENGTH, 0, 0),
