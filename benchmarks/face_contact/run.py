@@ -58,6 +58,9 @@ def run(resolution: int = MAIN_RESOLUTION) -> dict[str, Any]:
         str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in files
     }
+    head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], text=True, cwd=root
+    ).strip()
     started = perf_counter()
     stages: tuple[tuple[str, Callable[[], dict[str, Any]]], ...] = (
         ("sampled", lambda: collect_sampled(resolution)),
@@ -103,9 +106,7 @@ def run(resolution: int = MAIN_RESOLUTION) -> dict[str, Any]:
     sources_unchanged = source_before == source_after
     evaluation["passed"] = bool(evaluation["passed"] and sources_unchanged)
     return {
-        "head": subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], text=True, cwd=root
-        ).strip(),
+        "head": head,
         "source_sha256": source_after,
         "source_sha256_before": source_before,
         "sources_unchanged": sources_unchanged,
@@ -121,6 +122,9 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--resolution", type=int, default=MAIN_RESOLUTION)
     arguments = parser.parse_args()
+    arguments.output.parent.mkdir(parents=True, exist_ok=True)
+    if arguments.output.exists() and not arguments.output.is_file():
+        parser.error("--output must name a regular file")
     result = run(arguments.resolution)
     arguments.output.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
     print(

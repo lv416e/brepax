@@ -217,18 +217,3 @@ def polygon_moments(vertices: np.ndarray) -> tuple[float, np.ndarray]:
     area = float(cross.sum() / 2)
     centroid = ((vertices + following) * cross[:, None]).sum(axis=0) / (6 * area)
     return area, centroid
-
-
-def ablations(
-    vertices: np.ndarray, direction: np.ndarray, pivot: np.ndarray
-) -> dict[str, float]:
-    area, centroid = polygon_moments(vertices)
-    velocity, omega = direction[:3], direction[3:]
-    speed_centroid = -float(
-        (velocity + np.cross(omega, np.r_[centroid, 0.0] - pivot))[2]
-    )
-    return {
-        "translation_only": area * max(-float(velocity[2]), 0.0),
-        "centroid_positive_flux": area * max(speed_centroid, 0.0),
-        "signed_spatial_flux": area * speed_centroid,
-    }
