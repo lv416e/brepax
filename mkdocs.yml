@@ -67,7 +67,7 @@ nav:
       - Why B-Rep: explanation/why_brep.md
       - License Strategy: explanation/license_strategy.md
       - JAX Where Gradient Pitfall: explanation/jax_where_gradient_pitfall.md
-      - TOI Correction Derivation: explanation/toi_derivation.md
+      - Event-Time Sensitivity: explanation/toi_derivation.md
       - Hybrid Optimization Strategy: explanation/hybrid_optimization_strategy.md
       - Concept Proof Evaluation: explanation/concept_proof_evaluation.md
       - 3D Extension Evaluation: explanation/3d_extension_evaluation.md

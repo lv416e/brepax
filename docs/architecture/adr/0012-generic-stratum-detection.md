@@ -4,11 +4,18 @@
 
 Accepted
 
+Scope clarified on 2026-10-28: this decision generalizes the detection
+interface, not its accuracy. Sampled labels can miss thin overlaps and
+protrusions; the [current contract](../../explanation/stratification_theory.md#current-brepax-implementation)
+states the conditions for analytical gradients.
+
 ## Context
 
 The concept proof `_detect_stratum` uses center distance vs radius sum/difference, which is specific to Sphere x Sphere (and Disk x Disk). This function crashes for Cylinder, Plane, Cone, or any heterogeneous primitive pair because those primitives lack a "center" parameter.
 
-As a result, subtract and intersect operations bypass stratum dispatch entirely, running straight-through estimator uniformly. This means these operations achieve Method (A)-equivalent precision rather than Method (C)'s stratum-aware precision.
+At the time of this decision, subtract and intersect bypassed relation
+dispatch and used an STE uniformly, omitting analytical primitive-volume
+derivatives in simple relation regions.
 
 Additionally, union operations with heterogeneous primitive pairs (e.g., Sphere x Cylinder) trigger a KeyError crash in `_detect_stratum`.
 
@@ -27,7 +34,9 @@ Given two primitives A and B evaluated on a grid:
 
 ### Implementation
 
-Grid-based detection reuses the grid already computed for volume measurement. The detection adds negligible cost (min/max reductions over existing SDF evaluations).
+The current forward rule evaluates sampled SDF signs for detection as well
+as the measure. Any claim of negligible overhead requires measurement; the
+interface alone does not establish computational reuse after compilation.
 
 ### Trade-offs
 
@@ -40,4 +49,6 @@ Grid-based detection reuses the grid already computed for volume measurement. Th
 - All Boolean operations (union, subtract, intersect) can use stratum dispatch
 - No per-pair parameter-dependent code needed for stratum detection
 - New primitives (Cone, Torus, Box) get stratum dispatch automatically
-- Method (C) precision advantage extends to heterogeneous primitive pairs
+- Heterogeneous pairs can use analytical formulas in correctly classified
+  simple relation regions; superiority over another estimator requires a
+  separate comparison

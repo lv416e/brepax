@@ -1,118 +1,119 @@
 # Stratification Theory
 
-How Whitney stratification applies to CAD Boolean operations,
-and why gradient discontinuities at topological boundaries are a
-geometric fact rather than a numerical artifact.
+Boolean relations help organize geometric derivatives, but a topology
+change does not by itself imply a first-derivative jump. The objective,
+local contact geometry, and numerical discretization must be specified.
 
-## Configuration Space of Two Primitives
+## Relation Regions and Contact Sets
 
-Consider two primitives A and B parameterized by design variables
-(radii, centers, axes). As parameters vary, the topological
-relationship between A and B changes:
+For disks or spheres with positive radii and center distance $d$:
 
-| Stratum | Label | Relationship | Example (two spheres) |
-|---|---|---|---|
-| 0 | Disjoint | No overlap | d > r1 + r2 |
-| 1 | Intersecting | Partial overlap | \|r1 - r2\| < d < r1 + r2 |
-| 2 | A contained in B | A entirely inside B | d + r1 <= r2 |
-| 3 | B contained in A | B entirely inside A | d + r2 <= r1 |
-
-These four regions partition the configuration space into a
-**Whitney stratification**: a decomposition into smooth manifolds
-(strata) satisfying Whitney's regularity conditions (a) and (b)
-at their boundaries.
-
-## Gradient Structure Per Stratum
-
-Each stratum has a distinct analytical gradient formula for Boolean
-volume. For union:
-
-| Stratum | V_union formula | d(V_union)/d(p) |
+| Label | Relationship | Strict region |
 |---|---|---|
-| 0 (disjoint) | V_a + V_b | d(V_a)/d(p) + d(V_b)/d(p) |
-| 1 (intersecting) | V_a + V_b - V_intersection | Requires integration over intersection boundary |
-| 2 (A in B) | V_b | d(V_b)/d(p) |
-| 3 (B in A) | V_a | d(V_a)/d(p) |
+| 0 | Disjoint | $d > r_1+r_2$ |
+| 1 | Partial overlap | $\lvert r_1-r_2\rvert < d < r_1+r_2$ |
+| 2 | A strictly contained in B | $d+r_1 < r_2$ |
+| 3 | B strictly contained in A | $d+r_2 < r_1$ |
 
-In strata 0, 2, and 3, the gradient is exact and analytical because
-the volume is a simple function of individual primitive volumes.
-In stratum 1, the intersection boundary curve introduces a
-non-trivial integration that BRepAX approximates via the
-straight-through estimator (STE).
+These operational labels are not a complete Whitney stratification.
+External tangency, internal tangency, and equal-radius coincidence require
+separate sets. All four strict regions are full-dimensional; partial overlap
+is not uniquely highest-dimensional. A Whitney stratification additionally
+requires smooth strata, frontier conditions, and Whitney regularity, none
+of which follows from four labels.
 
-## Gradient Discontinuity at Boundaries
+For union measure, disjoint and contained formulas reduce to $V_A+V_B$,
+$V_B$, and $V_A$, respectively. Partial overlap requires intersection
+measure. Exact primitive-volume derivatives therefore help without solving
+the harder contact problem.
 
-At stratum boundaries (tangent configurations), the gradient is
-generically discontinuous. This is not a bug but a consequence
-of the stratification structure:
+## Contact Order for Area and Volume
 
-**External tangency** (d = r1 + r2): the gradient of union area/volume
-is actually continuous here because the intersection formula
-reduces to the disjoint formula as overlap vanishes. The gradient
-jump is second-order zero, as derived in the
-[TOI derivation](toi_derivation.md#correction-term-at-external-tangent).
+Let $\delta>0$ denote normal penetration from first contact. For a smooth
+$m$-dimensional contact set in $n$ dimensions, suppose the local gap in the
+$k=n-1-m$ transverse tangent directions is, to leading order,
 
-**Internal tangency** (d = |r1 - r2|): the gradient is genuinely
-discontinuous. The contained-stratum gradient depends only on the
-outer primitive, while the intersecting-stratum gradient depends on
-both. This is a first-order jump that cannot be smoothed away.
+$$
+\delta-\tfrac12 y^\top H y,\qquad H\text{ positive definite}.
+$$
 
-## BRepAX Implementation
+Integrating its positive part gives changed measure proportional to
+$\delta^{1+k/2}$. This local model assumes nondegenerate relative curvature,
+a regular contact set, and no simultaneous endpoint event.
 
-BRepAX implements stratum-dispatched gradients via `jax.custom_vjp`:
-
-1. **Forward pass**: exact SDF Boolean (min/max) + Heaviside indicator
-   on a grid. The stratum label is detected via grid-based SDF
-   evaluation and saved as a residual.
-
-2. **Backward pass**: `jnp.where` dispatch selects the gradient
-   formula based on the saved label. This is branchless and
-   compatible with `jax.vmap`.
-
-The boundary convention (ADR-0004) uses the intersecting-stratum
-gradient at exact tangency, following the principle that the
-generic (highest-dimensional) stratum provides the most informative
-gradient signal.
-
-## Convergence Properties
-
-Empirical measurement on sphere-sphere and cylinder-sphere pairs
-shows:
-
-- **Strata 0, 2, 3**: exact analytical gradient (zero error)
-- **Stratum 1 interior**: STE gradient error < 1% (sphere) and
-  < 10% (cylinder) at resolution 128
-- **Stratum 1 near-tangent**: error increases to 25-542% as the
-  sigmoid kernel width exceeds the intersection feature size
-
-The convergence rate is between O(h) and O(h^2) in the interior,
-consistent with grid-based integration of a sigmoid-smoothed
-discontinuous integrand. Near tangency, the rate degrades because
-the effective feature size shrinks faster than the grid refines.
-
-Despite near-tangent error, optimization converges to correct
-optima because the gradient sign is always correct and the bias
-direction (volume overestimation) is consistent.
-
-## Comparison
-
-No existing differentiable CSG system provides exact gradients in
-any stratum. BRepAX's 3/4 exact + 1/4 characterized is a unique
-positioning:
-
-| System | Exact strata | Gradient method |
+| Geometry and objective | Leading change as $\delta\downarrow0$ | Contact regularity |
 |---|---|---|
-| BRepAX | 3/4 | Analytical dispatch + STE |
-| DiffCSG | 0/4 | Goldfeather rasterization + edge AA |
-| Fuzzy Boolean | 0/4 | t-norm/t-conorm smoothing |
-| TreeTOp | 0/4 | Continuous relaxation |
+| Two disks, overlap area | $C\delta^{3/2}$ | First derivative continuous; second derivative unbounded |
+| Two spheres, overlap volume | $C\delta^2$ | First derivative continuous; second derivative jumps |
+| Parallel finite cylinders, side contact with positive common axial length | $C\delta^{3/2}$ | First derivative continuous |
+| Opposing planar faces with positive contact area $A$ | $A\delta$ | One-sided volume derivatives differ |
 
-## References
+Here $C>0$ depends on geometry. Zero relative curvature, corners, contact
+endpoints, and coincident surfaces need separate analysis; contact dimension
+alone is not a universal classification.
 
-- Whitney, H. (1965). Tangents to an analytic variety.
-- Goresky, M. & MacPherson, R. (1988). Stratified Morse Theory.
-- Guest, J.K. et al. (2004). Achieving minimum length scale in
-  topology optimization using nodal design variables and projection
-  functions.
-- Bengio, Y. et al. (2013). Estimating or propagating gradients
-  through stochastic neurons for conditional computation.
+For internal tangency with fixed radii $R>r>0$, let $\delta=d-(R-r)$.
+The excess union measure beyond the larger primitive satisfies
+
+$$
+A_{\mathrm{union}}-\pi R^2
+\sim \frac43\sqrt{\frac{2Rr}{R-r}}\,\delta^{3/2},
+\qquad
+V_{\mathrm{union}}-\frac{4\pi R^3}{3}
+\sim \frac{\pi Rr}{R-r}\,\delta^2.
+$$
+
+Ordinary internal and external contacts are therefore both $C^1$ for these
+area/volume objectives. The earlier assertion of a first-order jump at
+unequal-radius internal tangency was incorrect. Equal-radius coincidence
+is a distinct degeneracy not covered by this conclusion.
+
+The objective also matters. For two unit spheres with $d=2-\delta$,
+overlap volume is $\pi\delta^2/2-\pi\delta^3/12$, whereas union surface area
+is $8\pi-2\pi\delta$ for $0<\delta<2$. Volume is $C^1$ at first contact;
+surface area has a first-derivative kink. The overlap volume tends to zero
+continuously at first contact.
+
+## Current BRepAX Implementation
+
+Method C in `brepax.boolean.stratum` uses a custom VJP:
+
+1. The forward value samples a hard Boolean indicator on a finite grid.
+   Exact min/max set composition does not make quadrature exact.
+2. Sampled SDF signs select a relation label. Small overlap or protrusion
+   regions can be missed. There is no explicit exact-contact classification.
+3. Disjoint and contained cases use primitive-volume derivatives when
+   finite analytical formulas exist. Exactness requires both correct
+   classification and correct formulas; unbounded primitives use a grid
+   estimate instead.
+4. Partial overlap differentiates a sigmoid indicator on the frozen grid,
+   with width equal to the geometric mean cell spacing.
+
+The backward rule is a surrogate for a continuous geometric derivative,
+generally not the derivative of the hard sampled forward value. Three
+simple labels with analytical formulas do not imply accuracy on three
+quarters of configurations or solve moving intersection boundaries.
+
+The analytical disk reference also uses distance floors and angle clipping.
+Near contact, independent limits or stable formulas must distinguish these
+safeguards from the mathematical derivative. See the
+[safe-primal discussion](jax_where_gradient_pitfall.md).
+
+## Invariance and Numerical Evidence
+
+Exact area/volume is invariant under common rigid motion. Uniform length
+scaling by $s>0$ scales $n$-dimensional measure by $s^n$ and gradients with
+respect to lengths by $s^{n-1}$; center gradients rotate with geometry.
+Grid orientation, finite windows, smoothing widths, and sampled detection
+can break or approximate these laws. Dimensional tolerances and smoothing
+parameters must scale with units.
+
+Separate value error, relation detection, derivative error, and optimization
+outcome. At nonsmooth events compare one-sided limits; away from events,
+sweep finite-difference steps and resolution against an independent oracle.
+Relative error alone is misleading when the true derivative tends to zero.
+
+Selected-fixture errors are not universal convergence rates or gradient-sign
+guarantees. AD through a frozen mesh likewise does not establish derivatives
+of regenerated CAD with moving trims or changing topology. See the
+[design thesis](design_thesis.md) and [TOI discussion](toi_derivation.md).
