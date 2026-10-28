@@ -30,8 +30,10 @@ from jaxtyping import Array, Float
 
 from brepax._occt.backend import BRepClass3d_SolidClassifier, TopAbs_IN, gp_Pnt
 from brepax._occt.types import TopoDS_Shape
+from brepax.boolean import intersect_volume, subtract_volume
 from brepax.brep.csg import CSGLeaf, CSGNode, CSGOperation
 from brepax.brep.csg_eval import integrate_sdf_volume, make_grid_3d, primitive_bounds
+from brepax.primitives import Box, FiniteCylinder, Plane, Sphere
 from brepax.primitives._base import Primitive
 
 
@@ -142,103 +144,151 @@ def evaluate_stump_volume(
     return integrate_sdf_volume(sdf, lo, hi, resolution)
 
 
+def _contained_disjoint_cut_volume(
+    stock: Box, cuts: list[Primitive]
+) -> Float[Array, ""] | None:
+    """Subtract analytic cut volumes only after proving containment and disjointness.
+
+    Exact AABBs suffice for these tests but may reject valid configurations.
+    The generic grid-domain estimates in ``primitive_bounds`` are not reliable
+    enclosures for every primitive, so they cannot establish this shortcut.
+    """
+    stock_center = np.asarray(stock.center)
+    stock_extent = np.asarray(stock.half_extents)
+    cut_bounds: list[tuple[np.ndarray, np.ndarray]] = []
+    volume = stock.volume()
+    for cut in cuts:
+        if isinstance(cut, Box):
+            extent = cut.half_extents
+        elif isinstance(cut, Sphere):
+            extent = jnp.full(3, cut.radius)
+        elif isinstance(cut, FiniteCylinder):
+            # Projection of the axial segment plus its perpendicular disk.
+            extent = jnp.abs(cut.axis) * cut.height / 2 + cut.radius * jnp.sqrt(
+                jnp.maximum(1 - cut.axis**2, 0)
+            )
+        else:
+            return None
+        center = np.asarray(cut.center)
+        extent_np = np.asarray(extent)
+        # Relative distances avoid collapsing small bounds at large translations.
+        if not np.all(extent_np <= stock_extent - np.abs(center - stock_center)):
+            return None
+        if any(
+            not np.any(np.abs(center - other_center) >= extent_np + other_extent)
+            for other_center, other_extent in cut_bounds
+        ):
+            return None
+        cut_bounds.append((center, extent_np))
+        volume = volume - cut.volume()
+    return volume
+
+
 def evaluate_stump_volume_stratum(
     stump: CSGStump,
     *,
     resolution: int = 64,
 ) -> Float[Array, ""] | None:
-    """Evaluate volume using analytical methods where possible.
+    """Evaluate supported CSG compositions without discarding operands.
 
-    Supports two analytical paths:
+    This host-side selector supports:
 
-    1. **Stratum dispatch** (single-term, all bounded primitives):
-       Decomposes into pairwise Boolean operations with
-       stratum dispatch for analytical exact gradients.
+    1. A single bounded primitive or a single pairwise intersection/subtraction.
+       Pairwise measures use grid estimates and stratum-dispatched gradients;
+       intersecting gradients are surrogate estimates, not exact derivatives.
+    2. A Box minus pairwise disjoint Box, Sphere, or FiniteCylinder cuts whose
+       axis-aligned bounds fit inside the stock. Analytical volumes are used.
+    3. A union of disjoint boxes clipped by axis-aligned Planes. Every active
+       term must include the bounding Box with positive sign. Empty cells and
+       shared boundaries do not contribute overlap volume.
 
-    2. **Clipped-box** (Box + axis-aligned Planes):
-       Each term is a Box clipped by axis-aligned half-spaces,
-       producing a smaller Box whose volume is analytically computable.
-       PMC cells are disjoint, so term volumes sum correctly.
-
-    Returns ``None`` if neither path applies.
+    Returns zero for an empty union and ``None`` for unsupported compositions,
+    including overlapping cuts, overlapping union cells, and unbounded terms.
+    Callers can use :func:`evaluate_stump_volume` for full DNF grid integration
+    over explicit finite bounds. That fallback has smoothing/discretization
+    error and does not establish a finite total volume for an unbounded solid.
+    Primitive validity requirements (including unit axes/normals) still apply.
+    Shortcut selection itself does not support JAX tracing.
 
     Args:
         stump: A CSG-Stump (typically after :func:`group_stump_primitives`).
-        resolution: Grid resolution for the intersecting stratum.
+        resolution: Grid resolution for pairwise stratum measures.
 
     Returns:
-        Scalar volume, or ``None`` if analytical evaluation is not applicable.
+        Scalar volume, or ``None`` if a supported shortcut is not applicable.
     """
-    from brepax.primitives import Box as BoxPrim
-    from brepax.primitives import Plane as PlanePrim
+    active_rows = np.asarray(stump.intersection_matrix)[
+        np.asarray(stump.union_mask) > 0.5
+    ]
+    if len(active_rows) == 0:
+        return jnp.array(0.0)
 
-    all_bounded = all(jnp.isfinite(p.volume()) for p in stump.primitives)
-    t_mat = np.asarray(stump.intersection_matrix)
-    m = t_mat.shape[0]
+    if len(active_rows) == 1:
+        row = active_rows[0]
+        inside = [p for j, p in enumerate(stump.primitives) if row[j] > 0.5]
+        outside = [p for j, p in enumerate(stump.primitives) if row[j] < -0.5]
+        if all(bool(jnp.isfinite(p.volume())) for p in inside + outside):
+            if len(inside) == 1:
+                stock = inside[0]
+                if not outside:
+                    return stock.volume()
+                if isinstance(stock, Box):
+                    volume = _contained_disjoint_cut_volume(stock, outside)
+                    if volume is not None:
+                        return volume
+                if len(outside) == 1:
+                    return subtract_volume(stock, outside[0], resolution=resolution)
+            if len(inside) == 2 and not outside:
+                return intersect_volume(inside[0], inside[1], resolution=resolution)
 
-    # Path 1: single-term + all bounded → stratum dispatch
-    if all_bounded:
-        from brepax.boolean import intersect_volume
-
-        term_volumes: list[Float[Array, ""]] = []
-        for k in range(m):
-            if float(stump.union_mask[k]) < 0.5:
-                continue
-            row = t_mat[k]
-            inside = [stump.primitives[j] for j in range(len(row)) if row[j] > 0.5]
-            outside = [stump.primitives[j] for j in range(len(row)) if row[j] < -0.5]
-            if not inside:
-                continue
-            vol = inside[0].volume()
-            base = inside[0]
-            for p in inside[1:]:
-                vol = intersect_volume(base, p, resolution=resolution)
-                base = p
-            for p in outside:
-                vol = vol - intersect_volume(base, p, resolution=resolution)
-            term_volumes.append(vol)
-
-        if len(term_volumes) == 1:
-            return term_volumes[0]
-
-    # Path 2: Box + axis-aligned Planes → clipped-box analytical
-    boxes = [(j, p) for j, p in enumerate(stump.primitives) if isinstance(p, BoxPrim)]
+    used = np.any(np.abs(active_rows) > 0.5, axis=0)
+    boxes = [
+        (j, p) for j, p in enumerate(stump.primitives) if used[j] and isinstance(p, Box)
+    ]
     if len(boxes) != 1:
         return None
     box_idx, box = boxes[0]
-    non_box_are_planes = all(
-        isinstance(p, PlanePrim) for j, p in enumerate(stump.primitives) if j != box_idx
-    )
-    if not non_box_are_planes:
+    if not np.all(active_rows[:, box_idx] > 0.5):
         return None
+    planes: list[tuple[int, Plane, int, float]] = []
+    for j, primitive in enumerate(stump.primitives):
+        if j == box_idx or not used[j]:
+            continue
+        if not isinstance(primitive, Plane):
+            return None
+        normal = np.asarray(primitive.normal)
+        axes = np.flatnonzero(normal)
+        if len(axes) != 1 or not np.all(np.isfinite(normal)):
+            return None
+        axis = int(axes[0])
+        planes.append((j, primitive, axis, float(normal[axis])))
 
-    box_lo = box.center - box.half_extents
-    box_hi = box.center + box.half_extents
-
+    # Clip in the stock's local frame, retaining small widths at large offsets.
+    box_lo = -box.half_extents
+    box_hi = box.half_extents
+    cell_bounds: list[tuple[np.ndarray, np.ndarray]] = []
     total = jnp.array(0.0)
-    for k in range(m):
-        if float(stump.union_mask[k]) < 0.5:
-            continue
-        if t_mat[k, box_idx] < 0.5:
-            continue
+    for row in active_rows:
         lo = box_lo
         hi = box_hi
-        for j in range(len(stump.primitives)):
-            if j == box_idx or t_mat[k, j] == 0:
+        for j, plane, axis, normal_component in planes:
+            if abs(row[j]) <= 0.5:
                 continue
-            p = stump.primitives[j]
-            if not isinstance(p, PlanePrim):
-                continue
-            n = np.asarray(p.normal)
-            axis = int(np.argmax(np.abs(n)))
-            sign_n = float(np.sign(n[axis]))
-            plane_pos = p.offset / sign_n
-            if t_mat[k, j] * sign_n > 0:
+            plane_pos = plane.offset / normal_component - box.center[axis]
+            if row[j] * normal_component > 0:
                 hi = hi.at[axis].set(jnp.minimum(hi[axis], plane_pos))
             else:
                 lo = lo.at[axis].set(jnp.maximum(lo[axis], plane_pos))
-        cell_vol = jnp.prod(jnp.maximum(hi - lo, 0.0))
-        total = total + cell_vol
+        lo_np, hi_np = np.asarray(lo), np.asarray(hi)
+        if np.any(hi_np <= lo_np):
+            continue
+        if any(
+            not (np.any(hi_np <= other_lo) or np.any(lo_np >= other_hi))
+            for other_lo, other_hi in cell_bounds
+        ):
+            return None
+        cell_bounds.append((lo_np, hi_np))
+        total = total + jnp.prod(hi - lo)
 
     return total
 
