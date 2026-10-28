@@ -23,7 +23,7 @@ dependencies = [
     "numpy>=1.26",
     "equinox>=0.11",
     "jaxtyping>=0.2.34",
-    "cadquery-ocp-novtk>=7.9,<8",
+    "cadquery-ocp-novtk>=7.9,<9",
 ]
 
 [project.optional-dependencies]
