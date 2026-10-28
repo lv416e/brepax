@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0022-boundary-derivatives-for-a-circular-cut-crossing-a-plate-edge" class="md-skip">
+        <a href="#adr-0022-boundary-derivatives-for-bounded-contact-volume-experiments" class="md-skip">
           Skip to content
         </a>
       
@@ -1897,6 +1897,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#circular-cut-with-a-continuous-first-derivative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Circular cut with a continuous first derivative
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isolated-opposing-planar-contact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Isolated opposing planar contact
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1991,6 +2019,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#circular-cut-with-a-continuous-first-derivative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Circular cut with a continuous first derivative
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isolated-opposing-planar-contact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Isolated opposing planar contact
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2024,9 +2080,10 @@
   
 
 
-<h1 id="adr-0022-boundary-derivatives-for-a-circular-cut-crossing-a-plate-edge">ADR-0022: Boundary derivatives for a circular cut crossing a plate edge<a class="headerlink" href="#adr-0022-boundary-derivatives-for-a-circular-cut-crossing-a-plate-edge" title="Permanent link">&para;</a></h1>
+<h1 id="adr-0022-boundary-derivatives-for-bounded-contact-volume-experiments">ADR-0022: Boundary derivatives for bounded contact-volume experiments<a class="headerlink" href="#adr-0022-boundary-derivatives-for-bounded-contact-volume-experiments" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted for an experimental scalar evaluator and reproducible benchmark.</p>
+<p>Accepted for experimental scalar and one-sided directional evaluators with
+reproducible benchmarks.</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>Method C samples a hard indicator for its value and uses a smoothed
 intersecting backward rule. Small overlaps can escape sampled detection.
@@ -2035,9 +2092,11 @@ its fixed mesh cannot establish derivatives of topology-changing geometry.</p>
 <p>A perpendicular circular through-cut in a rectangular plate is a bounded
 case with curved boundaries, an actual hole-to-open-notch transition, and
 independent volume references. Its volume is C1 at ordinary edge and corner
-contacts. Positive-area planar contact, arbitrary STEP reconstruction, and
-surface-area derivatives are different problems.</p>
+contacts. Positive-area planar contact has a different derivative contract,
+addressed by the bounded extension below. Arbitrary STEP reconstruction and
+surface-area derivatives remain outside this decision.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<h3 id="circular-cut-with-a-continuous-first-derivative">Circular cut with a continuous first derivative<a class="headerlink" href="#circular-cut-with-a-continuous-first-derivative" title="Permanent link">&para;</a></h3>
 <p>Add <code>brepax.experimental.contact</code> for disk/rectangle intersection area and
 the remaining extruded plate volume. Integrate the analytic circular arcs
 and straight boundary segments using Green's theorem. Use a local gauge
@@ -2061,6 +2120,32 @@ independent cross-section integration, analytic contact formulas, fresh CAD
 volumes and finite differences, and fresh meshes after actual CAD transforms.
 Use a two-dimensional grid times extrusion height for sampled plate baselines;
 retain temperature choices, failures, setup costs, and synchronized timings.</p>
+<h3 id="isolated-opposing-planar-contact">Isolated opposing planar contact<a class="headerlink" href="#isolated-opposing-planar-contact" title="Permanent link">&para;</a></h3>
+<p>Add <code>brepax.experimental.planar_contact</code> for a known convex planar contact
+polygon and a supplied rigid-motion direction. Return the positive one-sided
+intersection-volume response, integrating the positive normal approach speed
+over the polygon. A triangle fan reduces the affine integrand to closed-form
+triangle integrals. Normalize speeds and use positive factored expressions;
+subtracting a nearly equal negative cap loses small positive regions.</p>
+<p>This response is nonlinear in direction. Opposite tilts of a contacting
+square can both create overlap, so no single gradient or ordinary JVP can
+represent all directions. Do not install a custom JVP or revive the TOI stub
+for this contract. The <a href="../../../explanation/stratification_theory/#directional-response-at-opposing-planar-contact">stratification explanation</a>
+states the isolated-contact assumptions and local overlap-layer derivation.</p>
+<p>Keep B-Rep preparation in <code>experimental.planar_contact_cad</code>. Require explicit
+face IDs, convex polyhedral solids, unique opposing support faces, and a
+positive-area polygon intersection. Return a nominal support-polygon model
+with source residuals. Require callers to choose computed-zero residuals or
+explicit roundoff-scale projection. Neither mode certifies exact contact of
+the source CAD or modifies its solids. OCCT tolerances are not a physical
+contact criterion; a positive gap has a different derivative.</p>
+<p>Compare with independent cross-section integration, existing sampled Method C,
+sigmoid and smoothed-composition estimators, same-forward finite differences,
+and fresh finite CAD edits. Keep calibration and heldout geometry groups
+separate across five fixed splits. Select directions using the same candidate
+sets and compare actual CAD volume at the same finite step, including a panel
+where ordinary normal approach can remove any advantage. Report host setup,
+compilation, synchronized execution, finite-step errors, and tolerance failures.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <p>The experiment can evaluate volume through a contact without freezing a
 mesh topology. It is neither a general Boolean engine nor an extension of
@@ -2075,12 +2160,19 @@ absolute tolerance floor can also spoil scale covariance of remeshing.</p>
 plate ratios and nearly complete stock removal lose relative accuracy in
 floating point. Supported examples do not certify arbitrary aspect ratios,
 second derivatives, or topology-changing edits of general input CAD.</p>
+<p>The planar extension handles one isolated opposing contact patch with positive
+thickness, not existing overlap, general multiple contacts, or curved contact
+patches. A directional response is only first-order information: verify the
+chosen finite edit independently. Mixed tilt can create wedges below OCCT's
+resolution even when the continuous response is nonzero.</p>
 <p>Boundary shape calculus and exact derivatives of cut discretizations are
 established techniques; see <a href="https://arxiv.org/abs/2504.09748v3">Wegert et al. (2025)</a>
 and <a href="https://arxiv.org/abs/2609.15084v2">Wegert et al. (2026)</a>.
 This implementation makes no novelty claim for those techniques. Its evidence
-concerns this analytic curved family, first-derivative consistency, and
-measured accuracy/cost. Broader generalization requires a separate decision.</p>
+concerns the stated bounded families, derivative consistency, and measured
+accuracy/cost. The cited cut-AD constructions assume stable cut topology;
+they do not directly prove the birth of overlap at opposing-face contact.
+Broader generalization requires a separate decision.</p>
 
 
 

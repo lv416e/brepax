@@ -598,6 +598,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#directional-response-at-opposing-planar-contact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Directional Response at Opposing Planar Contact
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#current-brepax-implementation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1985,6 +1996,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#directional-response-at-opposing-planar-contact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Directional Response at Opposing Planar Contact
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#current-brepax-implementation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2135,6 +2157,46 @@ overlap volume is <span class="arithmatex">\(\pi\delta^2/2-\pi\delta^3/12\)</spa
 is <span class="arithmatex">\(8\pi-2\pi\delta\)</span> for <span class="arithmatex">\(0&lt;\delta&lt;2\)</span>. Volume is <span class="arithmatex">\(C^1\)</span> at first contact;
 surface area has a first-derivative kink. The overlap volume tends to zero
 continuously at first contact.</p>
+<h2 id="directional-response-at-opposing-planar-contact">Directional Response at Opposing Planar Contact<a class="headerlink" href="#directional-response-at-opposing-planar-contact" title="Permanent link">&para;</a></h2>
+<p>Let finite solids have disjoint interiors and meet on one isolated convex
+planar polygon <span class="arithmatex">\(M\)</span>, with positive thickness on both sides. Let <span class="arithmatex">\(n\)</span> point out
+of the fixed solid toward the moving solid. For a rigid path with velocity
+<span class="arithmatex">\(w(x)=v+\omega\times(x-p)\)</span> and dimensionless parameter <span class="arithmatex">\(t\)</span>, the positive
+one-sided intersection-volume response is</p>
+<div class="arithmatex">\[
+D^+ V_{\cap}(v,\omega)
+=\lim_{t\downarrow0}\frac{V_{\cap}(t)-V_{\cap}(0)}{t}
+=\int_M [-n\cdot w(x)]_+\,dA.
+\]</div>
+<p>Locally, normal displacement creates an overlap layer with thickness
+<span class="arithmatex">\(t[-n\cdot w(x)]_++O(t^2)\)</span>. The moving polygon edges affect strips of area
+<span class="arithmatex">\(O(t)\)</span> and thickness <span class="arithmatex">\(O(t)\)</span>, so their volume does not contribute at first
+order. This bounded argument requires regular finite edges, fixed positive
+thickness, bounded velocities, and no other first-order boundary contribution.</p>
+<p>For <span class="arithmatex">\(M=[-1,1]^2\)</span> in the XY plane with pivot at the origin, the integrand is
+<span class="arithmatex">\([-v_z+\omega_y x-\omega_x y]_+\)</span>. Normal approach with <span class="arithmatex">\(v_z=-1\)</span> gives 4;
+separation gives 0. Both unit tilts <span class="arithmatex">\(\omega_x=1\)</span> and <span class="arithmatex">\(\omega_x=-1\)</span> give 1.
+Consequently the response is positively homogeneous and subadditive, but
+not linear or odd. It cannot be represented by one ordinary gradient/JVP.
+The signed left derivative along a direction is <span class="arithmatex">\(-D^+V_{\cap}(-v,-\omega)\)</span>.
+Rigid union and stock-minus-tool volume responses have the opposite sign.</p>
+<p>The experimental planar evaluator implements this direction-dependent
+integral. Its host CAD preparation returns a nominal projected support-polygon
+model with diagnostics. A positive source gap, existing volume overlap, an
+omitted positive-area contact, or co-oriented coincidence needs different
+geometric information; none is certified by a small OCCT residual. See the
+<a href="../../reference/applications/#opposing-planar-face-contact">application contract</a>
+and <a href="../../architecture/adr/0022-contact-volume-experiment/">ADR-0022</a>.</p>
+<p>One-sided interior/exterior traces in
+<a href="https://doi.org/10.23952/cot.2023.27">Berggren (2023)</a> explain the relevant
+approach/separation distinction. Its nonnegative basis perturbations do not
+directly state the mixed-sign rigid-tilt formula above, which follows from
+the local overlap argument. The cut-geometry AD results of
+<a href="https://arxiv.org/abs/2504.09748v3">Wegert et al. (2025)</a> and
+<a href="https://arxiv.org/abs/2609.15084v2">Wegert et al. (2026)</a> assume stable cut
+topology; in particular, the latter's Assumption 3.5 excludes birth of a
+full-dimensional overlap from this face contact. These are prior techniques,
+not a direct proof of this event or evidence of theoretical novelty here.</p>
 <h2 id="current-brepax-implementation">Current BRepAX Implementation<a class="headerlink" href="#current-brepax-implementation" title="Permanent link">&para;</a></h2>
 <p>Method C in <code>brepax.boolean.stratum</code> uses a custom VJP:</p>
 <ol>
