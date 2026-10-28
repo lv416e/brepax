@@ -73,7 +73,7 @@ nav:
       - 3D Extension Evaluation: explanation/3d_extension_evaluation.md
       - NURBS Differentiation Scope: explanation/nurbs_brep_feasibility.md
       - NIST Evaluation: explanation/nist_evaluation.md
-      - CSG Reconstruction Feasibility: explanation/csg_reconstruction_feasibility.md
+      - CSG Reconstruction Scope: explanation/csg_reconstruction_feasibility.md
   - Reference:
       - Overview: reference/index.md
       - Primitives: reference/primitives.md

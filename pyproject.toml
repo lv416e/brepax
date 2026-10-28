@@ -1,7 +1,7 @@
 [project]
 name = "brepax"
 dynamic = ["version"]
-description = "Differentiable rasterizer for CAD Boolean operations — JAX-native B-Rep kernel with stratum-aware gradients."
+description = "JAX-native differentiable geometry and STEP/B-Rep evaluation."
 readme = "README.md"
 license = "Apache-2.0"
 authors = [{ name = "lv416e", email = "mary.lv416e@gmail.com" }]
@@ -23,7 +23,7 @@ dependencies = [
     "numpy>=1.26",
     "equinox>=0.11",
     "jaxtyping>=0.2.34",
-    "cadquery-ocp-novtk>=7.9",
+    "cadquery-ocp-novtk>=7.9,<8",
 ]
 
 [project.optional-dependencies]

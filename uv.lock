@@ -267,7 +267,7 @@ dev = [
 requires-dist = [
     { name = "beartype", marker = "extra == 'all'" },
     { name = "beartype", marker = "extra == 'dev'" },
-    { name = "cadquery-ocp-novtk", specifier = ">=7.9" },
+    { name = "cadquery-ocp-novtk", specifier = ">=7.9,<8" },
     { name = "chex", marker = "extra == 'all'" },
     { name = "chex", marker = "extra == 'dev'" },
     { name = "equinox", specifier = ">=0.11" },

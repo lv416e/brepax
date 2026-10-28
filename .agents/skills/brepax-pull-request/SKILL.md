@@ -18,9 +18,9 @@ Implementation work does not by itself authorize a merge or release.
   Do not use CI as a substitute for local checks.
 - Use Conventional Commits. The PR title becomes the squash commit subject,
   in the form `feat(scope): description (#number)` after merging.
-- Include `Co-Authored-By: Codex <noreply@anthropic.com>` for Codex contributions
-  or `Co-Authored-By: Claude <noreply@anthropic.com>` for Claude contributions in
-  the relevant commit/squash body.
+- For Claude contributions, include
+  `Co-Authored-By: Claude <noreply@anthropic.com>` in the relevant commit/squash
+  body.
 
 ## Prepare the PR
 
