@@ -15,11 +15,11 @@ stratum-dispatched Boolean measures.
 ## Installation
 
 ```bash
-pip install brepax "cadquery-ocp-novtk>=7.9,<8"
+pip install brepax
 ```
 
-The explicit OCCT bound is needed for the published 0.6.1 package, whose
-metadata also allows incompatible OCCT 8 bindings.
+Version 0.6.2 includes the required OCCT dependency bound. For 0.6.1, use
+`pip install "brepax==0.6.1" "cadquery-ocp-novtk>=7.9,<8"`.
 
 ## Quick Start
 
