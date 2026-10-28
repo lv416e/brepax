@@ -726,7 +726,7 @@
   <span class="md-ellipsis">
     
   
-    TOI Correction Derivation
+    Event-Time Sensitivity
   
 
     
@@ -2024,10 +2024,19 @@
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="o">-</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">eps</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">eps</span><span class="p">,</span>                  <span class="c1"># keep arccos away from domain boundary</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">)</span>
 </code></pre></div>
-<p>The <code>eps</code> margin ensures that <code>arccos</code> never evaluates at exactly +/-1, where its gradient is infinite. The <code>safe_d</code> floor prevents division by zero. Both modifications only affect branches that are masked out by <code>jnp.where</code>, so forward-pass accuracy is unchanged.</p>
+<p>The <code>eps</code> margin keeps <code>arccos</code> away from +/-1, and <code>safe_d</code> prevents division
+by zero. These safeguards can also modify the selected lens branch near
+tangency or at very small scales. They therefore change values and derivatives
+there; finiteness alone does not establish accuracy. The distance floor has
+length units, while the cosine margin is dimensionless. Near-contact checks
+need independent limits or stable formulas outside the clipping regime.</p>
 <h2 id="relation-to-custom-vjp">Relation to Custom VJP<a class="headerlink" href="#relation-to-custom-vjp" title="Permanent link">&para;</a></h2>
-<p>This workaround is a pragmatic fix for the analytical ground truth function. The general solution is <code>jax.custom_vjp</code>, which allows computing the correct gradient per stratum without evaluating unused branches. This is the approach adopted for the stratum-aware Boolean method (see ADR-0004).</p>
-<p>The safe-primal pattern and the custom_vjp approach are complementary: safe primals prevent NaN in simple functions where custom_vjp would be over-engineering, while custom_vjp provides exact gradients at stratum boundaries where safe primals only suppress NaN without correcting the gradient value.</p>
+<p>Safe primals address invalid intermediate derivatives. A custom VJP permits
+a separately specified backward rule, but does not itself make that rule
+exact or prevent evaluation of unused expressions. BRepAX currently evaluates
+candidate gradients and selects with array operations; its intersecting rule
+is a grid STE. See <a href="../../architecture/adr/0004-custom-vjp-at-boundaries/">ADR-0004</a>
+and the <a href="../stratification_theory/#current-brepax-implementation">implementation contract</a>.</p>
 
 
 

@@ -635,7 +635,7 @@
   <span class="md-ellipsis">
     
   
-    TOI Correction Derivation
+    Event-Time Sensitivity
   
 
     
@@ -1591,52 +1591,13 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Decision">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gate-2-reinterpretation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 2 Reinterpretation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#narrative-adjustment" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Narrative Adjustment
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
-  <a href="#method-b-reconsideration" class="md-nav__link">
+  <a href="#corrections-to-the-historical-rationale" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Method (B) Reconsideration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#empirical-confirmation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Empirical Confirmation
+        Corrections to the Historical Rationale
       
     </span>
   </a>
@@ -2015,52 +1976,13 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Decision">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gate-2-reinterpretation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gate 2 Reinterpretation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#narrative-adjustment" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Narrative Adjustment
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
-  <a href="#method-b-reconsideration" class="md-nav__link">
+  <a href="#corrections-to-the-historical-rationale" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Method (B) Reconsideration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#empirical-confirmation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Empirical Confirmation
+        Corrections to the Historical Rationale
       
     </span>
   </a>
@@ -2100,69 +2022,45 @@
 
 <h1 id="adr-0011-stratum-aware-locality-and-hybrid-optimization-strategy">ADR-0011: Stratum-Aware Locality and Hybrid Optimization Strategy<a class="headerlink" href="#adr-0011-stratum-aware-locality-and-hybrid-optimization-strategy" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
+<p>Accepted as an optimizer-level design direction; implementation pending.</p>
+<p>Scope and empirical claims corrected on 2026-10-28. The experimental
+<code>hybrid_optimize</code> function remains a stub.</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>Axis 3 optimization trajectory testing revealed a fundamental property of the stratum-aware approach (Method C): <strong>within a stratum where the objective is invariant to a design variable, the gradient is exactly zero.</strong> This is mathematically correct but prevents gradient-based optimization from crossing stratum boundaries.</p>
-<p>Concrete example: In the disjoint stratum, <code>union_area = pi*r1^2 + pi*r2^2</code> is independent of center positions <code>c1, c2</code>. Method (C) correctly returns <code>d(area)/d(c2_x) = 0</code>. Gradient descent cannot cross from disjoint to intersecting by moving centers.</p>
-<p>Method (A) smoothing provides a weak but non-zero gradient signal in this case because its smooth-min kernel extends beyond the exact boundary, creating a "shadow" of the intersecting stratum's area function into the disjoint regime.</p>
-<p>This is structurally isomorphic to the visibility problem in differentiable rendering: fully occluded objects have zero gradient w.r.t. camera parameters. SoftRas (2019) solved this with soft rasterization; nvdiffrast (2020) with edge sampling. Both are hybrid approaches combining global signal with boundary precision.</p>
+<p>For an objective locally independent of a design variable, that derivative
+is zero. Disjoint disks have union area <span class="arithmatex">\(\pi r_1^2+\pi r_2^2\)</span>, independent
+of centers; gradient descent on this objective cannot initiate center motion.</p>
+<p>Smoothing can add exploration information by changing the objective. It is
+one possible strategy, not the only way to explore, and guarantees neither
+nonzero nor useful gradients everywhere.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Method (A) and Method (C) are <strong>complementary, not competing</strong> strategies. BRepAX will provide a hybrid framework that combines:</p>
+<p>Keep exploration/refinement scheduling at the optimizer level. Callers
+select Boolean methods explicitly; the Boolean API does not silently change
+methods based on optimization history.</p>
+<p>The historical proposal combines smoothing for exploration with Method C
+for refinement. Its usefulness remains an empirical question. The
+<a href="../../../explanation/hybrid_optimization_strategy/">hybrid strategy</a> defines
+the needed comparison; it does not promise exact convergence.</p>
+<h2 id="corrections-to-the-historical-rationale">Corrections to the Historical Rationale<a class="headerlink" href="#corrections-to-the-historical-rationale" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Method (A)</strong> for cross-stratum exploration (global gradient signal via smoothing)</li>
-<li><strong>Method (C)</strong> for within-stratum precision (exact analytical gradients)</li>
+<li>The original <span class="arithmatex">\(7\times10^{-6}\)</span> radius error and 3000-times precision claim
+  are superseded by the maintained grid-based demo, not current evidence
+  of exact intersecting gradients.</li>
+<li>Intersection volume grows continuously from zero at ordinary first
+  contact. Ordinary internal and external disk/sphere area/volume contacts
+  are <span class="arithmatex">\(C^1\)</span> under the assumptions in
+  <a href="../../../explanation/stratification_theory/">Stratification Theory</a>.</li>
+<li>Selected successful trajectories do not prove that gradient sign is
+  always correct or frozen-mesh derivatives suffice for moving trims and
+  changing topology.</li>
+<li>Rendering offers an analogy, not an isomorphism or proof of effectiveness.</li>
+<li>Event-time sensitivity cannot transfer a future gradient into an exact
+  current static derivative. Method B remains deferred under
+  <a href="../0009-method-b-deferred/">ADR-0009</a>.</li>
 </ul>
-<h3 id="gate-2-reinterpretation">Gate 2 Reinterpretation<a class="headerlink" href="#gate-2-reinterpretation" title="Permanent link">&para;</a></h3>
-<p>The original Gate 2 criterion ("Method (C) converges to cross-stratum optimum") was based on an incomplete understanding of stratum-aware gradient structure. Revised:</p>
-<ul>
-<li><strong>Gate 2a</strong> (within-stratum precision): Method (C) reaches analytical optimum with position error 7e-6 vs Method (A)'s 0.021. <strong>PASS.</strong></li>
-<li><strong>Gate 2b</strong> (cross-stratum behavior): Gradient zero in stratum-invariant directions is a mathematical property, not a defect. <strong>REINTERPRETED.</strong></li>
-</ul>
-<h3 id="narrative-adjustment">Narrative Adjustment<a class="headerlink" href="#narrative-adjustment" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Previous: "Method (C) is superior to Method (A)"</li>
-<li>Revised: "Method (A) and (C) are complementary; BRepAX provides a coherent framework for combining both"</li>
-</ul>
-<p>This parallels the differentiable rendering trajectory: SoftRas (global, approximate) was not replaced by nvdiffrast (precise, local) but complemented by it. BRepAX occupies the same structural position for CAD geometry.</p>
-<h2 id="method-b-reconsideration">Method (B) Reconsideration<a class="headerlink" href="#method-b-reconsideration" title="Permanent link">&para;</a></h2>
-<p>The TOI correction (Method B, deferred in ADR-0009) was designed precisely for boundary-crossing gradient computation. The Axis 3 finding strengthens the case for Method (B) implementation in future work: it provides the mathematical machinery to transfer gradient information across stratum boundaries via the implicit function theorem.</p>
-<p>Re-evaluation trigger: when a use case requires single-method cross-stratum optimization without a coarse-to-fine schedule.</p>
-<h2 id="empirical-confirmation">Empirical Confirmation<a class="headerlink" href="#empirical-confirmation" title="Permanent link">&para;</a></h2>
-<p>3D benchmark testing confirmed the hybrid strategy with three findings:</p>
-<ol>
-<li>
-<p><strong>Disjoint→intersecting stall validated.</strong> <code>intersect_volume_stratum</code>
-   with two disjoint spheres (d=2.5) returns gradient exactly zero.
-   Optimization stalls at step 0. Method A is the only path to
-   cross-stratum exploration in this direction.</p>
-</li>
-<li>
-<p><strong>Within-stratum optimization works.</strong> Adam optimizer on
-   sphere-sphere and cylinder-sphere objectives converges to
-   &lt; 1% of analytical optimum despite near-tangent STE error
-   of 25-542%. Gradient direction (sign) is always correct.</p>
-</li>
-<li>
-<p><strong>Contained↔intersecting crossing is smooth.</strong> Method C handles
-   the contained-intersecting boundary without stalling, unlike
-   the disjoint-intersecting boundary. This asymmetry is expected:
-   contained→intersecting involves a continuous volume change,
-   while disjoint→intersecting involves a volume jump from zero.</p>
-</li>
-</ol>
-<p>The three-problem decomposition (Problem A: disjoint stall,
-Problem B: STE near-tangent bias, Problem C: Path C frozen
-topology) confirms that the hybrid framework addresses Problem A
-while Method C alone handles Problems B and C adequately for
-practical optimization.</p>
-<p>See <code>tests/benchmarks/test_gradient_accuracy_3d.py</code> for data.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Hybrid optimizer design becomes a first-class concern (not an afterthought)</li>
-<li><code>boolean/__init__.py</code> union_area API remains method-agnostic; hybrid scheduling is handled at the optimizer level</li>
-<li>Method (B) regains relevance as a potential bridge between (A) and (C)</li>
-<li>The differentiable rendering analogy provides a well-studied template for the hybrid design</li>
-</ul>
+<p>The schedule/result records describe an experimental interface, not a
+working framework. Validate a concrete schedule against individual methods
+and an independent unsmoothed objective before claiming improvement.</p>
 
 
 

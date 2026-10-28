@@ -635,7 +635,7 @@
   <span class="md-ellipsis">
     
   
-    TOI Correction Derivation
+    Event-Time Sensitivity
   
 
     
@@ -1516,10 +1516,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#historical-context-and-decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Historical Context and Decision
       
     </span>
   </a>
@@ -1527,21 +1527,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#current-rationale" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-preserved" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is preserved
+        Current Rationale
       
     </span>
   </a>
@@ -1552,18 +1541,7 @@
   <a href="#re-evaluation-conditions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Re-evaluation conditions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#empirical-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Empirical Validation
+        Re-evaluation Conditions
       
     </span>
   </a>
@@ -1979,10 +1957,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#historical-context-and-decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Historical Context and Decision
       
     </span>
   </a>
@@ -1990,21 +1968,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#current-rationale" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-preserved" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is preserved
+        Current Rationale
       
     </span>
   </a>
@@ -2015,18 +1982,7 @@
   <a href="#re-evaluation-conditions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Re-evaluation conditions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#empirical-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Empirical Validation
+        Re-evaluation Conditions
       
     </span>
   </a>
@@ -2066,57 +2022,42 @@
 
 <h1 id="adr-0009-method-b-toi-correction-deferred-from-concept-proof">ADR-0009: Method (B) TOI Correction Deferred from Concept Proof<a class="headerlink" href="#adr-0009-method-b-toi-correction-deferred-from-concept-proof" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
-<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>The original concept proof plan called for three methods: (A) smoothing, (B) TOI correction, (C) stratum-aware tracking, compared head-to-head on the disk-disk union area problem.</p>
-<p>During the mathematical derivation of Method (B) (see <code>docs/explanation/toi_derivation.md</code>), a key finding emerged: <strong>the gradient jump at external tangent is second-order</strong>. At <span class="arithmatex">\(d = r_1 + r_2\)</span>, the area gradient is continuous -- the intersecting formula reduces exactly to the disjoint formula. This means Method (B)'s TOI correction term vanishes to first order at external tangent.</p>
-<p>At internal tangent (<span class="arithmatex">\(d = |r_1 - r_2|\)</span>), the gradient jump is genuine first-order, but Method (C) also handles this case via its stratum-aware formulas.</p>
-<p>Separately, the boundary proximity benchmark revealed that Method (A)'s primary failure mode is <strong>smoothing bias</strong> (systematic error from temperature parameters), not gradient discontinuity. Method (C) eliminates smoothing bias entirely by using exact formulas, making it the direct comparison partner for Method (A).</p>
-<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Defer Method (B) implementation from the concept proof. Proceed with Method (A) vs Method (C) comparison only.</p>
-<p>Rationale:</p>
-<ul>
-<li>Method (B) provides no benefit at external tangent (correction is first-order zero)</li>
-<li>At internal tangent, Method (C) is equally effective and has a cleaner implementation (no root-finding for TOI)</li>
-<li>Reducing from 3 methods to 2 shrinks the benchmark matrix from 9 cells to 6 cells</li>
-<li>The concept proof hypothesis ("stratum-aware beats smoothing") is testable with 2 methods</li>
-</ul>
-<h2 id="what-is-preserved">What is preserved<a class="headerlink" href="#what-is-preserved" title="Permanent link">&para;</a></h2>
-<ul>
-<li><code>docs/explanation/toi_derivation.md</code>: Complete mathematical derivation, including the second-order finding</li>
-<li><code>src/brepax/boolean/toi.py</code>: Skeleton module, ready for future implementation</li>
-<li>Contact dynamics correspondence table in the derivation doc</li>
-</ul>
-<h2 id="re-evaluation-conditions">Re-evaluation conditions<a class="headerlink" href="#re-evaluation-conditions" title="Permanent link">&para;</a></h2>
-<p>Method (B) should be reconsidered if:</p>
-<ul>
-<li>3D primitive Boolean operations produce higher-order boundary transitions where TOI correction becomes non-trivial at first order</li>
-<li>Optimization trajectories require explicit boundary-crossing awareness (e.g., path-dependent stratum tracking)</li>
-<li>A use case emerges where Method (C) is insufficient but Method (B)'s root-finding approach adds value</li>
-</ul>
-<h2 id="empirical-validation">Empirical Validation<a class="headerlink" href="#empirical-validation" title="Permanent link">&para;</a></h2>
-<p>3D sphere-sphere and cylinder-sphere gradient benchmarks confirmed
-the deferral decision with an additional finding:</p>
-<p><strong>Method B does not address the primary Stratum 1 gradient error.</strong>
-Forced-label experiments (bypassing stratum detection, directly
-computing STE gradient with correct stratum=intersecting) showed
-that STE accuracy at near-tangent configurations degrades to
-25-542% error regardless of detection quality. The root cause is
-the sigmoid kernel width exceeding the intersection feature size,
-not stratum misclassification at the boundary.</p>
-<p>Method B corrects the gradient <em>jump</em> at stratum transitions.
-The observed error is a stratum-<em>internal</em> integration problem
-that Method B cannot address.</p>
-<p>Interior STE accuracy is &lt; 1% (sphere-sphere) and &lt; 10%
-(cylinder-sphere) at resolution 128, and optimization converges
-despite near-tangent error.</p>
-<p>See <code>tests/benchmarks/test_gradient_accuracy_3d.py</code> for data.</p>
+<p>Accepted: Method B remains deferred.</p>
+<p>Mathematical rationale corrected on 2026-10-28. This preserves the deferral;
+it does not approve implementing the former formula.</p>
+<h2 id="historical-context-and-decision">Historical Context and Decision<a class="headerlink" href="#historical-context-and-decision" title="Permanent link">&para;</a></h2>
+<p>The concept proof proposed comparing smoothing (A), TOI correction (B),
+and relation-dispatched gradients (C) on two-disk union area. Method B was
+deferred to reduce scope while comparing A and C.</p>
+<p>The original rationale incorrectly asserted a first-order jump at internal
+disk tangency, exact Method-C gradients everywhere, and a complete static
+TOI correction. These assertions are withdrawn. For positive unequal
+radii, ordinary internal and external disk contacts both have continuous
+first area derivatives. The current intersecting backward pass is a grid
+STE; see <a href="../../../explanation/stratification_theory/">Stratification Theory</a>.</p>
+<h2 id="current-rationale">Current Rationale<a class="headerlink" href="#current-rationale" title="Permanent link">&para;</a></h2>
+<p>The <a href="../../../explanation/toi_derivation/">TOI derivation</a> establishes
+event-time sensitivity for smooth, transverse, locally isolated events and
+gives a counterexample to the former static correction. A future event
+cannot change the derivative of a locally constant static volume while
+preserving the same objective.</p>
+<p>Historical forced-label experiments showed intersecting STE error even
+with correct labels. They do not rule out additional detection error,
+establish universal bounds, or validate an unimplemented TOI method.</p>
+<h2 id="re-evaluation-conditions">Re-evaluation Conditions<a class="headerlink" href="#re-evaluation-conditions" title="Permanent link">&para;</a></h2>
+<p>Reconsider event-time differentiation for a concrete event time, look-ahead
+objective, or trajectory map. Specify grazing, event-order changes, and
+degeneracies before choosing an AD rule.</p>
+<p>Positive-area face contact warrants study of one-sided static derivatives,
+but a first-order kink alone does not validate the discarded TOI formula.
+Compare any proposal with independent derivatives and matched baselines.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Concept proof benchmark compares Method (A) vs Method (C) only</li>
-<li>Gate criteria apply to this 2-method comparison</li>
-<li><code>boolean/toi.py</code> remains as skeleton; <code>NotImplementedError</code> in <code>union_area()</code> dispatch</li>
-<li>The TOI derivation document serves as architectural knowledge for future extensions</li>
+<li>The historical concept proof compares A and C only.</li>
+<li><code>boolean/toi.py</code> remains a placeholder; <code>method="toi"</code> raises
+  <code>NotImplementedError</code>.</li>
+<li>The explanation retains valid event-time sensitivity and the reason not
+  to implement the former static correction as derived.</li>
 </ul>
 
 

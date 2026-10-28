@@ -635,7 +635,7 @@
   <span class="md-ellipsis">
     
   
-    TOI Correction Derivation
+    Event-Time Sensitivity
   
 
     
@@ -2109,11 +2109,16 @@
 
 
 <h1 id="3d-extension-evaluation-report">3D Extension Evaluation Report<a class="headerlink" href="#3d-extension-evaluation-report" title="Permanent link">&para;</a></h1>
+<p>Historical evaluation, not a current acceptance report. Counts and numbers
+below describe the original fixtures and have not been regenerated here.
+The current <a href="../stratification_theory/#current-brepax-implementation">implementation contract</a>
+qualifies analytical exactness on correct sampled classification and finite
+primitive formulas; it does not guarantee arbitrary-pair accuracy.</p>
 <h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
-<p><strong>Overall verdict: PASS</strong></p>
+<p><strong>Historical verdict: PASS on the selected fixtures.</strong></p>
 <p>The 3D extension extends the concept proof to 3D with 8 primitive types, 3 Boolean operations,
-and a unified stratum dispatch architecture. The core design principle (stratum-aware
-gradient computation) is fully generalized to arbitrary primitive pairs.</p>
+and a unified stratum dispatch architecture. Dispatch accepts heterogeneous
+primitive pairs, but that interface coverage is not a general accuracy result.</p>
 <table>
 <thead>
 <tr>
@@ -2222,12 +2227,13 @@ applied to these formulas in the stratum dispatch backward pass.</p>
 <td>3D (res=128)</td>
 <td>0.22%</td>
 <td>not measured</td>
-<td>expected similar ratio</td>
+<td>comparison unavailable</td>
 </tr>
 </tbody>
 </table>
-<p>Resolution scaling confirmed as second-order convergent:
-resolution 2x -&gt; error ~1/4 (2D measured at res=64/128/256/512).</p>
+<p>The selected 2D sweep reported approximately fourfold error reduction when
+resolution doubled (64/128/256/512). This does not establish a universal
+second-order rate, near-contact accuracy, or a 3D advantage over Method A.</p>
 <h2 id="gate-2-boolean-operation-coverage">Gate 2: Boolean Operation Coverage<a class="headerlink" href="#gate-2-boolean-operation-coverage" title="Permanent link">&para;</a></h2>
 <p><strong>Criterion</strong>: union, subtract, and intersect operations all functional with stratum dispatch.</p>
 <p><strong>Result: PASS</strong></p>
@@ -2363,14 +2369,14 @@ The 3D extension preserves this in <code>_boolean_measure_with_dispatch</code>:
 </tr>
 </tbody>
 </table>
-<p>The drilling configuration is always in the intersecting stratum (cylinder
-penetrates sphere), so analytical exact does not apply. Grid-based precision
-at 6x the accuracy of smoothing methods.</p>
+<p>The reported drilling configuration is intersecting (cylinder penetrates
+sphere), so analytical exactness does not apply. The separate 2D comparison
+does not establish a sixfold accuracy advantage for this drilling case.</p>
 <h2 id="recommendation">Recommendation<a class="headerlink" href="#recommendation" title="Permanent link">&para;</a></h2>
-<p><strong>Proceed to public launch preparation.</strong> The 3D extension validates the complete
-3D architecture with 8 primitives, 3 Boolean operations, and stratum-aware
-gradient computation achieving analytical exactness in 3 of 4 strata for
-bounded primitive pairs.</p>
+<p>The original launch recommendation was based on these fixtures. It is not a
+current release gate or a proof of exactness in three quarters of parameter
+space. Use the <a href="../stratification_theory/">current theory and numerical scope</a>
+when interpreting these historical results.</p>
 
 
 

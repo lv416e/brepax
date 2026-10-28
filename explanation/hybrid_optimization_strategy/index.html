@@ -635,7 +635,7 @@
   <span class="md-ellipsis">
     
   
-    TOI Correction Derivation
+    Event-Time Sensitivity
   
 
     
@@ -716,10 +716,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-complementarity-of-smoothing-and-stratum-aware-gradients" class="md-nav__link">
+  <a href="#why-combine-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Complementarity of Smoothing and Stratum-Aware Gradients
+        Why Combine Methods?
       
     </span>
   </a>
@@ -727,60 +727,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#analogy-with-differentiable-rendering" class="md-nav__link">
+  <a href="#what-would-validate-a-schedule" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Analogy with Differentiable Rendering
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#empirical-evidence" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Empirical Evidence
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Empirical Evidence">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#within-stratum-method-c-excels" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Within-stratum (Method C excels)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cross-stratum-method-a-provides-signal" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cross-stratum (Method A provides signal)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#design-implications" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Design Implications
+        What Would Validate a Schedule?
       
     </span>
   </a>
@@ -1963,10 +1913,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-complementarity-of-smoothing-and-stratum-aware-gradients" class="md-nav__link">
+  <a href="#why-combine-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Complementarity of Smoothing and Stratum-Aware Gradients
+        Why Combine Methods?
       
     </span>
   </a>
@@ -1974,60 +1924,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#analogy-with-differentiable-rendering" class="md-nav__link">
+  <a href="#what-would-validate-a-schedule" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Analogy with Differentiable Rendering
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#empirical-evidence" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Empirical Evidence
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Empirical Evidence">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#within-stratum-method-c-excels" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Within-stratum (Method C excels)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cross-stratum-method-a-provides-signal" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cross-stratum (Method A provides signal)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#design-implications" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Design Implications
+        What Would Validate a Schedule?
       
     </span>
   </a>
@@ -2055,65 +1955,36 @@
 
 
 <h1 id="hybrid-optimization-strategy">Hybrid Optimization Strategy<a class="headerlink" href="#hybrid-optimization-strategy" title="Permanent link">&para;</a></h1>
-<h2 id="the-complementarity-of-smoothing-and-stratum-aware-gradients">The Complementarity of Smoothing and Stratum-Aware Gradients<a class="headerlink" href="#the-complementarity-of-smoothing-and-stratum-aware-gradients" title="Permanent link">&para;</a></h2>
-<p>BRepAX provides two differentiation strategies with complementary strengths:</p>
-<table>
-<thead>
-<tr>
-<th>Property</th>
-<th>Method (A) Smoothing</th>
-<th>Method (C) Stratum-Aware</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Gradient accuracy (within stratum)</td>
-<td>Biased by temperature k</td>
-<td>Analytically exact</td>
-</tr>
-<tr>
-<td>Gradient existence (cross stratum)</td>
-<td>Non-zero everywhere</td>
-<td>Zero where objective is stratum-invariant</td>
-</tr>
-<tr>
-<td>Boundary behavior</td>
-<td>Smooth but imprecise</td>
-<td>Precise but discontinuous</td>
-</tr>
-<tr>
-<td>Optimization scope</td>
-<td>Global (can cross boundaries)</td>
-<td>Local (within current stratum)</td>
-</tr>
-</tbody>
-</table>
-<p>Neither method alone is sufficient for all optimization scenarios. The optimal strategy depends on the optimization phase:</p>
-<ol>
-<li><strong>Exploration phase</strong>: Use Method (A) with large k to discover which stratum contains the optimum. The smoothing kernel provides global gradient signal at the cost of precision.</li>
-<li><strong>Refinement phase</strong>: Switch to Method (C) for exact convergence within the target stratum. Analytical gradients eliminate smoothing bias.</li>
-</ol>
-<h2 id="analogy-with-differentiable-rendering">Analogy with Differentiable Rendering<a class="headerlink" href="#analogy-with-differentiable-rendering" title="Permanent link">&para;</a></h2>
-<p>This complementarity mirrors the evolution of differentiable rendering:</p>
-<ul>
-<li><strong>SoftRas (2019)</strong>: Probabilistic rasterization provides gradients for fully occluded objects (analogous to Method A providing cross-stratum signal)</li>
-<li><strong>nvdiffrast (2020)</strong>: Analytic edge derivatives provide exact gradients at visibility boundaries (analogous to Method C providing exact within-stratum gradients)</li>
-<li><strong>Modern practice</strong>: Coarse-to-fine scheduling combining soft rasterization for initialization with analytic gradients for refinement</li>
-</ul>
-<p>BRepAX follows the same trajectory for CAD geometry.</p>
-<h2 id="empirical-evidence">Empirical Evidence<a class="headerlink" href="#empirical-evidence" title="Permanent link">&para;</a></h2>
-<h3 id="within-stratum-method-c-excels">Within-stratum (Method C excels)<a class="headerlink" href="#within-stratum-method-c-excels" title="Permanent link">&para;</a></h3>
-<p>Optimizing r1 within the intersecting stratum:
-- Method (C): converges to target with position error 7e-6 in 6 steps
-- Method (A): converges to biased optimum with position error 0.021 in 6 steps</p>
-<p>Method (C) is 3000x more precise.</p>
-<h3 id="cross-stratum-method-a-provides-signal">Cross-stratum (Method A provides signal)<a class="headerlink" href="#cross-stratum-method-a-provides-signal" title="Permanent link">&para;</a></h3>
-<p>Optimizing c2_x from disjoint (d=3.0) toward intersecting target (d=1.5):
-- Method (C): gradient = 0.0 (area independent of center in disjoint stratum)
-- Method (A): gradient = 7.5e-4 (smoothing kernel extends beyond boundary)</p>
-<p>Method (A) provides weak but nonzero signal; Method (C) is mathematically stuck.</p>
-<h2 id="design-implications">Design Implications<a class="headerlink" href="#design-implications" title="Permanent link">&para;</a></h2>
-<p>The hybrid strategy will be implemented as an optimizer-level concern, not a modification to the Boolean operation API. The <code>union_area()</code> function remains method-agnostic; the caller selects the method based on optimization phase. A coarse-to-fine scheduler is planned for future implementation.</p>
+<p>Combining smoothing and relation-dispatched gradients is a research
+proposal, not an implemented optimizer. The experimental <code>hybrid_optimize</code>
+entry point always raises <code>NotImplementedError</code>.
+<a href="../../architecture/adr/0011-hybrid-strategy/">ADR-0011</a> records the decision
+to keep scheduling at the optimizer level.</p>
+<h2 id="why-combine-methods">Why Combine Methods?<a class="headerlink" href="#why-combine-methods" title="Permanent link">&para;</a></h2>
+<p>An exact static objective can be locally constant in a design direction.
+Moving disjoint disks without changing radii leaves union area unchanged.
+No exact local derivative supplies a nonzero translation signal there.</p>
+<p>Smoothing changes the objective and may supply exploration information.
+Method C avoids some smoothing in simple relation regions but uses a grid
+STE in partial overlap. Switching to it does not imply exact refinement.
+See <a href="../stratification_theory/#current-brepax-implementation">Stratification Theory</a>
+for the implemented rules.</p>
+<p>The proposed schedule uses smoothing for exploration and changes methods or
+resolution for refinement. Its usefulness depends on objective, geometry,
+initialization, and budget. Gradients can remain too small, cancel by
+symmetry, or lead to a different optimum.</p>
+<h2 id="what-would-validate-a-schedule">What Would Validate a Schedule?<a class="headerlink" href="#what-would-validate-a-schedule" title="Permanent link">&para;</a></h2>
+<p>Compare with each individual method under matched initializations and
+budgets, including temperature and resolution choices. Independently
+evaluate the final unsmoothed objective and constraints. Report failed
+starts, contact events, parameter error, and cost, not only smoothed loss.</p>
+<p>The former 3000-times-precision claim does not describe the current
+implementation; see the <a href="../concept_proof_evaluation/">historical evaluation</a>.
+An analogy with rendering does not establish this schedule's effectiveness.</p>
+<p>TOI cannot supply nonzero exact static derivatives on a true plateau.
+Using future contact requires a specified look-ahead objective, trajectory
+derivative, or surrogate. The <a href="../toi_derivation/">TOI discussion</a> separates
+the valid event-time calculation from the invalid former correction.</p>
 
 
 

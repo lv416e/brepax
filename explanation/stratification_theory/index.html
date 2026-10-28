@@ -576,10 +576,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#configuration-space-of-two-primitives" class="md-nav__link">
+  <a href="#relation-regions-and-contact-sets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration Space of Two Primitives
+        Relation Regions and Contact Sets
       
     </span>
   </a>
@@ -587,10 +587,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gradient-structure-per-stratum" class="md-nav__link">
+  <a href="#contact-order-for-area-and-volume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gradient Structure Per Stratum
+        Contact Order for Area and Volume
       
     </span>
   </a>
@@ -598,10 +598,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gradient-discontinuity-at-boundaries" class="md-nav__link">
+  <a href="#current-brepax-implementation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gradient Discontinuity at Boundaries
+        Current BRepAX Implementation
       
     </span>
   </a>
@@ -609,43 +609,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#brepax-implementation" class="md-nav__link">
+  <a href="#invariance-and-numerical-evidence" class="md-nav__link">
     <span class="md-ellipsis">
       
-        BRepAX Implementation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#convergence-properties" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Convergence Properties
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#comparison" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Comparison
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        References
+        Invariance and Numerical Evidence
       
     </span>
   </a>
@@ -759,7 +726,7 @@
   <span class="md-ellipsis">
     
   
-    TOI Correction Derivation
+    Event-Time Sensitivity
   
 
     
@@ -1968,10 +1935,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#configuration-space-of-two-primitives" class="md-nav__link">
+  <a href="#relation-regions-and-contact-sets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration Space of Two Primitives
+        Relation Regions and Contact Sets
       
     </span>
   </a>
@@ -1979,10 +1946,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gradient-structure-per-stratum" class="md-nav__link">
+  <a href="#contact-order-for-area-and-volume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gradient Structure Per Stratum
+        Contact Order for Area and Volume
       
     </span>
   </a>
@@ -1990,10 +1957,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gradient-discontinuity-at-boundaries" class="md-nav__link">
+  <a href="#current-brepax-implementation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gradient Discontinuity at Boundaries
+        Current BRepAX Implementation
       
     </span>
   </a>
@@ -2001,43 +1968,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#brepax-implementation" class="md-nav__link">
+  <a href="#invariance-and-numerical-evidence" class="md-nav__link">
     <span class="md-ellipsis">
       
-        BRepAX Implementation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#convergence-properties" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Convergence Properties
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#comparison" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Comparison
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        References
+        Invariance and Numerical Evidence
       
     </span>
   </a>
@@ -2065,185 +1999,151 @@
 
 
 <h1 id="stratification-theory">Stratification Theory<a class="headerlink" href="#stratification-theory" title="Permanent link">&para;</a></h1>
-<p>How Whitney stratification applies to CAD Boolean operations,
-and why gradient discontinuities at topological boundaries are a
-geometric fact rather than a numerical artifact.</p>
-<h2 id="configuration-space-of-two-primitives">Configuration Space of Two Primitives<a class="headerlink" href="#configuration-space-of-two-primitives" title="Permanent link">&para;</a></h2>
-<p>Consider two primitives A and B parameterized by design variables
-(radii, centers, axes). As parameters vary, the topological
-relationship between A and B changes:</p>
+<p>Boolean relations help organize geometric derivatives, but a topology
+change does not by itself imply a first-derivative jump. The objective,
+local contact geometry, and numerical discretization must be specified.</p>
+<h2 id="relation-regions-and-contact-sets">Relation Regions and Contact Sets<a class="headerlink" href="#relation-regions-and-contact-sets" title="Permanent link">&para;</a></h2>
+<p>For disks or spheres with positive radii and center distance <span class="arithmatex">\(d\)</span>:</p>
 <table>
 <thead>
 <tr>
-<th>Stratum</th>
 <th>Label</th>
 <th>Relationship</th>
-<th>Example (two spheres)</th>
+<th>Strict region</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>0</td>
 <td>Disjoint</td>
-<td>No overlap</td>
-<td>d &gt; r1 + r2</td>
+<td><span class="arithmatex">\(d &gt; r_1+r_2\)</span></td>
 </tr>
 <tr>
 <td>1</td>
-<td>Intersecting</td>
 <td>Partial overlap</td>
-<td>|r1 - r2| &lt; d &lt; r1 + r2</td>
+<td><span class="arithmatex">\(\lvert r_1-r_2\rvert &lt; d &lt; r_1+r_2\)</span></td>
 </tr>
 <tr>
 <td>2</td>
-<td>A contained in B</td>
-<td>A entirely inside B</td>
-<td>d + r1 &lt;= r2</td>
+<td>A strictly contained in B</td>
+<td><span class="arithmatex">\(d+r_1 &lt; r_2\)</span></td>
 </tr>
 <tr>
 <td>3</td>
-<td>B contained in A</td>
-<td>B entirely inside A</td>
-<td>d + r2 &lt;= r1</td>
+<td>B strictly contained in A</td>
+<td><span class="arithmatex">\(d+r_2 &lt; r_1\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>These four regions partition the configuration space into a
-<strong>Whitney stratification</strong>: a decomposition into smooth manifolds
-(strata) satisfying Whitney's regularity conditions (a) and (b)
-at their boundaries.</p>
-<h2 id="gradient-structure-per-stratum">Gradient Structure Per Stratum<a class="headerlink" href="#gradient-structure-per-stratum" title="Permanent link">&para;</a></h2>
-<p>Each stratum has a distinct analytical gradient formula for Boolean
-volume. For union:</p>
+<p>These operational labels are not a complete Whitney stratification.
+External tangency, internal tangency, and equal-radius coincidence require
+separate sets. All four strict regions are full-dimensional; partial overlap
+is not uniquely highest-dimensional. A Whitney stratification additionally
+requires smooth strata, frontier conditions, and Whitney regularity, none
+of which follows from four labels.</p>
+<p>For union measure, disjoint and contained formulas reduce to <span class="arithmatex">\(V_A+V_B\)</span>,
+<span class="arithmatex">\(V_B\)</span>, and <span class="arithmatex">\(V_A\)</span>, respectively. Partial overlap requires intersection
+measure. Exact primitive-volume derivatives therefore help without solving
+the harder contact problem.</p>
+<h2 id="contact-order-for-area-and-volume">Contact Order for Area and Volume<a class="headerlink" href="#contact-order-for-area-and-volume" title="Permanent link">&para;</a></h2>
+<p>Let <span class="arithmatex">\(\delta&gt;0\)</span> denote normal penetration from first contact. For a smooth
+<span class="arithmatex">\(m\)</span>-dimensional contact set in <span class="arithmatex">\(n\)</span> dimensions, suppose the local gap in the
+<span class="arithmatex">\(k=n-1-m\)</span> transverse tangent directions is, to leading order,</p>
+<div class="arithmatex">\[
+\delta-\tfrac12 y^\top H y,\qquad H\text{ positive definite}.
+\]</div>
+<p>Integrating its positive part gives changed measure proportional to
+<span class="arithmatex">\(\delta^{1+k/2}\)</span>. This local model assumes nondegenerate relative curvature,
+a regular contact set, and no simultaneous endpoint event.</p>
 <table>
 <thead>
 <tr>
-<th>Stratum</th>
-<th>V_union formula</th>
-<th>d(V_union)/d(p)</th>
+<th>Geometry and objective</th>
+<th>Leading change as <span class="arithmatex">\(\delta\downarrow0\)</span></th>
+<th>Contact regularity</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>0 (disjoint)</td>
-<td>V_a + V_b</td>
-<td>d(V_a)/d(p) + d(V_b)/d(p)</td>
+<td>Two disks, overlap area</td>
+<td><span class="arithmatex">\(C\delta^{3/2}\)</span></td>
+<td>First derivative continuous; second derivative unbounded</td>
 </tr>
 <tr>
-<td>1 (intersecting)</td>
-<td>V_a + V_b - V_intersection</td>
-<td>Requires integration over intersection boundary</td>
+<td>Two spheres, overlap volume</td>
+<td><span class="arithmatex">\(C\delta^2\)</span></td>
+<td>First derivative continuous; second derivative jumps</td>
 </tr>
 <tr>
-<td>2 (A in B)</td>
-<td>V_b</td>
-<td>d(V_b)/d(p)</td>
+<td>Parallel finite cylinders, side contact with positive common axial length</td>
+<td><span class="arithmatex">\(C\delta^{3/2}\)</span></td>
+<td>First derivative continuous</td>
 </tr>
 <tr>
-<td>3 (B in A)</td>
-<td>V_a</td>
-<td>d(V_a)/d(p)</td>
+<td>Opposing planar faces with positive contact area <span class="arithmatex">\(A\)</span></td>
+<td><span class="arithmatex">\(A\delta\)</span></td>
+<td>One-sided volume derivatives differ</td>
 </tr>
 </tbody>
 </table>
-<p>In strata 0, 2, and 3, the gradient is exact and analytical because
-the volume is a simple function of individual primitive volumes.
-In stratum 1, the intersection boundary curve introduces a
-non-trivial integration that BRepAX approximates via the
-straight-through estimator (STE).</p>
-<h2 id="gradient-discontinuity-at-boundaries">Gradient Discontinuity at Boundaries<a class="headerlink" href="#gradient-discontinuity-at-boundaries" title="Permanent link">&para;</a></h2>
-<p>At stratum boundaries (tangent configurations), the gradient is
-generically discontinuous. This is not a bug but a consequence
-of the stratification structure:</p>
-<p><strong>External tangency</strong> (d = r1 + r2): the gradient of union area/volume
-is actually continuous here because the intersection formula
-reduces to the disjoint formula as overlap vanishes. The gradient
-jump is second-order zero, as derived in the
-<a href="../toi_derivation/#correction-term-at-external-tangent">TOI derivation</a>.</p>
-<p><strong>Internal tangency</strong> (d = |r1 - r2|): the gradient is genuinely
-discontinuous. The contained-stratum gradient depends only on the
-outer primitive, while the intersecting-stratum gradient depends on
-both. This is a first-order jump that cannot be smoothed away.</p>
-<h2 id="brepax-implementation">BRepAX Implementation<a class="headerlink" href="#brepax-implementation" title="Permanent link">&para;</a></h2>
-<p>BRepAX implements stratum-dispatched gradients via <code>jax.custom_vjp</code>:</p>
+<p>Here <span class="arithmatex">\(C&gt;0\)</span> depends on geometry. Zero relative curvature, corners, contact
+endpoints, and coincident surfaces need separate analysis; contact dimension
+alone is not a universal classification.</p>
+<p>For internal tangency with fixed radii <span class="arithmatex">\(R&gt;r&gt;0\)</span>, let <span class="arithmatex">\(\delta=d-(R-r)\)</span>.
+The excess union measure beyond the larger primitive satisfies</p>
+<div class="arithmatex">\[
+A_{\mathrm{union}}-\pi R^2
+\sim \frac43\sqrt{\frac{2Rr}{R-r}}\,\delta^{3/2},
+\qquad
+V_{\mathrm{union}}-\frac{4\pi R^3}{3}
+\sim \frac{\pi Rr}{R-r}\,\delta^2.
+\]</div>
+<p>Ordinary internal and external contacts are therefore both <span class="arithmatex">\(C^1\)</span> for these
+area/volume objectives. The earlier assertion of a first-order jump at
+unequal-radius internal tangency was incorrect. Equal-radius coincidence
+is a distinct degeneracy not covered by this conclusion.</p>
+<p>The objective also matters. For two unit spheres with <span class="arithmatex">\(d=2-\delta\)</span>,
+overlap volume is <span class="arithmatex">\(\pi\delta^2/2-\pi\delta^3/12\)</span>, whereas union surface area
+is <span class="arithmatex">\(8\pi-2\pi\delta\)</span> for <span class="arithmatex">\(0&lt;\delta&lt;2\)</span>. Volume is <span class="arithmatex">\(C^1\)</span> at first contact;
+surface area has a first-derivative kink. The overlap volume tends to zero
+continuously at first contact.</p>
+<h2 id="current-brepax-implementation">Current BRepAX Implementation<a class="headerlink" href="#current-brepax-implementation" title="Permanent link">&para;</a></h2>
+<p>Method C in <code>brepax.boolean.stratum</code> uses a custom VJP:</p>
 <ol>
-<li>
-<p><strong>Forward pass</strong>: exact SDF Boolean (min/max) + Heaviside indicator
-   on a grid. The stratum label is detected via grid-based SDF
-   evaluation and saved as a residual.</p>
-</li>
-<li>
-<p><strong>Backward pass</strong>: <code>jnp.where</code> dispatch selects the gradient
-   formula based on the saved label. This is branchless and
-   compatible with <code>jax.vmap</code>.</p>
-</li>
+<li>The forward value samples a hard Boolean indicator on a finite grid.
+   Exact min/max set composition does not make quadrature exact.</li>
+<li>Sampled SDF signs select a relation label. Small overlap or protrusion
+   regions can be missed. There is no explicit exact-contact classification.</li>
+<li>Disjoint and contained cases use primitive-volume derivatives when
+   finite analytical formulas exist. Exactness requires both correct
+   classification and correct formulas; unbounded primitives use a grid
+   estimate instead.</li>
+<li>Partial overlap differentiates a sigmoid indicator on the frozen grid,
+   with width equal to the geometric mean cell spacing.</li>
 </ol>
-<p>The boundary convention (ADR-0004) uses the intersecting-stratum
-gradient at exact tangency, following the principle that the
-generic (highest-dimensional) stratum provides the most informative
-gradient signal.</p>
-<h2 id="convergence-properties">Convergence Properties<a class="headerlink" href="#convergence-properties" title="Permanent link">&para;</a></h2>
-<p>Empirical measurement on sphere-sphere and cylinder-sphere pairs
-shows:</p>
-<ul>
-<li><strong>Strata 0, 2, 3</strong>: exact analytical gradient (zero error)</li>
-<li><strong>Stratum 1 interior</strong>: STE gradient error &lt; 1% (sphere) and
-  &lt; 10% (cylinder) at resolution 128</li>
-<li><strong>Stratum 1 near-tangent</strong>: error increases to 25-542% as the
-  sigmoid kernel width exceeds the intersection feature size</li>
-</ul>
-<p>The convergence rate is between O(h) and O(h^2) in the interior,
-consistent with grid-based integration of a sigmoid-smoothed
-discontinuous integrand. Near tangency, the rate degrades because
-the effective feature size shrinks faster than the grid refines.</p>
-<p>Despite near-tangent error, optimization converges to correct
-optima because the gradient sign is always correct and the bias
-direction (volume overestimation) is consistent.</p>
-<h2 id="comparison">Comparison<a class="headerlink" href="#comparison" title="Permanent link">&para;</a></h2>
-<p>No existing differentiable CSG system provides exact gradients in
-any stratum. BRepAX's 3/4 exact + 1/4 characterized is a unique
-positioning:</p>
-<table>
-<thead>
-<tr>
-<th>System</th>
-<th>Exact strata</th>
-<th>Gradient method</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>BRepAX</td>
-<td>3/4</td>
-<td>Analytical dispatch + STE</td>
-</tr>
-<tr>
-<td>DiffCSG</td>
-<td>0/4</td>
-<td>Goldfeather rasterization + edge AA</td>
-</tr>
-<tr>
-<td>Fuzzy Boolean</td>
-<td>0/4</td>
-<td>t-norm/t-conorm smoothing</td>
-</tr>
-<tr>
-<td>TreeTOp</td>
-<td>0/4</td>
-<td>Continuous relaxation</td>
-</tr>
-</tbody>
-</table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Whitney, H. (1965). Tangents to an analytic variety.</li>
-<li>Goresky, M. &amp; MacPherson, R. (1988). Stratified Morse Theory.</li>
-<li>Guest, J.K. et al. (2004). Achieving minimum length scale in
-  topology optimization using nodal design variables and projection
-  functions.</li>
-<li>Bengio, Y. et al. (2013). Estimating or propagating gradients
-  through stochastic neurons for conditional computation.</li>
-</ul>
+<p>The backward rule is a surrogate for a continuous geometric derivative,
+generally not the derivative of the hard sampled forward value. Three
+simple labels with analytical formulas do not imply accuracy on three
+quarters of configurations or solve moving intersection boundaries.</p>
+<p>The analytical disk reference also uses distance floors and angle clipping.
+Near contact, independent limits or stable formulas must distinguish these
+safeguards from the mathematical derivative. See the
+<a href="../jax_where_gradient_pitfall/">safe-primal discussion</a>.</p>
+<h2 id="invariance-and-numerical-evidence">Invariance and Numerical Evidence<a class="headerlink" href="#invariance-and-numerical-evidence" title="Permanent link">&para;</a></h2>
+<p>Exact area/volume is invariant under common rigid motion. Uniform length
+scaling by <span class="arithmatex">\(s&gt;0\)</span> scales <span class="arithmatex">\(n\)</span>-dimensional measure by <span class="arithmatex">\(s^n\)</span> and gradients with
+respect to lengths by <span class="arithmatex">\(s^{n-1}\)</span>; center gradients rotate with geometry.
+Grid orientation, finite windows, smoothing widths, and sampled detection
+can break or approximate these laws. Dimensional tolerances and smoothing
+parameters must scale with units.</p>
+<p>Separate value error, relation detection, derivative error, and optimization
+outcome. At nonsmooth events compare one-sided limits; away from events,
+sweep finite-difference steps and resolution against an independent oracle.
+Relative error alone is misleading when the true derivative tends to zero.</p>
+<p>Selected-fixture errors are not universal convergence rates or gradient-sign
+guarantees. AD through a frozen mesh likewise does not establish derivatives
+of regenerated CAD with moving trims or changing topology. See the
+<a href="../design_thesis/">design thesis</a> and <a href="../toi_derivation/">TOI discussion</a>.</p>
 
 
 

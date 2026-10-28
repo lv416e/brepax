@@ -635,7 +635,7 @@
   <span class="md-ellipsis">
     
   
-    TOI Correction Derivation
+    Event-Time Sensitivity
   
 
     
@@ -2079,9 +2079,15 @@
 <h1 id="adr-0012-primitive-independent-stratum-detection">ADR-0012: Primitive-Independent Stratum Detection<a class="headerlink" href="#adr-0012-primitive-independent-stratum-detection" title="Permanent link">&para;</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted</p>
+<p>Scope clarified on 2026-10-28: this decision generalizes the detection
+interface, not its accuracy. Sampled labels can miss thin overlaps and
+protrusions; the <a href="../../../explanation/stratification_theory/#current-brepax-implementation">current contract</a>
+states the conditions for analytical gradients.</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>The concept proof <code>_detect_stratum</code> uses center distance vs radius sum/difference, which is specific to Sphere x Sphere (and Disk x Disk). This function crashes for Cylinder, Plane, Cone, or any heterogeneous primitive pair because those primitives lack a "center" parameter.</p>
-<p>As a result, subtract and intersect operations bypass stratum dispatch entirely, running straight-through estimator uniformly. This means these operations achieve Method (A)-equivalent precision rather than Method (C)'s stratum-aware precision.</p>
+<p>At the time of this decision, subtract and intersect bypassed relation
+dispatch and used an STE uniformly, omitting analytical primitive-volume
+derivatives in simple relation regions.</p>
 <p>Additionally, union operations with heterogeneous primitive pairs (e.g., Sphere x Cylinder) trigger a KeyError crash in <code>_detect_stratum</code>.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
 <p>Replace parameter-dependent stratum detection with SDF-based geometric relationship detection using grid sampling.</p>
@@ -2094,7 +2100,9 @@
 <li><strong>Intersecting</strong>: some but not all interior points of A are interior to B (and vice versa).</li>
 </ul>
 <h3 id="implementation">Implementation<a class="headerlink" href="#implementation" title="Permanent link">&para;</a></h3>
-<p>Grid-based detection reuses the grid already computed for volume measurement. The detection adds negligible cost (min/max reductions over existing SDF evaluations).</p>
+<p>The current forward rule evaluates sampled SDF signs for detection as well
+as the measure. Any claim of negligible overhead requires measurement; the
+interface alone does not establish computational reuse after compilation.</p>
 <h3 id="trade-offs">Trade-offs<a class="headerlink" href="#trade-offs" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Detection precision is resolution-dependent (a very thin overlap at low resolution may be missed)</li>
@@ -2106,7 +2114,9 @@
 <li>All Boolean operations (union, subtract, intersect) can use stratum dispatch</li>
 <li>No per-pair parameter-dependent code needed for stratum detection</li>
 <li>New primitives (Cone, Torus, Box) get stratum dispatch automatically</li>
-<li>Method (C) precision advantage extends to heterogeneous primitive pairs</li>
+<li>Heterogeneous pairs can use analytical formulas in correctly classified
+  simple relation regions; superiority over another estimator requires a
+  separate comparison</li>
 </ul>
 
 
