@@ -12,7 +12,6 @@
 ### Bug Fixes
 
 * **brep:** preserve B-spline boundaries after CAD transforms ([#104](https://github.com/lv416e/brepax/issues/104)) ([7dbb35c](https://github.com/lv416e/brepax/commit/7dbb35c44d0fce492f9c4f812016729a9a5d7936))
-* **brep:** reject incomplete face extraction and reconstruction ([947bc1b](https://github.com/lv416e/brepax/commit/947bc1b0ff38f596a47128b4c8d04d4b1296074d))
 * **brep:** reject incomplete face extraction and reconstruction ([#106](https://github.com/lv416e/brepax/issues/106)) ([947bc1b](https://github.com/lv416e/brepax/commit/947bc1b0ff38f596a47128b4c8d04d4b1296074d))
 * restore fresh installs and align documented capabilities ([#110](https://github.com/lv416e/brepax/issues/110)) ([ff7c7a6](https://github.com/lv416e/brepax/commit/ff7c7a6e2d856f97bd142c01f681b660c3d9f784))
 
