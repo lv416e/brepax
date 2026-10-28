@@ -36,7 +36,7 @@ def cylinder(base, axis, radius, height):
     ).Shape()
 
 
-def stock(kind="rectangular"):
+def stock(kind="rectangular", radii=(2, 3), shifts=None):
     if kind == "round":
         shape = BRepPrimAPI_MakeCylinder(20, 6).Shape()
         bases, axes, heights = [(-7, 0, 0), (7, 0, 0)], [(0, 0, 1)] * 2, [6, 6]
@@ -57,14 +57,18 @@ def stock(kind="rectangular"):
         shape = BRepPrimAPI_MakeBox(40, 24, 6).Shape()
         bases, axes, heights = [(10, 12, 0), (28, 12, 0)], [(0, 0, 1)] * 2, [6, 6]
         volume, area, center = 40 * 24 * 6, 2 * (40 * 24 + 24 * 6 + 40 * 6), [20, 12, 3]
-    for base, axis, radius, height in zip(bases, axes, [2, 3], heights, strict=True):
+    if shifts is not None:
+        bases = np.asarray(bases) + shifts
+    for base, axis, radius, height in zip(bases, axes, radii, heights, strict=True):
         shape = BRepAlgoAPI_Cut(shape, cylinder(base, axis, radius, height)).Shape()
     centers = np.array(bases) + np.array(heights)[:, None] * np.array(axes) / 2
     return shape, volume, area, np.array(center), np.array(heights), centers
 
 
-def oracle(kind, radii):
+def oracle(kind, radii, shifts=None):
     _, stock_volume, stock_area, stock_center, heights, centers = stock(kind)
+    if shifts is not None:
+        centers = centers + shifts
     voids = np.pi * radii**2 * heights
     volume = stock_volume - voids.sum()
     area = stock_area + np.sum(2 * np.pi * radii * heights - 2 * np.pi * radii**2)
@@ -407,4 +411,199 @@ def test_nested_single_solid_compound_is_editable():
     radii = edit.model.reference_radii * 1.05
     np.testing.assert_allclose(
         metrics(edit.model, radii), cad_metrics(edit.rebuild(radii))[0], rtol=1e-4
+    )
+
+
+def position_metrics(model, radii, shifts):
+    return jnp.concatenate(
+        [
+            jnp.array([model.volume(radii, shifts), model.surface_area(radii, shifts)]),
+            model.center_of_mass(radii, shifts),
+        ]
+    )
+
+
+@pytest.mark.parametrize("kind", ["rectangular", "round", "orthogonal"])
+def test_center_and_radius_edits_against_independent_cad(kind):
+    source, *_ = stock(kind)
+    edit = ordered_edit(source, deflection=0.000025)
+    radii = jnp.array([2.3, 2.8])
+    shifts = jnp.array([[0.2, -0.3, 0.0], [-0.25, 0.2, 0.0]])
+    if kind == "orthogonal":
+        shifts = shifts.at[1].set(jnp.array([0.0, 0.2, -0.25]))
+    expected, dr, center, dc = oracle(kind, np.asarray(radii), shifts)
+    values = jax.jit(position_metrics)(edit.model, radii, shifts)
+    np.testing.assert_allclose(values[:2], expected, rtol=1e-5)
+    np.testing.assert_allclose(values[2:], center, atol=1e-5)
+    radius_jac, shift_jac = jax.jit(jax.jacrev(position_metrics, argnums=(1, 2)))(
+        edit.model, radii, shifts
+    )
+    np.testing.assert_allclose(
+        radius_jac, np.concatenate([dr, dc]), rtol=2e-4, atol=1e-7
+    )
+    # Translation leaves V/A unchanged; COM responds to the translated void.
+    axes = np.array([hole.axis for hole in edit.holes])
+    projectors = np.eye(3) - axes[:, :, None] * axes[:, None, :]
+    voids = np.pi * np.asarray(radii) ** 2 * [hole.height for hole in edit.holes]
+    expected_dc = np.einsum("h,hij->ihj", -voids / expected[0], projectors)
+    np.testing.assert_allclose(shift_jac[:2], 0, atol=1e-8)
+    np.testing.assert_allclose(shift_jac[2:], expected_dc, rtol=2e-4, atol=1e-7)
+    independent, *_ = stock(kind, radii, shifts)
+    rebuilt = edit.rebuild(radii, shifts)
+    for shape in (independent, rebuilt):
+        actual, actual_center = cad_metrics(shape)
+        np.testing.assert_allclose(actual, expected, rtol=1e-10)
+        np.testing.assert_allclose(actual_center, center, atol=1e-9)
+    fresh, _ = triangulate_shape(rebuilt, deflection=0.000025)
+    np.testing.assert_allclose(
+        [divergence_volume(fresh), mesh_surface_area(fresh)], expected, rtol=1e-5
+    )
+    assert_closed(edit.model.triangles(radii, shifts))
+    # Perturb independent CAD construction, not the editing implementation.
+    for step in (0.01, 0.001):
+        for h, component in ((0, 0), (1, 1)):
+            delta = np.zeros((2, 3))
+            delta[h, component] = step
+            samples = []
+            for sign in (-1, 1):
+                shape, *_ = stock(kind, radii, shifts + sign * delta)
+                measures, com = cad_metrics(shape)
+                samples.append(np.concatenate([measures, com]))
+            np.testing.assert_allclose(
+                shift_jac[:, h, component],
+                (samples[1] - samples[0]) / (2 * step),
+                rtol=2e-4,
+                atol=1e-7,
+            )
+
+
+@pytest.mark.parametrize("scale", [0.001, 1000.0])
+def test_center_edit_fresh_placement_and_gradient_covariance(scale):
+    shape, *_ = stock("orthogonal")
+    transform = gp_Trsf()
+    transform.SetRotation(gp_Ax1(gp_Pnt(), gp_Dir(1, 2, 3)), 0.7)
+    rotation = np.array([[transform.Value(i, j) for j in (1, 2, 3)] for i in (1, 2, 3)])
+    origin = np.array([1000.0, -2000.0, 3000.0])
+    transform.SetValues(*np.column_stack([scale * rotation, origin]).reshape(-1))
+    moved = BRepBuilderAPI_Transform(shape, transform, True, False).Shape()
+    edit = ordered_edit(
+        moved, frame=CadFrame(scale, tuple(origin)), deflection=0.000025
+    )
+    radii = np.array([2.3, 2.8])
+    shifts = np.array([[0.2, -0.3, 0.0], [0.0, 0.2, -0.25]])
+    moved_radii = jnp.asarray(scale * radii)
+    moved_shifts = jnp.asarray(scale * shifts @ rotation.T)
+    expected, dr, center, dc = oracle("orthogonal", radii, shifts)
+    values = position_metrics(edit.model, moved_radii, moved_shifts)
+    np.testing.assert_allclose(values[:2], expected * [scale**3, scale**2], rtol=1e-5)
+    np.testing.assert_allclose(
+        (values[2:] - origin) / scale, rotation @ center, atol=1e-5
+    )
+    radius_jac, shift_jac = jax.jit(jax.jacrev(position_metrics, argnums=(1, 2)))(
+        edit.model, moved_radii, moved_shifts
+    )
+    np.testing.assert_allclose(
+        radius_jac[:2] / np.array([scale**2, scale])[:, None], dr, rtol=2e-4
+    )
+    np.testing.assert_allclose(radius_jac[2:], rotation @ dc, rtol=2e-4, atol=1e-7)
+    axes = np.array([[0, 0, 1], [1, 0, 0]]) @ rotation.T
+    projectors = np.eye(3) - axes[:, :, None] * axes[:, None, :]
+    voids = np.pi * radii**2 * [16, 40]
+    expected_dc = np.einsum("h,hij->ihj", -voids / expected[0], projectors)
+    np.testing.assert_allclose(
+        shift_jac[:2] / np.array([scale**2, scale])[:, None, None], 0, atol=1e-7
+    )
+    np.testing.assert_allclose(shift_jac[2:], expected_dc, rtol=2e-4, atol=1e-7)
+    actual, actual_center = cad_metrics(edit.rebuild(moved_radii, moved_shifts))
+    np.testing.assert_allclose(actual, expected * [scale**3, scale**2], rtol=1e-8)
+    np.testing.assert_allclose(
+        (actual_center - origin) / scale, rotation @ center, atol=1e-7
+    )
+
+
+def test_center_edit_budget_rejection_batching_and_zero_default():
+    shape, *_ = stock()
+    edit = ordered_edit(shape)
+    model = edit.model
+    radii = model.reference_radii
+    zero = jnp.zeros((2, 3))
+    np.testing.assert_array_equal(model.triangles(radii), model.triangles(radii, zero))
+    np.testing.assert_allclose(
+        jax.jacrev(model.volume, argnums=1)(radii, zero), 0, atol=1e-9
+    )
+    limit = model.upper_radii - radii
+    at_limit = zero.at[:, 0].set(limit)
+    assert bool(eqx.filter_jit(model.is_valid)(radii, at_limit))
+    assert_closed(model.triangles(radii, at_limit))
+    actual, center = cad_metrics(edit.rebuild(radii, at_limit))
+    np.testing.assert_allclose(
+        position_metrics(model, radii, at_limit),
+        np.concatenate([actual, center]),
+        rtol=1e-4,
+        atol=1e-6,
+    )
+    cases = jnp.stack(
+        [
+            zero,
+            at_limit,
+            at_limit * 1.01,
+            zero.at[0, 2].set(1e-4),
+            zero.at[1, 0].set(jnp.inf),
+            zero.at[0, 1].set(jnp.nan),
+        ]
+    )
+    flags = jax.jit(jax.vmap(model.is_valid, in_axes=(None, 0)))(radii, cases)
+    np.testing.assert_array_equal(flags, [True, True, False, False, False, False])
+    volumes = jax.jit(jax.vmap(model.volume, in_axes=(None, 0)))(radii, cases)
+    np.testing.assert_allclose(volumes[:2], volumes[0], rtol=1e-12)
+    assert np.isnan(volumes[2:]).all()
+    for shifts in cases[2:]:
+        with pytest.raises(ValueError, match="center shifts"):
+            edit.rebuild(radii, shifts)
+    # Individually legal growth and movement must not spend clearance twice.
+    assert not bool(model.is_valid(radii + 0.6 * limit, 0.6 * at_limit))
+    assert bool(model.is_valid(radii + 0.4 * limit, 0.6 * at_limit))
+
+
+def test_inverse_center_edit_step_roundtrip_preserves_unselected_hole(tmp_path):
+    source, *_ = stock()
+    source = step_roundtrip(source, tmp_path / "source.step")
+    found = prepare_hole_edit(source)
+    selected = min(found.holes, key=lambda hole: hole.radius)
+    edit = prepare_hole_edit(source, [selected.face_id], deflection=0.000025)
+    target_shift = np.array([0.6, -0.4, 0.0])
+    target, *_ = stock(radii=(2.3, 3.0), shifts=np.array([target_shift, np.zeros(3)]))
+    target_values, target_center = cad_metrics(target)
+
+    def decode(parameters):
+        return parameters[:1], jnp.array([[parameters[1], parameters[2], 0.0]])
+
+    def residual(parameters):
+        r, d = decode(parameters)
+        return jnp.concatenate(
+            [
+                jnp.atleast_1d((edit.model.volume(r, d) - target_values[0]) / 5760),
+                (edit.model.center_of_mass(r, d)[:2] - target_center[:2]) / 40,
+            ]
+        )
+
+    evaluate = jax.jit(lambda p: (residual(p), jax.jacfwd(residual)(p)))
+    parameters = jnp.array([2.0, 0.0, 0.0])
+    for _ in range(5):
+        value, derivative = evaluate(parameters)
+        assert np.linalg.matrix_rank(np.asarray(derivative), tol=1e-9) == 3
+        parameters -= jnp.linalg.solve(derivative, value)
+        assert bool(edit.model.is_valid(*decode(parameters)))
+    np.testing.assert_allclose(parameters, [2.3, *target_shift[:2]], rtol=5e-4)
+    r, d = decode(parameters)
+    result = step_roundtrip(edit.rebuild(r, d), tmp_path / "edited.step")
+    actual, actual_center = cad_metrics(result)
+    np.testing.assert_allclose(actual, target_values, rtol=1e-5)
+    np.testing.assert_allclose(actual_center, target_center, atol=1e-5)
+    holes = sorted(prepare_hole_edit(result).holes, key=lambda hole: hole.radius)
+    np.testing.assert_allclose(holes[0].base, [10.6, 11.6, 0], atol=2e-4)
+    np.testing.assert_allclose(holes[1].base, [28, 12, 0], atol=1e-9)
+    assert holes[1].radius == pytest.approx(3, abs=1e-9)
+    np.testing.assert_allclose(
+        cad_metrics(source)[0], oracle("rectangular", np.array([2, 3]))[0], rtol=1e-12
     )

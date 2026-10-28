@@ -1,7 +1,8 @@
-"""Prepare a closed shared-vertex discretization and coupled radial fields."""
+"""Prepare a closed shared-vertex discretization and coupled hole motion."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from itertools import product
 
 import numpy as np
@@ -59,10 +60,17 @@ def closed_mesh(
     return np.asarray(vertices), faces
 
 
-def radial_fields(
+@dataclass(frozen=True)
+class HoleFields:
+    radial: NDArray[np.float64]
+    translation: NDArray[np.float64]
+
+
+def displacement_fields(
     vertices: NDArray[np.float64], holes: tuple[ThroughHole, ...], tolerance: float
-) -> NDArray[np.float64]:
+) -> HoleFields:
     fields = []
+    weights = []
     for hole in holes:
         axis = np.asarray(hole.axis)
         delta = vertices - hole.base
@@ -76,4 +84,5 @@ def radial_fields(
         weight *= (axial >= -tolerance) & (axial <= hole.height + tolerance)
         direction = radial / np.maximum(distance[:, None], hole.radius * 1e-12)
         fields.append(weight[:, None] * direction)
-    return np.asarray(fields)
+        weights.append(weight)
+    return HoleFields(np.asarray(fields), np.asarray(weights))

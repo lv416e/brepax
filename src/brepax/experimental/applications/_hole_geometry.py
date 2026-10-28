@@ -257,23 +257,30 @@ def external_hole(hole: ThroughHole, frame: CadFrame) -> ThroughHole:
 
 
 def rebuild_holes(
-    shape: TopoDS_Shape, holes: tuple[ThroughHole, ...], radii: NDArray[np.float64]
+    shape: TopoDS_Shape,
+    holes: tuple[ThroughHole, ...],
+    radii: NDArray[np.float64],
+    shifts: NDArray[np.float64],
 ) -> TopoDS_Shape:
     # Each call owns its CAD data; Boolean builders may update input tolerances.
     changed = BRepBuilderAPI_Copy(shape, True, False).Shape()
-    for operation, sizes in (
-        (BRepAlgoAPI_Fuse, [hole.radius for hole in holes]),
-        (BRepAlgoAPI_Cut, radii),
+    for operation, sizes, offsets in (
+        (BRepAlgoAPI_Fuse, [hole.radius for hole in holes], np.zeros_like(shifts)),
+        (BRepAlgoAPI_Cut, radii, shifts),
     ):
-        for hole, radius in zip(holes, sizes, strict=True):
+        for hole, radius, offset in zip(holes, sizes, offsets, strict=True):
             tool = BRepPrimAPI_MakeCylinder(
-                gp_Ax2(gp_Pnt(*hole.base), gp_Dir(*hole.axis)),
+                gp_Ax2(gp_Pnt(*(np.asarray(hole.base) + offset)), gp_Dir(*hole.axis)),
                 float(radius),
                 hole.height,
             ).Shape()
             builder = operation(changed, tool)
             if not builder.IsDone():
                 raise RuntimeError("OCCT hole reconstruction failed")
+            # Remove coplanar fill seams before a shifted bore crosses them.
+            # Otherwise a valid full cylinder can acquire several end faces,
+            # preventing the exported feature from being prepared again.
+            builder.SimplifyResult()
             changed = builder.Shape()
     require_solid(changed)
     old = np.array([hole.radius for hole in holes])
@@ -287,4 +294,22 @@ def rebuild_holes(
     )
     if not np.allclose(cad_measures(changed), expected, rtol=1e-7, atol=1e-9):
         raise RuntimeError("Rebuilt CAD does not match the isolated-hole edit")
+    # V/A cannot detect misplaced cylinders. Check first moments independently
+    # in the normalized frame, including simultaneous radius/position changes.
+    source, result = GProp_GProps(), GProp_GProps()
+    BRepGProp.VolumeProperties_s(shape, source)
+    BRepGProp.VolumeProperties_s(changed, result)
+    centers = (
+        np.array([hole.base for hole in holes])
+        + height[:, None] * np.array([hole.axis for hole in holes]) / 2
+    )
+    moment = source.Mass() * _point(source.CentreOfMass()) + np.pi * np.sum(
+        height[:, None]
+        * (old[:, None] ** 2 * centers - radii[:, None] ** 2 * (centers + shifts)),
+        axis=0,
+    )
+    if not np.allclose(
+        _point(result.CentreOfMass()), moment / expected[0], rtol=1e-7, atol=1e-8
+    ):
+        raise RuntimeError("Rebuilt CAD center does not match the isolated-hole edit")
     return changed
