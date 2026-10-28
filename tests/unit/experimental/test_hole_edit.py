@@ -2,10 +2,12 @@
 
 from pathlib import Path
 
+import equinox as eqx
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from OCP.BRep import BRep_Builder
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
 from OCP.BRepGProp import BRepGProp
@@ -14,7 +16,9 @@ from OCP.gp import gp_Ax1, gp_Ax2, gp_Dir, gp_Pnt, gp_Trsf
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
-from OCP.TopoDS import TopoDS_Shape
+from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID, TopAbs_VERTEX
+from OCP.TopExp import TopExp_Explorer
+from OCP.TopoDS import TopoDS_Compound, TopoDS_Shape
 
 from brepax.brep.triangulate import (
     divergence_volume,
@@ -247,6 +251,12 @@ def test_invalid_inputs_and_traced_failure_mask():
     shape, *_ = stock()
     edit = prepare_hole_edit(shape)
     model = edit.model
+    assert bool(eqx.filter_jit(model.is_valid)(model.reference_radii))
+    np.testing.assert_allclose(
+        eqx.filter_jit(model.volume)(model.reference_radii),
+        model.volume(model.reference_radii),
+        rtol=1e-12,
+    )
     bad = jnp.stack(
         [model.lower_radii * 0.9, model.upper_radii * 1.1, jnp.array([jnp.nan, 3.0])]
     )
@@ -289,29 +299,51 @@ def test_connected_material_inside_bore_rejected():
         prepare_hole_edit(shape)
 
 
-def test_inverse_edit_from_volume_and_center_has_correct_rebuilt_cad():
-    shape, *_ = stock("round")
-    edit = ordered_edit(shape, deflection=0.000025)
-    target_radii = np.array([2.5, 2.4])
-    values, _, center, _ = oracle("round", target_radii)
-    target = jnp.array([values[0], center[0]])
+def test_inverse_edit_of_three_step_holes_preserves_fourth(tmp_path):
+    centers = [(12, 10), (42, 10), (25, 30), (50, 30)]
+
+    def plate(radii):
+        shape = BRepPrimAPI_MakeBox(60, 40, 8).Shape()
+        for (x, y), radius in zip(centers, radii, strict=True):
+            shape = BRepAlgoAPI_Cut(
+                shape, cylinder((x, y, 0), (0, 0, 1), radius, 8)
+            ).Shape()
+        return shape
+
+    source = step_roundtrip(plate([2.4, 2.8, 3.2, 2.0]), tmp_path / "source.step")
+    discovery = prepare_hole_edit(source)
+    selected = sorted(discovery.holes, key=lambda hole: hole.radius)[1:]
+    edit = prepare_hole_edit(
+        source, [hole.face_id for hole in selected], deflection=0.000025
+    )
+    target_radii = np.array([2.8, 2.4, 3.0])
+    values, center = cad_metrics(plate([*target_radii, 2.0]))
+    target = jnp.array([values[0], *center[:2]])
 
     def residual(radii):
-        actual = jnp.array(
-            [edit.model.volume(radii), edit.model.center_of_mass(radii)[0]]
+        actual = jnp.concatenate(
+            [
+                jnp.atleast_1d(edit.model.volume(radii)),
+                edit.model.center_of_mass(radii)[:2],
+            ]
         )
-        return (actual - target) / jnp.array([values[0], 20.0])
+        return (actual - target) / jnp.array([19200.0, 60.0, 60.0])
 
     value_and_jacobian = jax.jit(lambda r: (residual(r), jax.jacfwd(residual)(r)))
     radii = edit.model.reference_radii
     for _ in range(5):
         residual_value, jacobian = value_and_jacobian(radii)
+        assert np.linalg.matrix_rank(np.asarray(jacobian), tol=1e-9) == 3
         radii = radii - jnp.linalg.solve(jacobian, residual_value)
         assert bool(edit.model.is_valid(radii))
     np.testing.assert_allclose(radii, target_radii, rtol=1e-4)
-    rebuilt, rebuilt_center = cad_metrics(edit.rebuild(radii))
+    output = step_roundtrip(edit.rebuild(radii), tmp_path / "edited.step")
+    rebuilt, rebuilt_center = cad_metrics(output)
     np.testing.assert_allclose(rebuilt, values, rtol=1e-5)
     np.testing.assert_allclose(rebuilt_center, center, atol=1e-5)
+    # Output feature IDs can change; discover the unchanged smallest bore again.
+    found = prepare_hole_edit(output)
+    assert min(hole.radius for hole in found.holes) == pytest.approx(2.0, abs=1e-8)
 
 
 def test_counterbore_shoulder_is_not_a_through_hole_end():
@@ -347,4 +379,32 @@ def test_counterbore_shoulder_is_not_a_through_hole_end():
         jax.jacrev(metrics, argnums=1)(edit.model, radii)[:, 0],
         (references[1] - references[0]) / (2 * step),
         rtol=1e-4,
+    )
+
+
+def compound(*shapes):
+    result = TopoDS_Compound()
+    builder = BRep_Builder()
+    builder.MakeCompound(result)
+    for shape in shapes:
+        builder.Add(result, shape)
+    return result
+
+
+@pytest.mark.parametrize(
+    "kind", [TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX, TopAbs_SOLID]
+)
+def test_duplicate_topological_occurrences_rejected(kind):
+    shape, *_ = stock()
+    duplicate = TopExp_Explorer(shape, kind).Current()
+    with pytest.raises(ValueError, match="outside its solid"):
+        prepare_hole_edit(compound(shape, duplicate))
+
+
+def test_nested_single_solid_compound_is_editable():
+    shape, *_ = stock()
+    edit = prepare_hole_edit(compound(compound(shape)))
+    radii = edit.model.reference_radii * 1.05
+    np.testing.assert_allclose(
+        metrics(edit.model, radii), cad_metrics(edit.rebuild(radii))[0], rtol=1e-4
     )

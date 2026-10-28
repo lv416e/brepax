@@ -11,6 +11,7 @@ The JAX model moves hole walls and adjoining planar boundaries together; the
 host `rebuild` method produces a new OCCT shape for further use or STEP export.
 
 ```python
+import equinox as eqx
 import jax
 import jax.numpy as jnp
 
@@ -25,7 +26,7 @@ face_id = all_holes.holes[0].face_id
 edit = prepare_hole_edit(shape, [face_id], deflection=0.0001)
 model = edit.model
 radii = (model.reference_radii + model.upper_radii) / 2
-assert bool(model.is_valid(radii))
+assert bool(eqx.filter_jit(model.is_valid)(radii))
 volume, derivative = jax.jit(jax.value_and_grad(model.volume))(radii)
 areas = jax.jit(jax.vmap(model.surface_area))(
     jnp.stack([model.reference_radii, radii])
@@ -56,7 +57,11 @@ STEP roundtrips, and independent CAD finite-difference references.
 - Preparation requires JAX x64. Recognition and CAD rebuilding run outside
   `jit`, `vmap` and differentiation. Geometry/metric methods support all three;
   the Boolean validity predicate supports `jit`/`vmap`. Keep the prepared model
-  fixed when differentiating with respect to radii.
+  fixed when differentiating with respect to radii. For direct compilation of
+  a bound model method, use `eqx.filter_jit(model.volume)`; bare
+  `jax.jit(model.volume)` can fail because the bound Equinox model contains
+  unhashable arrays. Alternatively, JIT a function taking the model as a PyTree
+  argument. Compositions such as the `value_and_grad` example above also work.
 - Radius bounds are `[0.5*r0, r0 + 0.2*clearance]`. `model.is_valid` also checks
   local triangle orientation. Invalid edits return NaN geometry/metrics under
   JAX; `rebuild` raises. Gradients at invalid inputs are undefined.
@@ -77,12 +82,27 @@ STEP roundtrips, and independent CAD finite-difference references.
 See [ADR-0021](../architecture/adr/0021-bounded-through-hole-editing.md) for the
 scope decision.
 
+### Inverse editing
+
+The regression example also imports a four-hole STEP plate, selects three
+noncollinear holes, fits their radii to independently generated CAD volume and
+in-plane center-of-mass targets, and validates the rebuilt STEP while preserving
+the fourth hole. Its Newton iteration checks the Jacobian rank and edit bounds;
+it is a reproducible example, not a general-purpose optimizer API.
+
+Choose enough independent target measurements. For four coplanar equal-height
+holes, volume and even the full 3D center of mass need not determine all four
+radii uniquely. A small mesh optimization residual also does not certify CAD
+accuracy: check the rebuilt CAD and refine the discretization when necessary.
+
 ::: brepax.experimental.applications.hole_edit
     options:
       members:
         - prepare_hole_edit
         - PreparedHoleEdit
         - HoleEditModel
+        - ThroughHole
+        - RejectedHole
       show_source: false
 
 ## Other experimental applications

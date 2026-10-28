@@ -33,6 +33,7 @@ from brepax._occt.backend import (
     TopAbs_SOLID,
     TopAbs_VERTEX,
     TopExp,
+    TopExp_Explorer,
     TopoDS,
     TopTools_IndexedMapOfShape,
     gp_Ax2,
@@ -79,12 +80,18 @@ def require_solid(shape: TopoDS_Shape) -> None:
     TopExp.MapShapes_s(shape, TopAbs_SOLID, solids)
     if solids.Extent() != 1:
         raise ValueError("Expected exactly one solid")
-    # Do not silently discard orphan faces/edges in a STEP compound.
+    # Count occurrences, not unique entities: a loose duplicate of a solid's
+    # own face/edge is absent from the mesh but can corrupt CAD mass properties.
     for kind in (TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX):
-        whole, solid = TopTools_IndexedMapOfShape(), TopTools_IndexedMapOfShape()
-        TopExp.MapShapes_s(shape, kind, whole)
-        TopExp.MapShapes_s(solids.FindKey(1), kind, solid)
-        if whole.Extent() != solid.Extent():
+        counts = []
+        for source in (shape, solids.FindKey(1)):
+            explorer = TopExp_Explorer(source, kind)
+            count = 0
+            while explorer.More():
+                count += 1
+                explorer.Next()
+            counts.append(count)
+        if counts[0] != counts[1]:
             raise ValueError("Input contains geometry outside its solid")
     if cad_measures(shape)[0] <= 0:
         raise ValueError("Expected a positive-volume, outward-oriented solid")
