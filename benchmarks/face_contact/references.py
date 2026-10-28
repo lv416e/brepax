@@ -95,7 +95,14 @@ def positive_affine_reference(
         middle = left + (right - left) / 2
         lines = []
         for start, end in zip(points, np.roll(points, -1, axis=0), strict=True):
-            if min(start[0], end[0]) < middle < max(start[0], end[0]):
+            # Consecutive vertex abscissas define an open strip. Its midpoint
+            # can round to an endpoint when they are adjacent floats, so use
+            # interval coverage rather than a representable interior sample.
+            if (
+                start[0] != end[0]
+                and min(start[0], end[0]) <= left
+                and max(start[0], end[0]) >= right
+            ):
                 slope = (end[1] - start[1]) / (end[0] - start[0])
                 lines.append((float(start[1] - slope * start[0]), float(slope)))
         if not lines:

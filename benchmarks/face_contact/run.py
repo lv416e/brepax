@@ -28,6 +28,7 @@ from .experiment import (
 )
 from .fixtures import MAIN_RESOLUTION, SPLIT_SEEDS
 from .preparation import collect_prepared_contact
+from .resolution import collect_resolution_controls
 from .stress import collect_cad_controls
 
 
@@ -43,6 +44,7 @@ def run(resolution: int = MAIN_RESOLUTION) -> dict[str, Any]:
         for path in (
             "src/brepax/experimental/planar_contact.py",
             "src/brepax/experimental/planar_contact_cad.py",
+            "src/brepax/experimental/applications/cad_frame.py",
             "src/brepax/boolean/stratum.py",
             "src/brepax/primitives/_base.py",
             "src/brepax/primitives/box.py",
@@ -69,6 +71,7 @@ def run(resolution: int = MAIN_RESOLUTION) -> dict[str, Any]:
         ("cad", collect_cad),
         ("preparation_controls", collect_preparation_controls),
         ("cad_controls", collect_cad_controls),
+        ("resolution_controls", collect_resolution_controls),
         ("grid_controls", collect_grid_controls),
     )
     measurements: dict[str, Any] = {}
@@ -91,7 +94,12 @@ def run(resolution: int = MAIN_RESOLUTION) -> dict[str, Any]:
             )
             evaluation["passed"] &= all(
                 measurements[name]["passed"]
-                for name in ("preparation_controls", "cad_controls", "grid_controls")
+                for name in (
+                    "preparation_controls",
+                    "cad_controls",
+                    "resolution_controls",
+                    "grid_controls",
+                )
             )
         except Exception as error:
             evaluation = {

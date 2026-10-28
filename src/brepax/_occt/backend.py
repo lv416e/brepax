@@ -6,7 +6,7 @@ only this module.
 """
 
 from OCP.Bnd import Bnd_Box
-from OCP.BRep import BRep_Tool
+from OCP.BRep import BRep_Builder, BRep_Tool
 from OCP.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Curve2d, BRepAdaptor_Surface
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepBndLib import BRepBndLib
@@ -46,7 +46,7 @@ from OCP.GeomAbs import (
 from OCP.gp import gp_Ax2, gp_Dir, gp_Pln, gp_Pnt, gp_Trsf, gp_Vec
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
-from OCP.STEPControl import STEPControl_Reader
+from OCP.STEPControl import STEPControl_AsIs, STEPControl_Reader, STEPControl_Writer
 from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
 from OCP.TopAbs import (
     TopAbs_EDGE,
@@ -94,6 +94,7 @@ __all__ = [
     "BRepPrimAPI_MakeTorus",
     "BRepTools",
     "BRepTools_WireExplorer",
+    "BRep_Builder",
     "BRep_Tool",
     "Bnd_Box",
     "GProp_GProps",
@@ -107,7 +108,9 @@ __all__ = [
     "GeomAbs_Sphere",
     "GeomAbs_Torus",
     "IFSelect_RetDone",
+    "STEPControl_AsIs",
     "STEPControl_Reader",
+    "STEPControl_Writer",
     "TColStd_Array1OfInteger",
     "TColStd_Array1OfReal",
     "TopAbs_EDGE",

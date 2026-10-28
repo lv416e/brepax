@@ -89,11 +89,20 @@ class _FacePolygon:
     area: float
     tolerance: float
     wire_residual: float
+    topological_vertices: _Array
 
 
 @dataclass(frozen=True)
 class _SupportedSolid:
     selected: _FacePolygon
+    support_residual: float
+    wire_residual: float
+
+
+@dataclass(frozen=True)
+class _ConvexSolid:
+    faces: tuple[_FacePolygon, ...]
+    topological_vertices: _Array
     support_residual: float
     wire_residual: float
 
@@ -146,7 +155,7 @@ def _extract_face(face: TopoDS_Face) -> _FacePolygon:
     if wire.IsNull():
         raise ValueError("Face has no outer wire")
     explorer = BRepTools_WireExplorer(wire, face)
-    starts, ends, residuals = [], [], []
+    starts, ends, residuals, topological_vertices = [], [], [], []
     while explorer.More():
         edge = explorer.Current()
         if edge.Orientation() not in (TopAbs_FORWARD, TopAbs_REVERSED):
@@ -162,6 +171,7 @@ def _extract_face(face: TopoDS_Face) -> _FacePolygon:
         start = _coordinates(adaptor.Value(uv_start.X(), uv_start.Y()))
         end = _coordinates(adaptor.Value(uv_end.X(), uv_end.Y()))
         vertex = _coordinates(BRep_Tool.Pnt_s(explorer.CurrentVertex()))
+        topological_vertices.append(vertex)
         starts.append(start)
         ends.append(end)
         residuals.extend(
@@ -214,10 +224,11 @@ def _extract_face(face: TopoDS_Face) -> _FacePolygon:
         abs(signed_area),
         float(BRep_Tool.Tolerance_s(face)),
         wire_residual,
+        np.asarray(topological_vertices, dtype=np.float64),
     )
 
 
-def _supported_solid(shape: TopoDS_Shape, face_id: int) -> _SupportedSolid:
+def _convex_solid(shape: TopoDS_Shape) -> _ConvexSolid:
     if shape is None or shape.IsNull():
         raise ValueError("Expected a non-null finite solid")
     if not BRepCheck_Analyzer(shape, True, False, True).IsValid():
@@ -229,10 +240,6 @@ def _supported_solid(shape: TopoDS_Shape, face_id: int) -> _SupportedSolid:
     ):
         raise ValueError("Expected one solid without additional geometry")
     faces = _subshapes(shape, TopAbs_FACE)
-    if isinstance(face_id, bool) or not isinstance(face_id, int):
-        raise ValueError("Face ID must be an integer")
-    if face_id < 0 or face_id >= len(faces):
-        raise ValueError("Selected face ID is outside the shape")
     polygons = [_extract_face(TopoDS.Face_s(face)) for face in faces]
     vertices = np.concatenate([polygon.vertices for polygon in polygons])
     length = float(np.max(np.linalg.norm(vertices - vertices[0], axis=1)))
@@ -244,19 +251,42 @@ def _supported_solid(shape: TopoDS_Shape, face_id: int) -> _SupportedSolid:
         support_residual = max(support_residual, residual)
         if not np.isfinite(residual) or residual > bound:
             raise ValueError("Solid is not convex in its oriented face halfspaces")
-    selected = polygons[face_id]
-    for index, polygon in enumerate(polygons):
-        if index != face_id:
-            distances = (polygon.vertices - selected.origin) @ selected.normal
-            if np.all(np.abs(distances) <= bound):
-                raise ValueError("Selected support plane contains multiple faces")
     properties = GProp_GProps()
     BRepGProp.VolumeProperties_s(shape, properties)
     if not np.isfinite(properties.Mass()) or properties.Mass() <= 0:
         raise ValueError("Solid must have positive finite volume")
-    return _SupportedSolid(
-        selected, support_residual, max(p.wire_residual for p in polygons)
+    topological_vertices = np.unique(
+        np.asarray(
+            [
+                _coordinates(BRep_Tool.Pnt_s(TopoDS.Vertex_s(vertex)))
+                for vertex in _subshapes(shape, TopAbs_VERTEX)
+            ]
+        ),
+        axis=0,
     )
+    return _ConvexSolid(
+        tuple(polygons),
+        topological_vertices,
+        support_residual,
+        max(p.wire_residual for p in polygons),
+    )
+
+
+def _select_support(solid: _ConvexSolid, face_id: int) -> _SupportedSolid:
+    if isinstance(face_id, bool) or not isinstance(face_id, int):
+        raise ValueError("Face ID must be an integer")
+    if face_id < 0 or face_id >= len(solid.faces):
+        raise ValueError("Selected face ID is outside the shape")
+    selected = solid.faces[face_id]
+    vertices = np.concatenate([polygon.vertices for polygon in solid.faces])
+    length = float(np.max(np.linalg.norm(vertices - vertices[0], axis=1)))
+    bound = 2 * _ROUND_OFF * length
+    for index, polygon in enumerate(solid.faces):
+        if index != face_id:
+            distances = (polygon.vertices - selected.origin) @ selected.normal
+            if np.all(np.abs(distances) <= bound):
+                raise ValueError("Selected support plane contains multiple faces")
+    return _SupportedSolid(selected, solid.support_residual, solid.wire_residual)
 
 
 def _intersection_polygon(subject: _Array, clipper: _Array) -> _Array:
@@ -338,8 +368,26 @@ def prepare_planar_contact_reference(
         raise ValueError("Mode must be zero_residual or projected_nominal")
     if jnp.asarray(0.0).dtype != np.dtype("float64"):
         raise ValueError("CAD contact preparation requires JAX x64")
-    fixed = _supported_solid(fixed_shape, fixed_face_id)
-    moving = _supported_solid(moving_shape, moving_face_id)
+    fixed = _select_support(_convex_solid(fixed_shape), fixed_face_id)
+    moving = _select_support(_convex_solid(moving_shape), moving_face_id)
+    return _reference_from_supports(
+        fixed,
+        moving,
+        fixed_face_id=fixed_face_id,
+        moving_face_id=moving_face_id,
+        mode=mode,
+    )
+
+
+def _reference_from_supports(
+    fixed: _SupportedSolid,
+    moving: _SupportedSolid,
+    *,
+    fixed_face_id: int,
+    moving_face_id: int,
+    mode: _Mode,
+) -> PreparedPlanarContact:
+    """Prepare a patch without repeating whole-cell extraction."""
     first, second = fixed.selected, moving.selected
     opposed_residual = float(np.linalg.norm(first.normal + second.normal))
     distances = (second.vertices - first.origin) @ first.normal

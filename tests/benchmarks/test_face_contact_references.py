@@ -62,3 +62,17 @@ def test_zero_endpoints_degeneracy_and_invalid_order():
     assert positive_affine_reference([(0, 0), (1, 0), (2, 0)], (1, 1, 1)) == 0
     with pytest.raises(ValueError, match="convex"):
         positive_affine_reference(SQUARE[[0, 2, 1, 3]], (1, 0, 0))
+
+
+@pytest.mark.parametrize("count", [7, 8])
+def test_regular_polygon_with_adjacent_float_section_boundaries(count):
+    # Symmetric x coordinates differ by an ulp after trig evaluation. A
+    # floating midpoint can coincide with a strip endpoint; no strip may be
+    # misclassified as crossing just one polygon edge.
+    angles = np.arange(count) * (2 * np.pi / count)
+    vertices = np.column_stack((np.cos(angles), np.sin(angles)))
+    # The field is positive everywhere. The regular polygon centroid is zero,
+    # so its integral is twice the independently known polygon area.
+    actual = positive_affine_reference(vertices, (2, 1, 0))
+    expected = count * np.sin(2 * np.pi / count)
+    assert actual == pytest.approx(expected, rel=3e-14)

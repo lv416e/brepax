@@ -81,6 +81,45 @@ sets and compare actual CAD volume at the same finite step, including a panel
 where ordinary normal approach can remove any advantage. Report host setup,
 compilation, synchronized execution, finite-step errors, and tolerance failures.
 
+### Multiple contacts and finite cutter edits
+
+Extend the experimental response to a collection of convex planar patches,
+packed into static-capacity triangle arrays with a mask. Preserve the existing
+single-patch API. Sum the same affine integrals; an empty collection has zero
+response for finite motion. The numerical collection does not itself establish
+that physical contacts exist, are complete, or are counted once.
+
+The bounded CAD model consists of two rigid bodies supplied as finite lists of
+convex polyhedral cells. Require disjoint cell interiors within each body and
+no initial intersection volume between the bodies. Enumerate every cell pair.
+This gives an exact measure partition into component-pair intersections, so
+all positive-area face-contact responses add, including patches sharing edges.
+Retain gapped and lower-dimensional contacts in the inventory even though
+their first-order response is zero. Reject duplicate or overlapping cells.
+Keep source uncertainty and nominal geometry distinct; exact predicates on
+extracted coordinates do not certify the original CAD surfaces.
+Bind each source face to the exact represented support features before
+projecting its polygon. If that association or the true contact patch cannot
+be resolved, reject the pair; a small residual to another face is insufficient.
+
+Use the response to select among supplied rigid cutter directions and finite
+step sizes in a bounded socket example. Normalize candidate motions by a
+physical displacement scale, not a Euclidean norm mixing translations with
+radians. Compare target-removal error and fixed-step material removal with
+single-patch ablations, sampled estimators, actual directional CAD differences,
+and a complete scan of the same finite candidates. Count preparation and
+Boolean calls separately from independent reference measurements. A selected
+action must execute a real Cut, with shape validity and Common/Cut volume
+balance checked. No generic optimizer or collision-free motion certificate
+is introduced.
+
+For resolution studies, retain raw external-coordinate CAD failures alongside
+explicit reconstruction from trusted design dimensions in a fixed `CadFrame`.
+Changing coordinates of an already-built B-Rep retains its tolerance semantics;
+it is a separate comparator, not equivalent to fresh dimension-driven
+construction. The construction frame must not depend on the finite-difference
+step. Resolving an explicit design does not resolve uncertainty in imported CAD.
+
 ## Consequences
 
 The experiment can evaluate volume through a contact without freezing a
@@ -99,11 +138,13 @@ plate ratios and nearly complete stock removal lose relative accuracy in
 floating point. Supported examples do not certify arbitrary aspect ratios,
 second derivatives, or topology-changing edits of general input CAD.
 
-The planar extension handles one isolated opposing contact patch with positive
-thickness, not existing overlap, general multiple contacts, or curved contact
-patches. A directional response is only first-order information: verify the
-chosen finite edit independently. Mixed tilt can create wedges below OCCT's
-resolution even when the continuous response is nonzero.
+The planar extension handles a supplied patch or the stated convex-cell contact
+collection with positive thickness. Existing overlap, arbitrary decomposition
+of nonconvex STEP input, and curved contact patches remain outside its contract.
+A directional response is only first-order information: verify the chosen
+finite edit independently. Mixed tilt can create wedges below OCCT's resolution
+even when the continuous response is nonzero. Edge-only or point-only contact
+can also create finite overlap despite a zero first-order response.
 
 Boundary shape calculus and exact derivatives of cut discretizations are
 established techniques; see [Wegert et al. (2025)](https://arxiv.org/abs/2504.09748v3)
