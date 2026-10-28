@@ -191,6 +191,89 @@ establish a general advantage over ordinary AD or arbitrary CAD support.
         - plate_with_hole_volume
       show_source: false
 
+## Opposing planar face contact
+
+`brepax.experimental.planar_contact` evaluates how intersection volume starts
+changing when two solids move from a known opposing planar contact. It takes
+a convex contact polygon and a translation/rotation direction. Unlike the
+circular-cut example, this is a **one-sided directional response**, generally
+nonlinear in direction, with no single gradient representing every motion.
+
+```python
+import jax
+import jax.numpy as jnp
+
+from brepax.experimental.planar_contact import (
+    planar_contact_volume_direction,
+    prepare_planar_contact_patch,
+)
+
+jax.config.update("jax_enable_x64", True)
+patch = prepare_planar_contact_patch(
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]],
+    origin=[0, 0, 0], basis=[[1, 0], [0, 1], [0, 0]],
+)
+tilts = jnp.array([[1.0, 0, 0], [-1.0, 0, 0]])
+response = jax.jit(jax.vmap(
+    lambda omega: planar_contact_volume_direction(
+        patch, jnp.zeros(3), omega, jnp.zeros(3)
+    )
+))(tilts)
+# Both tilts create overlap: response == [1, 1].
+```
+
+The plane normal is the cross product of the basis columns, outward from the
+fixed solid. Inputs use one length unit; translation is length per unit of the
+dimensionless path parameter and rotation is radians per unit parameter.
+Transform both velocities and the pivot with the geometry under proper rigid
+motion. Scaling lengths and translation by `s` scales the response by `s**3`.
+Changing the pivot requires the compensating translation documented by the API.
+Preparation is host-only and requires x64; queries support `jit` and `vmap`
+with a fixed polygon size. Differentiating a response query does not produce
+the gradient of Boolean volume at contact.
+
+For actual CAD inputs, `prepare_planar_contact_reference` in
+`brepax.experimental.planar_contact_cad` takes two solids and explicit face IDs.
+It checks finite convex polyhedra with straight-edged, single-wire planar
+faces and unique opposing supports. Its required `mode` distinguishes
+`"zero_residual"` from `"projected_nominal"`. Both return a **nominal support
+polygon**, with the source gaps, normal residuals, and tolerances retained in
+`prepared.diagnostics`; neither certifies exact source contact nor repairs
+the solids. Even a positive gap below OCCT tolerance changes the derivative.
+Curved or holed faces, initial overlap, additional contact patches, and general
+nonconvex CAD are outside this bounded preparation contract.
+
+Run the grouped estimator comparison and fresh CAD direction-selection example:
+
+```bash
+uv run --group benchmark python -m benchmarks.face_contact.run --output /tmp/face-contact.json
+```
+
+The same finite motion candidates and action step are evaluated with actual CAD
+volumes. Results include calibration choices, five geometry-group splits,
+ablations, setup/runtime costs, and unsupported or unresolved cases. A good
+infinitesimal direction does not certify a finite edit; tiny CAD wedges can
+fall below OCCT resolution. This experiment does not add a generic optimizer,
+contact detector, or arbitrary STEP topology-editing API. See
+[ADR-0022](../architecture/adr/0022-contact-volume-experiment.md) for the decision
+and the [directional derivation](../explanation/stratification_theory.md#directional-response-at-opposing-planar-contact).
+
+::: brepax.experimental.planar_contact
+    options:
+      members:
+        - PlanarContactPatch
+        - prepare_planar_contact_patch
+        - planar_contact_volume_direction
+      show_source: false
+
+::: brepax.experimental.planar_contact_cad
+    options:
+      members:
+        - prepare_planar_contact_reference
+        - PreparedPlanarContact
+        - PlanarContactDiagnostics
+      show_source: false
+
 ## Other experimental applications
 
 ::: brepax.experimental.applications.mold_direction
