@@ -1,13 +1,15 @@
-"""One-sided volume response at a known isolated opposing planar contact.
+"""One-sided volume responses from supplied opposing planar contact patches.
 
 This is a nonlinear function of a supplied rigid-motion direction, not a
 custom JVP of Boolean volume or a detector of contact in arbitrary geometry.
 """
 
+from collections.abc import Sequence
+
 import equinox as eqx
 import jax.numpy as jnp
 import numpy as np
-from jaxtyping import Array, Float
+from jaxtyping import Array, Bool, Float
 from numpy.typing import ArrayLike
 
 
@@ -28,6 +30,26 @@ class PlanarContactPatch(eqx.Module):
     vertices: Float[Array, "N 2"]
     origin: Float[Array, "3"]
     basis: Float[Array, "3 2"]
+
+
+class PlanarContactSet(eqx.Module):
+    """Packed contact triangles with a fixed capacity and padding mask.
+
+    Create with :func:`prepare_planar_contact_set` outside JAX tracing.
+    Each active row stores one triangle in a patch's local plane coordinates,
+    together with that plane's origin and oriented orthonormal basis. Keeping
+    local coordinates avoids constructing large world-space triangle vertices.
+    The leading dimension is static under JIT; inactive rows contribute zero.
+
+    This record carries supplied geometry, not proof that its patches form a
+    complete, nonoverlapping physical contact set. Keep it fixed when querying
+    motion directions. Its arrays are not a differentiable CAD construction.
+    """
+
+    vertices: Float[Array, "T 3 2"]
+    origins: Float[Array, "T 3"]
+    bases: Float[Array, "T 3 2"]
+    active: Bool[Array, " T"]
 
 
 def prepare_planar_contact_patch(
@@ -80,6 +102,66 @@ def prepare_planar_contact_patch(
         raise ValueError("Polygon must be convex, counterclockwise, and have area.")
     return PlanarContactPatch(
         jnp.asarray(points), jnp.asarray(position), jnp.asarray(axes)
+    )
+
+
+def prepare_planar_contact_set(
+    patches: Sequence[PlanarContactPatch], *, capacity: int | None = None
+) -> PlanarContactSet:
+    """Validate and pack supplied patches into masked triangle arrays.
+
+    Requires JAX x64 and validates each patch using
+    :func:`prepare_planar_contact_patch`. ``capacity`` counts triangles, not
+    patches. Its default is the sum of ``len(vertices)-2`` over the patches;
+    a larger capacity pads with inactive rows. An empty input is allowed and
+    has zero default capacity. Raises ``ValueError`` for a negative/noninteger
+    capacity, insufficient capacity, or an invalid patch.
+
+    Patch interiors must be disjoint as surface regions and the collection
+    must include every positive-area contact relevant to the requested volume
+    response. These geometric conditions are the caller's responsibility:
+    this function neither detects overlaps nor removes duplicates. Repeating
+    a patch counts its contribution twice. Edge-sharing partitions are valid.
+    All patches must use one length unit and outward normals from the same
+    fixed body toward the same moving body.
+    """
+    if jnp.asarray(0.0).dtype != np.dtype("float64"):
+        raise ValueError("Planar contact preparation requires JAX x64.")
+    validated = tuple(
+        prepare_planar_contact_patch(
+            patch.vertices, origin=patch.origin, basis=patch.basis
+        )
+        for patch in patches
+    )
+    count = sum(patch.vertices.shape[0] - 2 for patch in validated)
+    if capacity is None:
+        capacity = count
+    if isinstance(capacity, bool) or not isinstance(capacity, (int, np.integer)):
+        raise ValueError("Triangle capacity must be a nonnegative integer.")
+    if capacity < 0:
+        raise ValueError("Triangle capacity must be a nonnegative integer.")
+    if capacity < count:
+        raise ValueError(f"Triangle capacity {capacity} is smaller than {count}.")
+    vertices = np.zeros((capacity, 3, 2))
+    origins = np.zeros((capacity, 3))
+    bases = np.zeros((capacity, 3, 2))
+    offset = 0
+    for patch in validated:
+        points = np.asarray(patch.vertices)
+        size = len(points) - 2
+        rows = slice(offset, offset + size)
+        vertices[rows] = np.stack(
+            (np.broadcast_to(points[0], (size, 2)), points[1:-1], points[2:]),
+            axis=1,
+        )
+        origins[rows] = np.asarray(patch.origin)
+        bases[rows] = np.asarray(patch.basis)
+        offset += size
+    return PlanarContactSet(
+        jnp.asarray(vertices),
+        jnp.asarray(origins),
+        jnp.asarray(bases),
+        jnp.arange(capacity) < count,
     )
 
 
@@ -178,6 +260,73 @@ def planar_contact_volume_direction(
         axis=-1,
     )
     result = jnp.sum(areas * _positive_triangle_mean(nodal))
+    valid = (
+        jnp.all(jnp.isfinite(linear_velocity))
+        & jnp.all(jnp.isfinite(angular_velocity))
+        & jnp.all(jnp.isfinite(pivot))
+    )
+    return jnp.where(valid, result, jnp.nan)
+
+
+def planar_contact_set_volume_direction(
+    contacts: PlanarContactSet,
+    linear_velocity: Float[Array, "3"],
+    angular_velocity: Float[Array, "3"],
+    pivot: Float[Array, "3"],
+) -> Float[Array, ""]:
+    """Sum positive one-sided overlap responses over supplied contact patches.
+
+    Every active triangle integrates the positive normal approach speed for
+    the common rigid motion specified by ``linear_velocity``,
+    ``angular_velocity`` and ``pivot``. For two finite polyhedral bodies with
+    initially disjoint interiors, this is the intersection-volume derivative
+    when the supplied patches cover all positive-area opposing contacts once
+    and the solids have positive thickness there. Contacts may share edges.
+    Omitted or duplicated patches invalidate the full-body interpretation.
+    Gapped, edge-only and point-only polyhedral contacts contribute no first
+    order volume, but can contribute to a finite edit. A zero response is not
+    a collision-free certificate; independently check every finite edit.
+
+    Supports ``jit`` and ``vmap`` over directions and equally padded sets.
+    Empty sets return zero for finite motions. Nonfinite motion or pivot
+    components return NaN, including for an empty set. Uses the same stable
+    affine triangle integration as :func:`planar_contact_volume_direction`,
+    with the same floating-point limits. Accumulation over many triangles can
+    introduce additional summation error.
+
+    Units, rigid covariance, cubic length scaling and compensated-pivot laws
+    match :func:`planar_contact_volume_direction`. This is a nonlinear map of
+    the supplied direction, not an ordinary JVP. No derivative of this map or
+    of the packed geometry is part of the contract.
+
+    Example::
+
+        unit_square = [[0, 0], [1, 0], [1, 1], [0, 1]]
+        floor = prepare_planar_contact_patch(
+            unit_square, origin=[0, 0, 0], basis=[[1, 0], [0, 1], [0, 0]]
+        )
+        wall = prepare_planar_contact_patch(
+            unit_square, origin=[0, 0, 0], basis=[[0, 0], [1, 0], [0, 1]]
+        )
+        contacts = prepare_planar_contact_set((floor, wall), capacity=8)
+        # Into both walls: each unit-area patch contributes one.
+        response = planar_contact_set_volume_direction(
+            contacts, jnp.array([-1.0, 0, -1]), jnp.zeros(3), jnp.zeros(3)
+        )  # 2.0
+    """
+    normals = jnp.cross(contacts.bases[:, :, 0], contacts.bases[:, :, 1])
+    at_origins = linear_velocity + jnp.cross(angular_velocity, contacts.origins - pivot)
+    slopes = jnp.einsum(
+        "tji,tj->ti", contacts.bases, jnp.cross(angular_velocity, normals)
+    )
+    speeds = -jnp.sum(normals * at_origins, axis=-1)[:, None] + jnp.einsum(
+        "tni,ti->tn", contacts.vertices, slopes
+    )
+    left = contacts.vertices[:, 1] - contacts.vertices[:, 0]
+    right = contacts.vertices[:, 2] - contacts.vertices[:, 0]
+    areas = (left[:, 0] * right[:, 1] - left[:, 1] * right[:, 0]) / 2
+    contributions = areas * _positive_triangle_mean(speeds)
+    result = jnp.sum(jnp.where(contacts.active, contributions, 0.0))
     valid = (
         jnp.all(jnp.isfinite(linear_velocity))
         & jnp.all(jnp.isfinite(angular_velocity))

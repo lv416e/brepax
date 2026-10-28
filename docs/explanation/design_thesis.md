@@ -13,7 +13,7 @@ confusing a numerical surrogate with the intended CAD objective.
 | B: TOI | Unimplemented | Event-time sensitivity alone does not define a static gradient correction |
 | C: relation dispatch | Hard sampled forward value; primitive-volume derivatives or sigmoid STE backward | Sampled relation detection and intersecting-gradient approximation |
 | Experimental circular cut | Analytic disk/rectangle measure and boundary-flux first derivatives | Perpendicular extruded cut; no general CAD reconstruction |
-| Experimental planar contact | Positive one-sided volume response to a supplied rigid direction | Known isolated opposing convex contact patch; nonlinear in direction |
+| Experimental planar contact | Positive one-sided volume response to a supplied rigid direction, including complete collections of opposing planar contacts | Known patches or explicit convex-cell bodies with disjoint interiors; nonlinear in direction; finite edits require CAD validation |
 
 The [stratification explanation](stratification_theory.md) defines the
 current contract and contact regularity. Exact primitive-volume derivatives

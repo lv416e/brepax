@@ -241,7 +241,8 @@ polygon**, with the source gaps, normal residuals, and tolerances retained in
 `prepared.diagnostics`; neither certifies exact source contact nor repairs
 the solids. Even a positive gap below OCCT tolerance changes the derivative.
 Curved or holed faces, initial overlap, additional contact patches, and general
-nonconvex CAD are outside this bounded preparation contract.
+nonconvex CAD are outside this selected-face preparation contract. The collection
+API below handles the separate case of explicitly supplied convex cells.
 
 Run the grouped estimator comparison and fresh CAD direction-selection example:
 
@@ -264,6 +265,9 @@ and the [directional derivation](../explanation/stratification_theory.md#directi
         - PlanarContactPatch
         - prepare_planar_contact_patch
         - planar_contact_volume_direction
+        - PlanarContactSet
+        - prepare_planar_contact_set
+        - planar_contact_set_volume_direction
       show_source: false
 
 ::: brepax.experimental.planar_contact_cad
@@ -272,6 +276,97 @@ and the [directional derivation](../explanation/stratification_theory.md#directi
         - prepare_planar_contact_reference
         - PreparedPlanarContact
         - PlanarContactDiagnostics
+      show_source: false
+
+### Multiple contacts from convex cells
+
+`prepare_planar_contact_set_reference` accepts finite lists of convex
+polyhedral CAD cells for the fixed and moving bodies. The moving cells share
+one rigid motion. It checks every within-body and cross-body pair; same-body
+cell interiors must be disjoint, and initial cross-body overlap is rejected.
+All positive-area contacts contribute to the packed response. Positive gaps
+and edge/point contacts remain in the inventory even though their first-order
+volume response is zero. Shared patch edges are allowed; duplicate cells are
+not.
+
+For example, a cube approaching the floor and wall of an L-shaped stock has
+two unit-area contact patches:
+
+```python
+import jax
+import jax.numpy as jnp
+
+from brepax._occt.backend import BRepPrimAPI_MakeBox, gp_Pnt
+from brepax.experimental.planar_contact import planar_contact_set_volume_direction
+from brepax.experimental.planar_contact_collection_cad import (
+    prepare_planar_contact_set_reference,
+)
+
+jax.config.update("jax_enable_x64", True)
+fixed = [
+    BRepPrimAPI_MakeBox(gp_Pnt(-1, 0, -1), 2, 1, 1).Shape(),
+    BRepPrimAPI_MakeBox(gp_Pnt(-1, 0, 0), 1, 1, 1).Shape(),
+]
+moving = [BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), 1, 1, 1).Shape()]
+prepared = prepare_planar_contact_set_reference(
+    fixed, moving, mode="zero_residual"
+)
+response = planar_contact_set_volume_direction(
+    prepared.contact_set,
+    jnp.array([-1.0, 0, -1]), jnp.zeros(3), jnp.zeros(3),
+)  # 2.0; the finite overlap is 2*t - t**2 for small positive t.
+```
+
+Preparation requires JAX x64. The packed set supports `jit` and `vmap`, with
+optional triangle capacity and masks
+when preparing sets directly. Direct numerical preparation only packages the
+supplied patches; it cannot establish contact completeness or absence of
+duplicates.
+
+The CAD collection uses represented vertex hulls for pair classification and
+retains source-plane residuals for its nominal contact polygons. Neither is a
+certificate for exact source-CAD contact. Unlike selected-face counterfactual
+projection, this collection never promotes a positive represented gap or
+interior overlap into touching: gaps stay separated and overlaps are rejected.
+`"projected_nominal"` only permits the bounded face-residual preparation after
+the represented pair is touching. Source faces must own the exact represented
+support vertices and resolve the same support plane and normal; an unresolved
+thin patch is rejected rather than replaced by another nearby face. Rotating
+and re-extracting adjacent cells can
+introduce tiny represented overlaps and cause conservative rejection. Preparing
+an explicit design in its working frame and then transforming the contact model
+is a distinct route; finite CAD must still be checked after actual placement.
+
+The bounded cutter/socket example selects both a direction and a finite amount,
+then executes an actual stock-minus-cutter Boolean edit:
+
+```bash
+uv run --group benchmark python -m benchmarks.multi_contact.run \
+  --output /tmp/multi-contact.json --step-output /tmp/cutter-edit.step
+```
+
+The report compares target-removal error and fixed-step material removal,
+including single-patch ablations, sampled estimators, actual CAD differences,
+and scanning the same finite candidates. It keeps preparation, compilation,
+query and Boolean costs separate. Common/Cut volume balance and valid shapes
+check the executed action; they do not imply that a requested target volume
+was achieved exactly. First-order selection can miss a better finite action.
+The demonstration STEP assigns millimetres to its generated working lengths
+and is read back to verify volume and validity; it does not infer input units.
+
+The single-contact benchmark also records three CAD resolution routes: raw
+external construction, reconstruction from trusted dimensions in an explicit
+fixed `CadFrame`, and transformation of an already-built B-Rep. Reconstruction
+can resolve a small design feature without resolving uncertainty in imported
+source CAD. A coordinate transform also transforms stored tolerances and is
+not a substitute for constructing the design in suitable working units.
+
+::: brepax.experimental.planar_contact_collection_cad
+    options:
+      members:
+        - prepare_planar_contact_set_reference
+        - PreparedPlanarContactSet
+        - ContactPreparationError
       show_source: false
 
 ## Other experimental applications

@@ -121,6 +121,52 @@ topology; in particular, the latter's Assumption 3.5 excludes birth of a
 full-dimensional overlap from this face contact. These are prior techniques,
 not a direct proof of this event or evidence of theoretical novelty here.
 
+### Several simultaneous polyhedral contacts
+
+Let each body be a finite union of full-dimensional convex polyhedral cells,
+with disjoint cell interiors within each body. All moving cells follow the
+same rigid path, and the two bodies initially have disjoint interiors. Then
+the component-pair intersections partition the total intersection up to
+measure-zero boundaries, even at finite displacement:
+
+$$
+|A\cap g_t(B)|=\sum_{i,j}|A_i\cap g_t(B_j)|.
+$$
+
+Consequently, the positive one-sided volume response is the sum of the
+planar integrals over **all** positive-area component-pair contacts. Shared
+patch edges require no first-order correction. Duplicate or overlapping
+same-body cells invalidate this partition; their contributions cannot simply
+be added. Two initially disjoint convex bodies have a separating plane, so
+nonparallel contact patches require a nonconvex body or a union of cells.
+
+Positive-gap pairs contribute zero for sufficiently small motion. Edge-only
+contacts contribute at most $O(t^2)$ and vertex-only contacts at most $O(t^3)$
+for a fixed nondegenerate polyhedral configuration. They must still be kept
+in the geometry inventory: zero first-order response is not finite-motion
+safety. For example, diagonal motion into an edge can create volume $t^2$.
+A cube moving into an L-shaped corner can instead give $2t-t^2$: the two
+unit-area contacts contribute a first derivative of 2, while the finite
+difference quotient has an $O(t)$ error. Bounds are not uniform as feature
+thicknesses or angles degenerate.
+
+The summed response remains convex and positively homogeneous in the supplied
+rigid direction. It vanishes exactly when the separating normal velocity is
+nonnegative at every vertex of every convex contact polygon. These linear
+inequalities describe a cone of motions without **first-order** penetration,
+not a certificate for a finite edit. Cell ordering and nonoverlapping patch
+subdivision preserve the response, in addition to its rigid-motion, unit,
+and compensated-pivot laws.
+
+This is a local polyhedral derivation using the measure partition above.
+[Kiderlen and Rataj, Theorem 1.1](https://arxiv.org/pdf/1708.09191) establishes
+a related positive-part boundary integral for dilation by finite translation
+sets. [Schymura, Corollary 4](https://arxiv.org/pdf/1010.2446) bounds changes
+of overlap under rigid motions; paths differing by $O(t^2)$ therefore have
+the same first-order response in this bounded setting. Neither result is
+being cited as a theorem about arbitrary source CAD or as a novelty claim
+for this implementation.
+
 ## Current BRepAX Implementation
 
 Method C in `brepax.boolean.stratum` uses a custom VJP:
