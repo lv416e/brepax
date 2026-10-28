@@ -73,7 +73,7 @@ the remaining distinction between surface, face, and solid derivatives.
 
 ## Experimental
 
-- [Applications](applications.md) -- Application demonstrators (mold direction optimizer)
+- [Applications](applications.md) -- Bounded STEP hole editing and application demonstrators
 
 ## STEP and mesh APIs
 

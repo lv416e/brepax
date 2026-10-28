@@ -8,13 +8,16 @@ only this module.
 from OCP.Bnd import Bnd_Box
 from OCP.BRep import BRep_Tool
 from OCP.BRepAdaptor import BRepAdaptor_Curve2d, BRepAdaptor_Surface
+from OCP.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepBndLib import BRepBndLib
 from OCP.BRepBuilderAPI import (
+    BRepBuilderAPI_Copy,
     BRepBuilderAPI_MakeFace,
     BRepBuilderAPI_MakeVertex,
     BRepBuilderAPI_Transform,
 )
 from OCP.BRepCheck import BRepCheck_Analyzer
+from OCP.BRepClass import BRepClass_FaceClassifier
 from OCP.BRepClass3d import BRepClass3d_SolidClassifier
 from OCP.BRepExtrema import BRepExtrema_DistShapeShape
 from OCP.BRepGProp import BRepGProp
@@ -47,6 +50,8 @@ from OCP.TopAbs import (
     TopAbs_FACE,
     TopAbs_FORWARD,
     TopAbs_IN,
+    TopAbs_OUT,
+    TopAbs_REVERSED,
     TopAbs_SOLID,
     TopAbs_VERTEX,
     TopAbs_WIRE,
@@ -62,12 +67,17 @@ from OCP.TopTools import (
 __all__ = [
     "BRepAdaptor_Curve2d",
     "BRepAdaptor_Surface",
+    "BRepAlgoAPI_Common",
+    "BRepAlgoAPI_Cut",
+    "BRepAlgoAPI_Fuse",
     "BRepBndLib",
+    "BRepBuilderAPI_Copy",
     "BRepBuilderAPI_MakeFace",
     "BRepBuilderAPI_MakeVertex",
     "BRepBuilderAPI_Transform",
     "BRepCheck_Analyzer",
     "BRepClass3d_SolidClassifier",
+    "BRepClass_FaceClassifier",
     "BRepExtrema_DistShapeShape",
     "BRepGProp",
     "BRepMesh_IncrementalMesh",
@@ -97,6 +107,8 @@ __all__ = [
     "TopAbs_FACE",
     "TopAbs_FORWARD",
     "TopAbs_IN",
+    "TopAbs_OUT",
+    "TopAbs_REVERSED",
     "TopAbs_SOLID",
     "TopAbs_VERTEX",
     "TopAbs_WIRE",
