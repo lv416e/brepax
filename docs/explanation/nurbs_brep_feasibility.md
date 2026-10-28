@@ -62,8 +62,9 @@ derivatives depend on which data are allowed to move:
 
 The [CAD editing benchmark](https://github.com/lv416e/brepax/tree/main/benchmarks/cad_editing)
 provides a bounded roof/through-hole family with coupled boundary motion.
-Its derivative comparisons use a shared working mesh. The inverse-edit
-benchmark separately checks rebuilt CAD, fresh meshing, and STEP roundtrips
+Its JAX/AD evaluations use a shared working mesh. Finite-difference reference
+derivatives rebuild CAD at each perturbed dimension. The inverse-edit benchmark
+separately checks rebuilt CAD, fresh meshing, and STEP roundtrips
 after rigid transformations and unit changes. These checks apply to the
 supplied family; they do not establish arbitrary STEP editing, derivatives
 through remeshing, or topology-changing edits.
