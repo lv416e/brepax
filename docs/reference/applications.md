@@ -136,6 +136,61 @@ accuracy: check the rebuilt CAD and refine the discretization when necessary.
         - RejectedHole
       show_source: false
 
+## Circular cut crossing a plate edge
+
+`brepax.experimental.contact` evaluates the remaining volume of a rectangular
+plate after a perpendicular circular through-cut, including the transition
+from an enclosed hole to an open notch. It integrates the analytic boundary
+and differentiates that same continuous volume. It does not accept arbitrary
+STEP input or rebuild a solid; the imported-hole API above retains its
+clearance constraints.
+
+Use a source checkout containing this experimental module for the example
+and benchmark below.
+
+```python
+import jax
+import jax.numpy as jnp
+
+from brepax.experimental.contact import plate_with_hole_volume
+
+jax.config.update("jax_enable_x64", True)
+center = jnp.array([1.5, 0.2])
+half_extents = jnp.array([3.0, 2.0])
+height = jnp.array(2.0)
+
+def volume(radius):
+    return plate_with_hole_volume(center, radius, half_extents, height)
+
+# First contact is at radius 1.5; 1.7 opens the right edge.
+value, derivative = jax.jit(jax.value_and_grad(volume))(jnp.array(1.7))
+```
+
+Use one length unit and local plate coordinates. All parameters support first
+derivatives; exact contact can have a smooth volume even when the solid's
+boundary pinches and its mesh is not closed. Moving a fully enclosed hole's
+center at fixed radius correctly has zero volume derivative. See
+[ADR-0022](../architecture/adr/0022-contact-volume-experiment.md) for the
+scope, numerical limitations, and comparison requirements.
+
+Run the independent geometry and estimator comparison from a checkout:
+
+```bash
+uv run --group benchmark python -m benchmarks.contact_transition.run --cad --output /tmp/contact.json
+```
+
+The output retains failed cases, all declared smoothing choices, finite-difference
+steps, fresh OCCT and mesh checks, and synchronized execution costs. Ordinary
+AD of the same analytic primal is included. These bounded comparisons do not
+establish a general advantage over ordinary AD or arbitrary CAD support.
+
+::: brepax.experimental.contact
+    options:
+      members:
+        - circle_rectangle_intersection_area
+        - plate_with_hole_volume
+      show_source: false
+
 ## Other experimental applications
 
 ::: brepax.experimental.applications.mold_direction
