@@ -25,7 +25,7 @@ from brepax.brep.csg_stump import (
     stump_to_differentiable,
 )
 from brepax.io.step import read_step
-from brepax.primitives import Box, FiniteCylinder
+from brepax.primitives import Box, FiniteCylinder, Plane, Sphere
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
@@ -471,6 +471,199 @@ class TestGroupStumpPrimitives:
 
 class TestStratumDispatch:
     """Stratum dispatch on grouped CSG-Stumps."""
+
+    @pytest.mark.parametrize(
+        ("radii", "signs", "expected", "relative_tolerance"),
+        [
+            ([1.0, 3.0, 2.0], [1, 1, 1], 4 * np.pi / 3, 0.01),
+            ([1.0, 0.9, 0.9], [1, -1, -1], 4 * np.pi / 3 * (1 - 0.9**3), 0.06),
+            ([1.0, 3.0, 0.5], [1, 1, -1], 4 * np.pi / 3 * (1 - 0.5**3), 0.01),
+        ],
+    )
+    def test_multibody_compositions_use_full_dnf(
+        self,
+        radii: list[float],
+        signs: list[int],
+        expected: float,
+        relative_tolerance: float,
+    ) -> None:
+        """Unsupported shortcuts leave all operands to the full DNF evaluator."""
+        stump = CSGStump(
+            primitives=[
+                Sphere(center=jnp.zeros(3), radius=jnp.array(radius))
+                for radius in radii
+            ],
+            intersection_matrix=jnp.array([signs]),
+            union_mask=jnp.ones(1),
+        )
+        assert evaluate_stump_volume_stratum(stump, resolution=32) is None
+        # Bounds enclose the complete intersection, not every unused outer shell.
+        coarse, fine = (
+            float(
+                evaluate_stump_volume(
+                    stump,
+                    resolution=resolution,
+                    lo=-1.5 * jnp.ones(3),
+                    hi=1.5 * jnp.ones(3),
+                )
+            )
+            for resolution in (64, 128)
+        )
+        assert abs(fine - expected) < abs(coarse - expected)
+        assert fine == pytest.approx(expected, rel=relative_tolerance)
+
+    @pytest.mark.parametrize("rows", [[[1], [1]], [[1], [-1]], [[1], [0]]])
+    def test_overlapping_or_unbounded_union_is_not_a_sum(
+        self, rows: list[list[int]]
+    ) -> None:
+        stump = CSGStump(
+            primitives=[Box(center=jnp.zeros(3), half_extents=jnp.ones(3))],
+            intersection_matrix=jnp.array(rows),
+            union_mask=jnp.ones(len(rows)),
+        )
+        assert evaluate_stump_volume_stratum(stump) is None
+
+    @pytest.mark.parametrize("sign", [-1, 0])
+    def test_unbounded_term_has_no_finite_shortcut(self, sign: int) -> None:
+        stump = CSGStump(
+            primitives=[Box(center=jnp.zeros(3), half_extents=jnp.ones(3))],
+            intersection_matrix=jnp.array([[sign]]),
+            union_mask=jnp.ones(1),
+        )
+        assert evaluate_stump_volume_stratum(stump) is None
+
+    @pytest.mark.parametrize("rows", [[], [[1]], [[0]]])
+    def test_empty_union_volume_is_zero(self, rows: list[list[int]]) -> None:
+        stump = CSGStump(
+            primitives=[Sphere(center=jnp.zeros(3), radius=jnp.array(1.0))],
+            intersection_matrix=jnp.array(rows).reshape(-1, 1),
+            union_mask=jnp.zeros(len(rows)),
+        )
+        volume = evaluate_stump_volume_stratum(stump)
+        assert volume is not None
+        assert float(volume) == 0.0
+
+    @pytest.mark.parametrize("scale", [1e-3, 1.0, 1e3])
+    def test_contained_disjoint_cuts_preserve_analytic_volume(
+        self, scale: float
+    ) -> None:
+        stump = CSGStump(
+            primitives=[
+                Box(center=jnp.zeros(3), half_extents=5 * scale * jnp.ones(3)),
+                Box(
+                    center=scale * jnp.array([-3.0, 0.0, 0.0]),
+                    half_extents=0.5 * scale * jnp.ones(3),
+                ),
+                Sphere(center=jnp.zeros(3), radius=jnp.array(0.5 * scale)),
+                FiniteCylinder(
+                    center=scale * jnp.array([3.0, 0.0, 0.0]),
+                    axis=jnp.array([0.0, 0.0, 1.0]),
+                    radius=jnp.array(0.5 * scale),
+                    height=jnp.array(2.0 * scale),
+                ),
+            ],
+            intersection_matrix=jnp.array([[1, -1, -1, -1]]),
+            union_mask=jnp.ones(1),
+        )
+        volume = evaluate_stump_volume_stratum(stump)
+        assert volume is not None
+        assert float(volume) / scale**3 == pytest.approx(
+            1000 - 1 - np.pi / 6 - np.pi / 2
+        )
+
+    @pytest.mark.parametrize("separation", [0.0, 1.0])
+    def test_overlapping_cuts_in_box_are_not_subtracted_twice(
+        self, separation: float
+    ) -> None:
+        stump = CSGStump(
+            primitives=[
+                Box(center=jnp.zeros(3), half_extents=2 * jnp.ones(3)),
+                Sphere(center=jnp.zeros(3), radius=jnp.array(1.0)),
+                Sphere(center=jnp.array([separation, 0.0, 0.0]), radius=jnp.array(1.0)),
+            ],
+            intersection_matrix=jnp.array([[1, -1, -1]]),
+            union_mask=jnp.ones(1),
+        )
+        assert evaluate_stump_volume_stratum(stump) is None
+
+    def test_tilted_cylinders_must_fit_inside_stock(self) -> None:
+        """A cylinder's coordinate extent can exceed both radius and half-height."""
+        stump = CSGStump(
+            primitives=[
+                Box(center=jnp.zeros(3), half_extents=jnp.array([1.0, 1.0, 4.0])),
+                *[
+                    FiniteCylinder(
+                        center=jnp.array([0.0, 0.0, z]),
+                        axis=jnp.array([1.0, 1.0, 0.0]) / jnp.sqrt(2),
+                        radius=jnp.array(1.0),
+                        height=jnp.array(2.0),
+                    )
+                    for z in (-2.0, 2.0)
+                ],
+            ],
+            intersection_matrix=jnp.array([[1, -1, -1]]),
+            union_mask=jnp.ones(1),
+        )
+        assert evaluate_stump_volume_stratum(stump) is None
+
+    @pytest.mark.parametrize(
+        ("translation", "dtype"), [(1e8, jnp.float32), (1e16, jnp.float64)]
+    )
+    def test_large_translation_does_not_make_duplicate_cuts_disjoint(
+        self, translation: float, dtype: type
+    ) -> None:
+        center = jnp.full(3, translation, dtype=dtype)
+        stump = CSGStump(
+            primitives=[
+                Box(center=center, half_extents=jnp.ones(3, dtype=dtype)),
+                Sphere(center=center, radius=jnp.array(1.0, dtype=dtype)),
+                Sphere(center=center, radius=jnp.array(1.0, dtype=dtype)),
+            ],
+            intersection_matrix=jnp.array([[1, -1, -1]]),
+            union_mask=jnp.ones(1),
+        )
+        assert evaluate_stump_volume_stratum(stump) is None
+
+    def test_clipped_box_retains_width_at_large_translation(self) -> None:
+        center = jnp.full(3, 1e8, dtype=jnp.float32)
+        stump = CSGStump(
+            primitives=[
+                Box(center=center, half_extents=jnp.ones(3, dtype=jnp.float32)),
+                Plane(normal=jnp.array([1.0, 0.0, 0.0]), offset=center[0]),
+            ],
+            intersection_matrix=jnp.array([[1, 1]]),
+            union_mask=jnp.ones(1),
+        )
+        volume = evaluate_stump_volume_stratum(stump)
+        assert volume is not None
+        assert float(volume) == pytest.approx(4.0)
+
+    def test_inactive_terms_and_unused_primitives_do_not_disable_shortcut(self) -> None:
+        stump = CSGStump(
+            primitives=[
+                Sphere(center=jnp.zeros(3), radius=jnp.array(1.0)),
+                Plane(normal=jnp.array([1.0, 0.0, 0.0]), offset=jnp.array(0.0)),
+            ],
+            intersection_matrix=jnp.array([[1, 0], [0, 1]]),
+            union_mask=jnp.array([1, 0]),
+        )
+        volume = evaluate_stump_volume_stratum(stump)
+        assert volume is not None
+        assert float(volume) == pytest.approx(4 * np.pi / 3)
+
+    def test_oblique_plane_cannot_use_axis_aligned_clipping(self) -> None:
+        stump = CSGStump(
+            primitives=[
+                Box(center=jnp.zeros(3), half_extents=jnp.ones(3)),
+                Plane(
+                    normal=jnp.array([1.0, 1.0, 0.0]) / jnp.sqrt(2),
+                    offset=jnp.array(0.5),
+                ),
+            ],
+            intersection_matrix=jnp.array([[1, 1]]),
+            union_mask=jnp.ones(1),
+        )
+        assert evaluate_stump_volume_stratum(stump) is None
 
     def test_holes_stratum_precision(self) -> None:
         """box_with_holes (single-term): stratum dispatch < 0.1% error."""
