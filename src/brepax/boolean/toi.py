@@ -1,11 +1,7 @@
-"""Time-of-impact corrected Boolean operations.
+"""Placeholder for time-of-impact research; no Boolean implementation.
 
-Implementation deferred to hybrid optimizer context.
-Mathematical derivation complete: see docs/explanation/toi_derivation.md.
-Design rationale: see ADR-0009 (deferral) and ADR-0011 (hybrid strategy).
-
-The TOI correction provides cross-stratum gradient transfer via the
-implicit function theorem, complementing Method (C) stratum-aware
-gradients which are exact within each stratum but zero for
-stratum-invariant design variables.
+The implicit function theorem differentiates a transverse event time; it does
+not justify the previously proposed correction to a static Boolean gradient.
+See docs/explanation/toi_derivation.md for the distinction and counterexample,
+and ADR-0009 for the continued deferral.
 """

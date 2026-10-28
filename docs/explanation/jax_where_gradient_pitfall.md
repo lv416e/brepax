@@ -37,10 +37,18 @@ cos_alpha = jnp.clip(
 )
 ```
 
-The `eps` margin ensures that `arccos` never evaluates at exactly +/-1, where its gradient is infinite. The `safe_d` floor prevents division by zero. Both modifications only affect branches that are masked out by `jnp.where`, so forward-pass accuracy is unchanged.
+The `eps` margin keeps `arccos` away from +/-1, and `safe_d` prevents division
+by zero. These safeguards can also modify the selected lens branch near
+tangency or at very small scales. They therefore change values and derivatives
+there; finiteness alone does not establish accuracy. The distance floor has
+length units, while the cosine margin is dimensionless. Near-contact checks
+need independent limits or stable formulas outside the clipping regime.
 
 ## Relation to Custom VJP
 
-This workaround is a pragmatic fix for the analytical ground truth function. The general solution is `jax.custom_vjp`, which allows computing the correct gradient per stratum without evaluating unused branches. This is the approach adopted for the stratum-aware Boolean method (see ADR-0004).
-
-The safe-primal pattern and the custom_vjp approach are complementary: safe primals prevent NaN in simple functions where custom_vjp would be over-engineering, while custom_vjp provides exact gradients at stratum boundaries where safe primals only suppress NaN without correcting the gradient value.
+Safe primals address invalid intermediate derivatives. A custom VJP permits
+a separately specified backward rule, but does not itself make that rule
+exact or prevent evaluation of unused expressions. BRepAX currently evaluates
+candidate gradients and selects with array operations; its intersecting rule
+is a grid STE. See [ADR-0004](../architecture/adr/0004-custom-vjp-at-boundaries.md)
+and the [implementation contract](stratification_theory.md#current-brepax-implementation).

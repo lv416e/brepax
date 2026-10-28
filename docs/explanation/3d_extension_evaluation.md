@@ -1,12 +1,18 @@
 # 3D Extension Evaluation Report
 
+Historical evaluation, not a current acceptance report. Counts and numbers
+below describe the original fixtures and have not been regenerated here.
+The current [implementation contract](stratification_theory.md#current-brepax-implementation)
+qualifies analytical exactness on correct sampled classification and finite
+primitive formulas; it does not guarantee arbitrary-pair accuracy.
+
 ## Summary
 
-**Overall verdict: PASS**
+**Historical verdict: PASS on the selected fixtures.**
 
 The 3D extension extends the concept proof to 3D with 8 primitive types, 3 Boolean operations,
-and a unified stratum dispatch architecture. The core design principle (stratum-aware
-gradient computation) is fully generalized to arbitrary primitive pairs.
+and a unified stratum dispatch architecture. Dispatch accepts heterogeneous
+primitive pairs, but that interface coverage is not a general accuracy result.
 
 | Gate | Criterion | Result |
 |------|-----------|--------|
@@ -48,10 +54,11 @@ applied to these formulas in the stratum dispatch backward pass.
 | dimension | Method (C) error | Method (A) error | ratio |
 |-----------|-----------------|-----------------|-------|
 | 2D (res=128) | 0.14% | 0.89% | 6.4x |
-| 3D (res=128) | 0.22% | not measured | expected similar ratio |
+| 3D (res=128) | 0.22% | not measured | comparison unavailable |
 
-Resolution scaling confirmed as second-order convergent:
-resolution 2x -> error ~1/4 (2D measured at res=64/128/256/512).
+The selected 2D sweep reported approximately fourfold error reduction when
+resolution doubled (64/128/256/512). This does not establish a universal
+second-order rate, near-contact accuracy, or a 3D advantage over Method A.
 
 ## Gate 2: Boolean Operation Coverage
 
@@ -126,13 +133,13 @@ Sphere - FiniteCylinder subtract with optimization convergence:
 | 0.001 | 0.753 | 1.40% |
 | 0.003 | 0.758 | 1.40% |
 
-The drilling configuration is always in the intersecting stratum (cylinder
-penetrates sphere), so analytical exact does not apply. Grid-based precision
-at 6x the accuracy of smoothing methods.
+The reported drilling configuration is intersecting (cylinder penetrates
+sphere), so analytical exactness does not apply. The separate 2D comparison
+does not establish a sixfold accuracy advantage for this drilling case.
 
 ## Recommendation
 
-**Proceed to public launch preparation.** The 3D extension validates the complete
-3D architecture with 8 primitives, 3 Boolean operations, and stratum-aware
-gradient computation achieving analytical exactness in 3 of 4 strata for
-bounded primitive pairs.
+The original launch recommendation was based on these fixtures. It is not a
+current release gate or a proof of exactness in three quarters of parameter
+space. Use the [current theory and numerical scope](stratification_theory.md)
+when interpreting these historical results.
