@@ -106,3 +106,4 @@ nav:
           - "ADR-0019: Marschner Composition Scope": architecture/adr/0019-marschner-composition-scope.md
           - "ADR-0020: Marschner B-spline CSG Scope": architecture/adr/0020-marschner-bspline-csg-scope.md
           - "ADR-0021: Bounded Through-hole Editing": architecture/adr/0021-bounded-through-hole-editing.md
+          - "ADR-0022: Contact Volume Experiment": architecture/adr/0022-contact-volume-experiment.md
