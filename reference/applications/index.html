@@ -1257,6 +1257,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#circular-cut-crossing-a-plate-edge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Circular cut crossing a plate edge
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.experimental.contact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        contact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="contact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.contact.circle_rectangle_intersection_area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        circle_rectangle_intersection_area
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.contact.plate_with_hole_volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plate_with_hole_volume
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#other-experimental-applications" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2171,6 +2221,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/0022-contact-volume-experiment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0022: Contact Volume Experiment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2401,6 +2479,56 @@
     <span class="md-ellipsis">
       
         prepare_hole_edit
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#circular-cut-crossing-a-plate-edge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Circular cut crossing a plate edge
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.experimental.contact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        contact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="contact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.contact.circle_rectangle_intersection_area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        circle_rectangle_intersection_area
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.contact.plate_with_hole_volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plate_with_hole_volume
       
     </span>
   </a>
@@ -3120,6 +3248,162 @@ edited_cad = edit.rebuild(radii)</p>
 </details>        <p>To move a hole, pass <code>center_shifts</code> in external units to the model and
 <code>rebuild</code>. For a selected Z-axis hole, <code>jnp.array([[0.1, 0.0, 0.0]])</code>
 moves its center in X; check the combined budget with <code>is_valid</code> first.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="circular-cut-crossing-a-plate-edge">Circular cut crossing a plate edge<a class="headerlink" href="#circular-cut-crossing-a-plate-edge" title="Permanent link">&para;</a></h2>
+<p><code>brepax.experimental.contact</code> evaluates the remaining volume of a rectangular
+plate after a perpendicular circular through-cut, including the transition
+from an enclosed hole to an open notch. It integrates the analytic boundary
+and differentiates that same continuous volume. It does not accept arbitrary
+STEP input or rebuild a solid; the imported-hole API above retains its
+clearance constraints.</p>
+<p>Use a source checkout containing this experimental module for the example
+and benchmark below.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.contact</span><span class="w"> </span><span class="kn">import</span> <span class="n">plate_with_hole_volume</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">center</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">])</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">half_extents</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">])</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">height</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">volume</span><span class="p">(</span><span class="n">radius</span><span class="p">):</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">return</span> <span class="n">plate_with_hole_volume</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">half_extents</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c1"># First contact is at radius 1.5; 1.7 opens the right edge.</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">value</span><span class="p">,</span> <span class="n">derivative</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">value_and_grad</span><span class="p">(</span><span class="n">volume</span><span class="p">))(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mf">1.7</span><span class="p">))</span>
+</code></pre></div>
+<p>Use one length unit and local plate coordinates. All parameters support first
+derivatives; exact contact can have a smooth volume even when the solid's
+boundary pinches and its mesh is not closed. Moving a fully enclosed hole's
+center at fixed radius correctly has zero volume derivative. See
+<a href="../../architecture/adr/0022-contact-volume-experiment/">ADR-0022</a> for the
+scope, numerical limitations, and comparison requirements.</p>
+<p>Run the independent geometry and estimator comparison from a checkout:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.contact_transition.run<span class="w"> </span>--cad<span class="w"> </span>--output<span class="w"> </span>/tmp/contact.json
+</code></pre></div>
+<p>The output retains failed cases, all declared smoothing choices, finite-difference
+steps, fresh OCCT and mesh checks, and synchronized execution costs. Ordinary
+AD of the same analytic primal is included. These bounded comparisons do not
+establish a general advantage over ordinary AD or arbitrary CAD support.</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="brepax.experimental.contact" class="doc doc-heading">
+            <code>brepax.experimental.contact</code>
+
+
+<a href="#brepax.experimental.contact" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Analytic area and first shape derivatives for a circular cut in a rectangle.</p>
+<p>This limited experiment uses Green's theorem and boundary flux, not a sampled
+indicator or a correction to a future contact event. It does not edit a B-Rep.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.experimental.contact.circle_rectangle_intersection_area" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">circle_rectangle_intersection_area</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">half_extents</span><span class="p">)</span></code>
+
+<a href="#brepax.experimental.contact.circle_rectangle_intersection_area" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Area of a disk intersected with a centered, axis-aligned rectangle.</p>
+<p>All inputs use one length unit. <code>center</code> is in the rectangle's local
+frame; <code>radius</code> and both <code>half_extents</code> must be positive and finite.
+Invalid numerical inputs return NaN for the value and first derivatives.
+Use floating JAX arrays of matching dtype; x64 is recommended near contact.</p>
+<p>Supports <code>jit</code>, <code>vmap</code>, JVP and reverse-mode first derivatives in all
+arguments, including at circle/edge and circle/corner contacts (C1).
+The custom JVP integrates normal boundary velocity for the same continuous
+area as the primal. It avoids differentiating singular arc endpoints whose
+contributions cancel and arbitrary AD conventions at tied sorted endpoints.
+Only first derivatives are part of this contract;
+second derivatives may not exist at contact.</p>
+<p>Scaling all lengths by s&gt;0 scales area by s**2 and length derivatives by s.
+The local frame must move with the rectangle under rigid transformations.
+Tiny remaining areas and extreme radius/rectangle ratios can lose relative
+floating-point accuracy; this is not a general robust Boolean kernel.</p>
+<p>Example::</p>
+<div class="highlight"><pre><span></span><code>area = circle_rectangle_intersection_area(
+    jnp.array([1.5, 0.2]), jnp.array(1.8), jnp.array([3.0, 2.0])
+)
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.experimental.contact.plate_with_hole_volume" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">plate_with_hole_volume</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">half_extents</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span></code>
+
+<a href="#brepax.experimental.contact.plate_with_hole_volume" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Remaining volume after a perpendicular circular through-cut in a plate.</p>
+<p>The stock is <code>[-bx,bx] x [-by,by] x [0,height]</code>; the cutter spans its
+full height. The cut may open through edges or corners, unlike bounded
+fixed-topology hole editing. This function evaluates a scalar; it does
+not regenerate CAD or accept arbitrary STEP geometry.</p>
+<p>Inputs are floating JAX arrays in one length unit. Positive finite sizes
+are required; invalid inputs produce NaN values and first derivatives.
+First differentiation in all
+arguments and JAX transformations follow <code>circle_rectangle_intersection_area</code>.
+Volume scales as length cubed and length derivatives as length squared.
+Interior center motion correctly has zero volume derivative. Near total
+stock removal, subtraction limits relative accuracy of the remaining volume.</p>
+<p>Example::</p>
+<div class="highlight"><pre><span></span><code>radius = jnp.array(1.8)
+objective = lambda r: plate_with_hole_volume(
+    jnp.array([1.5, 0.2]), r, jnp.array([3.0, 2.0]), jnp.array(2.0)
+)
+volume, dvolume_dr = jax.value_and_grad(objective)(radius)
+</code></pre></div>
 
 
     </div>
