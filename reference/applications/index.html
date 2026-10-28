@@ -2559,7 +2559,7 @@
 preparation. Their individual contracts define differentiation and input scope.</p>
 <h2 id="step-through-hole-editing">STEP through-hole editing<a class="headerlink" href="#step-through-hole-editing" title="Permanent link">&para;</a></h2>
 <p><code>prepare_hole_edit</code> recognizes cylindrical through-holes in a supplied B-Rep.
-It can edit selected radii without reconstructing the stock's modeling history.
+It can edit selected radii and centers without reconstructing the stock's modeling history.
 The JAX model moves hole walls and adjoining planar boundaries together; the
 host <code>rebuild</code> method produces a new OCCT shape for further use or STEP export.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">equinox</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">eqx</span>
@@ -2584,6 +2584,17 @@ host <code>rebuild</code> method produces a new OCCT shape for further use or ST
 <a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">)</span>
 <a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="n">edited_shape</span> <span class="o">=</span> <span class="n">edit</span><span class="o">.</span><span class="n">rebuild</span><span class="p">(</span><span class="n">radii</span><span class="p">)</span>
 </code></pre></div>
+<p>Center motion uses an optional second argument, <code>center_shifts</code>, with one
+world-coordinate displacement vector per selected hole. It is measured from
+the original center in input CAD units. The hole axis stays fixed; shifts must
+be perpendicular to it. Omitting the argument preserves radius-only behavior.
+For the Z-axis holes in the fixture below:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">shifts</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.2</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]])</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">assert</span> <span class="nb">bool</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">filter_jit</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">is_valid</span><span class="p">)(</span><span class="n">radii</span><span class="p">,</span> <span class="n">shifts</span><span class="p">))</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">center</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">center_of_mass</span><span class="p">(</span><span class="n">radii</span><span class="p">,</span> <span class="n">shifts</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">center_jacobian</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jacrev</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">center_of_mass</span><span class="p">,</span> <span class="n">argnums</span><span class="o">=</span><span class="mi">1</span><span class="p">))(</span><span class="n">radii</span><span class="p">,</span> <span class="n">shifts</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">edited_shape</span> <span class="o">=</span> <span class="n">edit</span><span class="o">.</span><span class="n">rebuild</span><span class="p">(</span><span class="n">radii</span><span class="p">,</span> <span class="n">shifts</span><span class="p">)</span>
+</code></pre></div>
 <p>For a reproducible repository example, use <code>tests/fixtures/box_with_holes.step</code>
 as <code>part.step</code>. Its radius-4 through-hole can be selected and changed to 4.4;
 the other radius-3 hole remains unchanged. The tests also cover rectangular
@@ -2598,7 +2609,7 @@ STEP roundtrips, and independent CAD finite-difference references.</p>
   explicit selection of an unsupported face raises <code>ValueError</code>. A counterbore
   shoulder is not a valid end for its larger cylinder; the smaller bore through
   the remaining slab can still qualify independently.</li>
-<li>Radii, hole metadata, returned points and metrics use the input CAD's units.
+<li>Radii, center shifts, hole metadata, returned points and metrics use the input CAD's units.
   A fixed <code>CadFrame</code> normalizes host preparation and numerical evaluation. By
   default, the input bounding box is centered and its largest extent becomes
   40 working units. The <code>deflection</code> argument is in <strong>working units</strong>, not the
@@ -2606,18 +2617,27 @@ STEP roundtrips, and independent CAD finite-difference references.</p>
 <li>Preparation requires JAX x64. Recognition and CAD rebuilding run outside
   <code>jit</code>, <code>vmap</code> and differentiation. Geometry/metric methods support all three;
   the Boolean validity predicate supports <code>jit</code>/<code>vmap</code>. Keep the prepared model
-  fixed when differentiating with respect to radii. For direct compilation of
+  fixed when differentiating with respect to radii or shifts. For direct compilation of
   a bound model method, use <code>eqx.filter_jit(model.volume)</code>; bare
   <code>jax.jit(model.volume)</code> can fail because the bound Equinox model contains
   unhashable arrays. Alternatively, JIT a function taking the model as a PyTree
   argument. Compositions such as the <code>value_and_grad</code> example above also work.</li>
-<li>Radius bounds are <code>[0.5*r0, r0 + 0.2*clearance]</code>. <code>model.is_valid</code> also checks
+<li>Radius bounds are <code>[0.5*r0, r0 + 0.2*clearance]</code>. Center shifts and radius
+  growth share that clearance: <code>norm(shift) + max(radius-r0, 0)</code> must not exceed
+  <code>0.2*clearance</code>, even when shrinking a hole. Axial shifts are invalid beyond
+  roundoff (<code>64 * x64_epsilon * r0</code>); the residual is projected out.
+  <code>model.is_valid</code> also checks
   local triangle orientation. Invalid edits return NaN geometry/metrics under
   JAX; <code>rebuild</code> raises. Gradients at invalid inputs are undefined.</li>
 <li>Volume and area are rigid-motion invariant; their radius gradients are too.
   Under positive length scaling <code>s</code>, values scale by <code>s**3</code> and <code>s**2</code>, and
   radius gradients by <code>s**2</code> and <code>s</code>. Centers/vertices transform as points;
   center radius derivatives rotate as vectors and are unchanged by unit scaling.
+  Rotate center shifts with the geometry. Scalar shift gradients rotate as
+  vectors and scale like radius gradients. The center-of-mass shift Jacobian
+  transforms as <code>R @ J @ R.T</code> and is unchanged by unit scaling. These Jacobians
+  describe transverse motion, with zero axial component; they do not authorize
+  editing the hole depth or orientation.
   Fresh meshing may change discretization error, so compare within an accuracy
   budget rather than demanding identical triangulations.</li>
 <li>Gradients describe a frozen mesh with coupled boundary motion. They do not
@@ -2625,8 +2645,10 @@ STEP roundtrips, and independent CAD finite-difference references.</p>
   check CAD before accepting an optimized design; refine <code>deflection</code> when
   value or derivative accuracy is insufficient. The local validity predicate
   is not a general self-intersection certificate.</li>
-<li>Face IDs apply only to the prepared input. Do not assume that Boolean output
-  or a STEP roundtrip preserves them.</li>
+<li>Face IDs apply only to the prepared input. Reconstruction unifies connected
+  same-domain faces and edges to remove fill seams; unselected geometry stays
+  fixed, but its face partition can change. Do not assume that Boolean output
+  or a STEP roundtrip preserves face IDs.</li>
 </ul>
 <p>See <a href="../../architecture/adr/0021-bounded-through-hole-editing/">ADR-0021</a> for the
 scope decision.</p>
@@ -2636,6 +2658,11 @@ noncollinear holes, fits their radii to independently generated CAD volume and
 in-plane center-of-mass targets, and validates the rebuilt STEP while preserving
 the fourth hole. Its Newton iteration checks the Jacobian rank and edit bounds;
 it is a reproducible example, not a general-purpose optimizer API.</p>
+<p>Another regression solves a selected hole's radius and two transverse center
+coordinates from independent CAD volume and in-plane center-of-mass targets,
+then checks the rebuilt STEP and the unchanged neighboring hole. Moving an
+isolated hole at fixed radius leaves volume and area unchanged; those two
+measurements alone cannot determine a center position.</p>
 <p>Choose enough independent target measurements. For four coplanar equal-height
 holes, volume and even the full 3D center of mass need not determine all four
 radii uniquely. A small mesh optimization residual also does not certify CAD
@@ -2654,7 +2681,7 @@ accuracy: check the rebuilt CAD and refine the discretization when necessary.</p
 
     <div class="doc doc-contents first">
 
-        <p>Experimental fixed-topology radius editing of cylindrical STEP through-holes.</p>
+        <p>Experimental fixed-topology radius and center editing of STEP through-holes.</p>
 <p>Host preparation/reconstruction uses OCCT. The array model couples cylindrical
 walls and planar end boundaries on one frozen, welded mesh. It does not trace
 through feature recognition, Boolean rebuilding, meshing, or topology changes.</p>
@@ -2727,7 +2754,7 @@ features remain fixed. Host CAD objects never enter the JAX model.</p>
 
 
 <h4 id="brepax.experimental.applications.hole_edit.PreparedHoleEdit.rebuild" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">rebuild</span><span class="p">(</span><span class="n">radii</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">rebuild</span><span class="p">(</span><span class="n">radii</span><span class="p">,</span> <span class="n">center_shifts</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#brepax.experimental.applications.hole_edit.PreparedHoleEdit.rebuild" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -2736,9 +2763,11 @@ features remain fixed. Host CAD objects never enter the JAX model.</p>
 
         <p>Rebuild isolated holes in OCCT and restore external coordinates.</p>
 <p>This host operation is not differentiable. Raises ValueError for an
-invalid radius vector and RuntimeError for reconstruction failure or
-disagreement with the isolated-hole volume/area formula. Input CAD
-remains owned by the caller; each reconstruction uses an owned copy.</p>
+invalid radius/shift vector and RuntimeError for reconstruction failure
+or disagreement with isolated-hole volume, area or center of mass. Input CAD
+remains owned by the caller; each reconstruction uses an owned copy.
+Same-domain faces/edges are unified, so unselected geometry is preserved
+but original face partitions and IDs are not.</p>
 
 
     </div>
@@ -2770,19 +2799,29 @@ remains owned by the caller; each reconstruction uses an owned copy.</p>
 
 
 
-        <p>Pure array model; differentiate external radii, keeping preparation fixed.</p>
-<p>Geometry and metric methods support <code>jit</code>, <code>vmap</code> and radius
+        <p>Pure array model; differentiate radii and shifts with preparation frozen.</p>
+<p>Each method accepts external-unit <code>radii</code> and optional <code>center_shifts</code>
+with shape (selected holes, 3). Shifts are world-coordinate vectors from
+the original centers, perpendicular to the fixed hole axes. Omission means
+zero shift. Axial components exceeding 64<em>x64_epsilon</em>reference_radius are
+invalid; roundoff-sized components are projected out. Shift Jacobians are
+tangent derivatives, with zero axial component, not axial edit support.</p>
+<p>Geometry and metric methods support <code>jit</code>, <code>vmap</code> and parameter
 differentiation; the Boolean validity predicate supports <code>jit</code>/<code>vmap</code>.
 Lengths are in the input CAD's units. Use the metric methods for stable
 evaluation before restoring a potentially large world origin. Scalar
 measures and their radius derivatives are invariant under rigid placement.
-Under positive
-unit scaling s, volume/area scale by s<strong>3/s</strong>2 and radius gradients by
-s**2/s. Points and center of mass transform as points. These laws hold
+Rotate shifts along with the CAD: scalar shift gradients rotate as vectors,
+while the center-of-mass shift Jacobian transforms as R<em>J</em>R.T. Under positive
+unit scaling s, volume/area scale by s<strong>3/s</strong>2 and length gradients by
+s**2/s. Center-of-mass length Jacobians do not scale. Points and centers
+transform as points. These laws hold
 up to CAD tolerance and discretization error after fresh preparation.</p>
-<p><code>lower_radii</code>/<code>upper_radii</code> bound each edit. <code>is_valid</code> additionally
-rejects collapsed or locally reversed triangles. Invalid radii produce
-NaN geometry/measures; derivatives there are undefined. The validity test
+<p><code>lower_radii</code>/<code>upper_radii</code> bound radii. Shift magnitude plus positive
+radius growth must not exceed <code>upper_radii - reference_radii</code>. Both use
+the same clearance budget, including when shrinking the hole. <code>is_valid</code>
+additionally rejects collapsed or locally reversed triangles. Invalid edits
+produce NaN geometry/measures; derivatives there are undefined. The validity test
 is not a general mesh self-intersection or CAD certification algorithm.</p>
 
 
@@ -2810,7 +2849,7 @@ is not a general mesh self-intersection or CAD certification algorithm.</p>
 
 
 <h4 id="brepax.experimental.applications.hole_edit.HoleEditModel.center_of_mass" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">center_of_mass</span><span class="p">(</span><span class="n">radii</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">center_of_mass</span><span class="p">(</span><span class="n">radii</span><span class="p">,</span> <span class="n">center_shifts</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.center_of_mass" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -2828,14 +2867,14 @@ is not a general mesh self-intersection or CAD certification algorithm.</p>
 
 
 <h4 id="brepax.experimental.applications.hole_edit.HoleEditModel.is_valid" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">is_valid</span><span class="p">(</span><span class="n">radii</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">is_valid</span><span class="p">(</span><span class="n">radii</span><span class="p">,</span> <span class="n">center_shifts</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.is_valid" class="headerlink" title="Permanent link">&para;</a></h4>
 
 
     <div class="doc doc-contents ">
 
-        <p>Check bounds and local mesh orientation, including under JAX tracing.</p>
+        <p>Check radius/movement bounds, transverse shifts and mesh orientation.</p>
 
 
     </div>
@@ -2846,7 +2885,7 @@ is not a general mesh self-intersection or CAD certification algorithm.</p>
 
 
 <h4 id="brepax.experimental.applications.hole_edit.HoleEditModel.surface_area" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">surface_area</span><span class="p">(</span><span class="n">radii</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">surface_area</span><span class="p">(</span><span class="n">radii</span><span class="p">,</span> <span class="n">center_shifts</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.surface_area" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -2864,14 +2903,14 @@ is not a general mesh self-intersection or CAD certification algorithm.</p>
 
 
 <h4 id="brepax.experimental.applications.hole_edit.HoleEditModel.triangles" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">triangles</span><span class="p">(</span><span class="n">radii</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">triangles</span><span class="p">(</span><span class="n">radii</span><span class="p">,</span> <span class="n">center_shifts</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.triangles" class="headerlink" title="Permanent link">&para;</a></h4>
 
 
     <div class="doc doc-contents ">
 
-        <p>Return triangles in external coordinates, or NaNs for invalid edits.</p>
+        <p>Return external-coordinate triangles, or NaNs for invalid edits.</p>
 
 
     </div>
@@ -2882,7 +2921,7 @@ is not a general mesh self-intersection or CAD certification algorithm.</p>
 
 
 <h4 id="brepax.experimental.applications.hole_edit.HoleEditModel.volume" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">volume</span><span class="p">(</span><span class="n">radii</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">volume</span><span class="p">(</span><span class="n">radii</span><span class="p">,</span> <span class="n">center_shifts</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.volume" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -2900,14 +2939,14 @@ is not a general mesh self-intersection or CAD certification algorithm.</p>
 
 
 <h4 id="brepax.experimental.applications.hole_edit.HoleEditModel.working_triangles" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">working_triangles</span><span class="p">(</span><span class="n">radii</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">working_triangles</span><span class="p">(</span><span class="n">radii</span><span class="p">,</span> <span class="n">center_shifts</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.working_triangles" class="headerlink" title="Permanent link">&para;</a></h4>
 
 
     <div class="doc doc-contents ">
 
-        <p>Return normalized triangles; radii still use external input units.</p>
+        <p>Return normalized triangles; both parameters still use input units.</p>
 
 
     </div>
@@ -3049,7 +3088,9 @@ box is centered and its largest extent becomes 40 working units. It is
 frozen during editing. <code>deflection</code> is an absolute WORKING-unit meshing
 tolerance, finite and positive. Preparation requires JAX x64; it never
 changes the global JAX precision setting. Input CAD is copied.</p>
-<p>Radius bounds are [0.5<em>r0, r0 + 0.2</em>clearance]. Moving cylinder samples and
+<p>Radius bounds are [0.5<em>r0, r0 + 0.2</em>clearance]. Optional transverse center
+shifts share the growth budget: norm(shift) + max(radius-r0, 0) must not
+exceed 0.2*clearance. Moving cylinder samples and
 neighboring planar samples together preserves the welded connectivity.
 Geometry outside the radial support stays fixed. These are local edits,
 not a topology-changing CAD kernel. Mesh orientation may restrict the
@@ -3076,7 +3117,10 @@ edited_cad = edit.rebuild(radii)</p>
 </blockquote>
 </blockquote>
 </blockquote>
-</details>
+</details>        <p>To move a hole, pass <code>center_shifts</code> in external units to the model and
+<code>rebuild</code>. For a selected Z-axis hole, <code>jnp.array([[0.1, 0.0, 0.0]])</code>
+moves its center in X; check the combined budget with <code>is_valid</code> first.</p>
+
 
     </div>
 
