@@ -7,12 +7,13 @@ only this module.
 
 from OCP.Bnd import Bnd_Box
 from OCP.BRep import BRep_Tool
-from OCP.BRepAdaptor import BRepAdaptor_Curve2d, BRepAdaptor_Surface
+from OCP.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Curve2d, BRepAdaptor_Surface
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepBndLib import BRepBndLib
 from OCP.BRepBuilderAPI import (
     BRepBuilderAPI_Copy,
     BRepBuilderAPI_MakeFace,
+    BRepBuilderAPI_MakePolygon,
     BRepBuilderAPI_MakeVertex,
     BRepBuilderAPI_Transform,
 )
@@ -26,6 +27,7 @@ from OCP.BRepPrimAPI import (
     BRepPrimAPI_MakeBox,
     BRepPrimAPI_MakeCone,
     BRepPrimAPI_MakeCylinder,
+    BRepPrimAPI_MakePrism,
     BRepPrimAPI_MakeSphere,
     BRepPrimAPI_MakeTorus,
 )
@@ -35,12 +37,13 @@ from OCP.GeomAbs import (
     GeomAbs_BSplineSurface,
     GeomAbs_Cone,
     GeomAbs_Cylinder,
+    GeomAbs_Line,
     GeomAbs_OtherSurface,
     GeomAbs_Plane,
     GeomAbs_Sphere,
     GeomAbs_Torus,
 )
-from OCP.gp import gp_Ax2, gp_Dir, gp_Pln, gp_Pnt, gp_Trsf
+from OCP.gp import gp_Ax2, gp_Dir, gp_Pln, gp_Pnt, gp_Trsf, gp_Vec
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.STEPControl import STEPControl_Reader
@@ -65,6 +68,7 @@ from OCP.TopTools import (
 )
 
 __all__ = [
+    "BRepAdaptor_Curve",
     "BRepAdaptor_Curve2d",
     "BRepAdaptor_Surface",
     "BRepAlgoAPI_Common",
@@ -73,6 +77,7 @@ __all__ = [
     "BRepBndLib",
     "BRepBuilderAPI_Copy",
     "BRepBuilderAPI_MakeFace",
+    "BRepBuilderAPI_MakePolygon",
     "BRepBuilderAPI_MakeVertex",
     "BRepBuilderAPI_Transform",
     "BRepCheck_Analyzer",
@@ -84,6 +89,7 @@ __all__ = [
     "BRepPrimAPI_MakeBox",
     "BRepPrimAPI_MakeCone",
     "BRepPrimAPI_MakeCylinder",
+    "BRepPrimAPI_MakePrism",
     "BRepPrimAPI_MakeSphere",
     "BRepPrimAPI_MakeTorus",
     "BRepTools",
@@ -95,6 +101,7 @@ __all__ = [
     "GeomAbs_BezierSurface",
     "GeomAbs_Cone",
     "GeomAbs_Cylinder",
+    "GeomAbs_Line",
     "GeomAbs_OtherSurface",
     "GeomAbs_Plane",
     "GeomAbs_Sphere",
@@ -123,4 +130,5 @@ __all__ = [
     "gp_Pln",
     "gp_Pnt",
     "gp_Trsf",
+    "gp_Vec",
 ]

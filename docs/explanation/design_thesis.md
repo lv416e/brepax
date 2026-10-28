@@ -12,6 +12,8 @@ confusing a numerical surrogate with the intended CAD objective.
 | A: smoothing | Public 2D union API: smooth SDF composition and sigmoid measure integral | Temperature, finite-domain, and discretization bias; public 3D dispatch is unimplemented |
 | B: TOI | Unimplemented | Event-time sensitivity alone does not define a static gradient correction |
 | C: relation dispatch | Hard sampled forward value; primitive-volume derivatives or sigmoid STE backward | Sampled relation detection and intersecting-gradient approximation |
+| Experimental circular cut | Analytic disk/rectangle measure and boundary-flux first derivatives | Perpendicular extruded cut; no general CAD reconstruction |
+| Experimental planar contact | Positive one-sided volume response to a supplied rigid direction | Known isolated opposing convex contact patch; nonlinear in direction |
 
 The [stratification explanation](stratification_theory.md) defines the
 current contract and contact regularity. Exact primitive-volume derivatives
