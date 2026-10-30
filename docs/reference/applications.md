@@ -369,6 +369,143 @@ not a substitute for constructing the design in suitable working units.
         - ContactPreparationError
       show_source: false
 
+### Preserving a supplied placement
+
+`brepax.experimental.planar_contact_placement` keeps local geometry and a
+common frame instead of baking a transformation into every vertex. With the
+local cells from the preceding example:
+
+```python
+from brepax.experimental.planar_contact_placement import (
+    placed_planar_contact_set_volume_direction,
+    prepare_placed_planar_contact_set_reference,
+)
+
+placed = prepare_placed_planar_contact_set_reference(
+    fixed, moving, rotation=jnp.eye(3), origin=(2, -1, 3),
+    length_scale=0.001, mode="zero_residual",
+)
+rate = placed_planar_contact_set_volume_direction(
+    placed.model, jnp.array([-0.001, 0, -0.001]),
+    jnp.zeros(3), jnp.array([2.0, -1, 3]),
+)  # 2e-9 in world volume units per dimensionless time.
+```
+
+The convention is `world = origin + length_scale * rotation @ local`.
+World velocities and pivot are pulled back to the local frame. Diagnostics in
+`local_reference` retain local units. A genuine shared proper-rigid top-level
+OCCT Location can instead be supplied through
+`prepare_located_planar_contact_set_reference`; different Location datum chains,
+reflections and scaled source Locations are rejected. Nested source geometry
+is preserved. Explicit numerical length scaling remains available separately.
+
+This preserves supplied provenance; it cannot reconstruct a lost frame from
+flattened STEP vertices. Positive local gaps remain gaps and initial overlap
+is rejected. `original_cad_contact_certified` remains false. The response
+supports `jit` and `vmap` over motion directions, not differentiation of the
+prepared geometry or frame. Finite edits still require actual CAD validation.
+
+::: brepax.experimental.planar_contact_placement
+    options:
+      members:
+        - PlacedPlanarContactSet
+        - PreparedPlacedPlanarContactSet
+        - place_planar_contact_set
+        - placed_planar_contact_set_volume_direction
+        - prepare_placed_planar_contact_set_reference
+        - prepare_located_planar_contact_set_reference
+      show_source: false
+
+### Finite polyhedral translation
+
+`brepax.experimental.polyhedral_translation` prepares the complete finite
+overlap-volume profile along a prescribed translation. Inputs are convex-cell
+vertex arrays, not CAD solids. Each body's cell interiors must be disjoint,
+and the bodies must have no initial interior overlap. Preparation computes
+rational event times and cubic coefficients from the represented geometry;
+the JAX evaluator uses floating coefficients. It does not fit CAD samples.
+
+```python
+from itertools import product
+
+import jax
+import numpy as np
+
+from brepax.experimental.polyhedral_translation import (
+    polyhedral_translation_slope,
+    polyhedral_translation_volume,
+    prepare_polyhedral_translation,
+)
+
+jax.config.update("jax_enable_x64", True)
+box = np.array(list(product((0.0, 1.0), repeat=3)))
+path = prepare_polyhedral_translation(
+    [box], [box + (1, 1, 0)], (-1, -1, 0), max_step=2.0,
+)
+value = jax.jit(polyhedral_translation_volume)(path.profile, 0.25)  # 0.0625
+left = polyhedral_translation_slope(path.profile, 1.0, side="left")  # 2
+right = polyhedral_translation_slope(path.profile, 1.0, side="right")  # -2
+```
+
+This edge-contact example has zero initial slope, grows quadratically, and
+then loses overlap after the event at step one. Values have cubic length units;
+step is dimensionless. `jit`, `vmap` over steps and ordinary step AD inside
+open event intervals are supported. At events use explicit one-sided slopes;
+geometry and direction differentiation are outside the contract.
+
+The profile's floating thresholds round rational event times upward for
+binary64 query classification. A threshold need not equal the exact event:
+`path.events` retains its rational time and exact left/right slope limits.
+Distinct events without a resolvable floating interval and overflowing or
+underflowing coefficients are rejected. Out-of-range queries, and slope requests from a
+side outside the prepared interval, return NaN. Preparation is intended for
+small convex cells and can be expensive. It does not support rotation or
+certify that a separate CAD model matches the represented hulls.
+
+```bash
+uv run --group benchmark python -m benchmarks.multi_contact.translation \
+  --output /tmp/translation.json --step-output /tmp/translation-edit.step
+```
+
+The benchmark compares independent interval/section references and actual CAD,
+checks event slopes, and executes a target-volume Cut on a known monotone
+translation interval. A separate rotating-prism control shows why the initial
+velocity field cannot determine higher-order finite terms. See the
+[derivation and path limits](../explanation/stratification_theory.md#finite-translation-and-event-intervals).
+
+::: brepax.experimental.polyhedral_translation
+    options:
+      members:
+        - PolyhedralTranslationProfile
+        - PreparedPolyhedralTranslation
+        - TranslationEvent
+        - prepare_polyhedral_translation
+        - polyhedral_translation_volume
+        - polyhedral_translation_slope
+      show_source: false
+
+### Selecting finite edits with a CAD budget
+
+```bash
+uv run --group benchmark python -m benchmarks.multi_contact.selection \
+  --output /tmp/finite-selection.json
+```
+
+This benchmark compares analytical candidate ordering and CAD confirmation
+with CAD-only adaptive selection. Its separate amount-refinement panel uses
+bounded proposals and only returns observed actions. It promises neither
+monotonic volume along arbitrary motion nor target reachability. A negative
+error difference relative to the fixed candidate grid is possible when a
+refined amount improves on every grid action.
+
+Fresh synthetic geometry groups and five grouped train/test partitions keep
+calibration apart from each evaluated shape; repeated targets are not
+independent shapes. Reports retain failed or unsupported inputs and targets
+exceeding a known total-material bound. Probe attempts and final independent
+Common/Cut checks have separate costs. Cached replay timings do not establish
+end-to-end speed superiority. The experimental comparison is not a general
+optimizer API or evidence for arbitrary STEP inputs.
+
 ## Other experimental applications
 
 ::: brepax.experimental.applications.mold_direction

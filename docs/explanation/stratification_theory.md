@@ -167,6 +167,73 @@ the same first-order response in this bounded setting. Neither result is
 being cited as a theorem about arbitrary source CAD or as a novelty claim
 for this implementation.
 
+### Finite translation and event intervals
+
+For a prescribed translation $B_t=B+t v$, each component-pair intersection
+has fixed plane normals and affine offsets:
+
+$$
+P(t)=\{x:n_k\cdot x\le b_k+t c_k\}.
+$$
+
+An independent triple of planes defines a candidate vertex $x(t)=a+t d$.
+Its remaining inequalities give an exact feasibility interval. Between these
+interval endpoints the active vertices and faces are fixed; a consistently
+oriented facet triangulation expresses volume as a sum of determinants of
+three affine vectors. Each determinant has degree at most three. Summing over
+the disjoint-interior cell pairs preserves this piecewise-polynomial structure.
+This is established parametric-polytope volume computation; see
+[Verdoolaege, Section 5.9](https://compsys-tools.ens-lyon.fr/iscc/barvinok.pdf).
+It is not a new general Boolean differentiation theorem.
+
+The experimental preparation derives these intervals and coefficients from
+the represented vertex hulls with rational arithmetic, without fitting sampled
+CAD volumes. The JAX evaluator uses floating coefficients and must retain their
+rounding limits. Geometry and translation direction are fixed by host
+preparation; differentiation with respect to step inside an open interval
+differentiates its polynomial. At an event, use the specified one-sided slope
+instead of assuming a unique derivative. The model is continuous in volume,
+but its derivatives need not be continuous.
+
+For appropriately translating unit boxes, the first branches are $t$, $t^2$,
+and $t^3$ for face, edge, and point contact. A positive gap postpones overlap
+until its entry event. Later exit events can make volume decrease, so neither
+zero initial response nor a missing sampled bracket establishes that finite
+overlap or a target is impossible. Finite models still require an independent
+CAD check when applied to source solids.
+
+### Rotation depends on the full path
+
+The finite benchmark uses $x(t)=p+R(t\omega)(x-p)+t v$. Let $\Omega x=
+\omega\mathbin{\times}x$. Replacing $p$ by $p+d$ and $v$ by $v+\Omega d$
+preserves the initial velocity field, but changes the finite trajectory by
+
+$$
+(I-R(t\omega))d+t\Omega d=-\tfrac12t^2\Omega^2d+O(t^3).
+$$
+
+This is a different physical path, not a violation of coordinate covariance.
+Consequently the earlier compensated-pivot law is a first-order law only.
+
+For a prism $[0,w]\times[-a,b]\times[0,h]$ against the wall $x\le0$, take
+$p=(q,0,0)$, $v=(0,q,0)$ and $\omega=(0,0,1)$, with $q\ge0$. For
+$0<t<\pi/2$, $-a<q\tan(t/2)<b$ and
+$0<b\tan t-q(\sec t-1)<w$, the overlap is an uncapped triangle and
+
+$$
+V(t)=\frac{h[b\sin t-q(1-\cos t)]^2}{2\sin t\cos t}
+=h\left(\frac{b^2}2t-\frac{bq}2t^2+
+\left(\frac{b^2}6+\frac{q^2}8\right)t^3\right)+O(t^4).
+$$
+
+All these paths have the same initial velocity field. When $q=0$, the
+quadratic term vanishes and the exact branch is $h b^2\tan(t)/2$.
+At $t_*=\arctan(w/b)$, the far side becomes active and the next branch is
+$h[wb-w^2\cot(t)/2]$. Value and first derivative agree at this event, while
+second derivatives do not. Extrapolating the old branch through the event
+is invalid. These bounded prism formulas do not extend the translation API
+to generic rotating polyhedra.
+
 ## Current BRepAX Implementation
 
 Method C in `brepax.boolean.stratum` uses a custom VJP:
