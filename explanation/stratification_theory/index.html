@@ -620,6 +620,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#finite-translation-and-event-intervals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finite translation and event intervals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rotation-depends-on-the-full-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotation depends on the full path
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2035,6 +2057,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#finite-translation-and-event-intervals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finite translation and event intervals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rotation-depends-on-the-full-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotation depends on the full path
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2270,6 +2314,60 @@ of overlap under rigid motions; paths differing by <span class="arithmatex">\(O(
 the same first-order response in this bounded setting. Neither result is
 being cited as a theorem about arbitrary source CAD or as a novelty claim
 for this implementation.</p>
+<h3 id="finite-translation-and-event-intervals">Finite translation and event intervals<a class="headerlink" href="#finite-translation-and-event-intervals" title="Permanent link">&para;</a></h3>
+<p>For a prescribed translation <span class="arithmatex">\(B_t=B+t v\)</span>, each component-pair intersection
+has fixed plane normals and affine offsets:</p>
+<div class="arithmatex">\[
+P(t)=\{x:n_k\cdot x\le b_k+t c_k\}.
+\]</div>
+<p>An independent triple of planes defines a candidate vertex <span class="arithmatex">\(x(t)=a+t d\)</span>.
+Its remaining inequalities give an exact feasibility interval. Between these
+interval endpoints the active vertices and faces are fixed; a consistently
+oriented facet triangulation expresses volume as a sum of determinants of
+three affine vectors. Each determinant has degree at most three. Summing over
+the disjoint-interior cell pairs preserves this piecewise-polynomial structure.
+This is established parametric-polytope volume computation; see
+<a href="https://compsys-tools.ens-lyon.fr/iscc/barvinok.pdf">Verdoolaege, Section 5.9</a>.
+It is not a new general Boolean differentiation theorem.</p>
+<p>The experimental preparation derives these intervals and coefficients from
+the represented vertex hulls with rational arithmetic, without fitting sampled
+CAD volumes. The JAX evaluator uses floating coefficients and must retain their
+rounding limits. Geometry and translation direction are fixed by host
+preparation; differentiation with respect to step inside an open interval
+differentiates its polynomial. At an event, use the specified one-sided slope
+instead of assuming a unique derivative. The model is continuous in volume,
+but its derivatives need not be continuous.</p>
+<p>For appropriately translating unit boxes, the first branches are <span class="arithmatex">\(t\)</span>, <span class="arithmatex">\(t^2\)</span>,
+and <span class="arithmatex">\(t^3\)</span> for face, edge, and point contact. A positive gap postpones overlap
+until its entry event. Later exit events can make volume decrease, so neither
+zero initial response nor a missing sampled bracket establishes that finite
+overlap or a target is impossible. Finite models still require an independent
+CAD check when applied to source solids.</p>
+<h3 id="rotation-depends-on-the-full-path">Rotation depends on the full path<a class="headerlink" href="#rotation-depends-on-the-full-path" title="Permanent link">&para;</a></h3>
+<p>The finite benchmark uses <span class="arithmatex">\(x(t)=p+R(t\omega)(x-p)+t v\)</span>. Let <span class="arithmatex">\(\Omega x=
+\omega\mathbin{\times}x\)</span>. Replacing <span class="arithmatex">\(p\)</span> by <span class="arithmatex">\(p+d\)</span> and <span class="arithmatex">\(v\)</span> by <span class="arithmatex">\(v+\Omega d\)</span>
+preserves the initial velocity field, but changes the finite trajectory by</p>
+<div class="arithmatex">\[
+(I-R(t\omega))d+t\Omega d=-\tfrac12t^2\Omega^2d+O(t^3).
+\]</div>
+<p>This is a different physical path, not a violation of coordinate covariance.
+Consequently the earlier compensated-pivot law is a first-order law only.</p>
+<p>For a prism <span class="arithmatex">\([0,w]\times[-a,b]\times[0,h]\)</span> against the wall <span class="arithmatex">\(x\le0\)</span>, take
+<span class="arithmatex">\(p=(q,0,0)\)</span>, <span class="arithmatex">\(v=(0,q,0)\)</span> and <span class="arithmatex">\(\omega=(0,0,1)\)</span>, with <span class="arithmatex">\(q\ge0\)</span>. For
+<span class="arithmatex">\(0&lt;t&lt;\pi/2\)</span>, <span class="arithmatex">\(-a&lt;q\tan(t/2)&lt;b\)</span> and
+<span class="arithmatex">\(0&lt;b\tan t-q(\sec t-1)&lt;w\)</span>, the overlap is an uncapped triangle and</p>
+<div class="arithmatex">\[
+V(t)=\frac{h[b\sin t-q(1-\cos t)]^2}{2\sin t\cos t}
+=h\left(\frac{b^2}2t-\frac{bq}2t^2+
+\left(\frac{b^2}6+\frac{q^2}8\right)t^3\right)+O(t^4).
+\]</div>
+<p>All these paths have the same initial velocity field. When <span class="arithmatex">\(q=0\)</span>, the
+quadratic term vanishes and the exact branch is <span class="arithmatex">\(h b^2\tan(t)/2\)</span>.
+At <span class="arithmatex">\(t_*=\arctan(w/b)\)</span>, the far side becomes active and the next branch is
+<span class="arithmatex">\(h[wb-w^2\cot(t)/2]\)</span>. Value and first derivative agree at this event, while
+second derivatives do not. Extrapolating the old branch through the event
+is invalid. These bounded prism formulas do not extend the translation API
+to generic rotating polyhedra.</p>
 <h2 id="current-brepax-implementation">Current BRepAX Implementation<a class="headerlink" href="#current-brepax-implementation" title="Permanent link">&para;</a></h2>
 <p>Method C in <code>brepax.boolean.stratum</code> uses a custom VJP:</p>
 <ol>
