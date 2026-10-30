@@ -14,7 +14,8 @@ confusing a numerical surrogate with the intended CAD objective.
 | C: relation dispatch | Hard sampled forward value; primitive-volume derivatives or sigmoid STE backward | Sampled relation detection and intersecting-gradient approximation |
 | Experimental circular cut | Analytic disk/rectangle measure and boundary-flux first derivatives | Perpendicular extruded cut; no general CAD reconstruction |
 | Experimental planar contact | Positive one-sided volume response to a supplied rigid direction, including complete collections of opposing planar contacts | Known patches or explicit convex-cell bodies with disjoint interiors; nonlinear in direction; finite edits require CAD validation |
-| Experimental polyhedral translation | Event-delimited, piecewise-cubic overlap volume along one prescribed translation | Explicit represented convex cells; host preparation fixes geometry and direction; no rotation or arbitrary STEP certification |
+| Experimental polyhedral translation | Event-delimited, piecewise-cubic overlap volume, target positions and volume-range enclosures along one prescribed translation | Explicit represented convex cells; host preparation fixes geometry and direction; no rotation or arbitrary STEP certification |
+| Experimental design sensitivity | Volume and event-position sensitivities for affine vertex families, plus local target-position sensitivity | Fixed facet normals and translation velocity; one or two design controls in a conservative parameter region; first derivatives only inside numerically resolved open event intervals |
 
 The [stratification explanation](stratification_theory.md) defines the
 current contract and contact regularity. Exact primitive-volume derivatives
@@ -44,6 +45,14 @@ is zero. For rotation, higher terms depend on the full trajectory: compensating
 a pivot to preserve the initial velocity field does not preserve the finite
 path. The [finite-response derivation](stratification_theory.md#finite-translation-and-event-intervals)
 separates these contracts and their established mathematical background.
+
+An affine design family makes the polynomial coefficients and event positions
+depend on dimensions as well as step. Within a valid region, this connects
+changing-boundary volume derivatives to the position needed to maintain a
+target removal volume. Root existence, selection among several positions, and
+local sensitivity are separate calculations. Zero slopes, event boundaries and
+event-order bifurcations require separate analysis and lie outside the supported
+local inverse-sensitivity contract.
 
 Practical selection must distinguish a wrong ranking of the supplied finite
 actions from a candidate set that cannot reach the target. A few actual CAD

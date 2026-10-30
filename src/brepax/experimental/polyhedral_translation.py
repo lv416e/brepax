@@ -68,6 +68,7 @@ class PreparedPolyhedralTranslation:
     exact_knots: tuple[Fraction, ...]
     events: tuple[TranslationEvent, ...]
     pair_count: int
+    _exact_pieces: tuple[ExactPiece, ...] = field(default=(), repr=False)
     reference_kind: Literal["represented_vertex_hulls"] = field(
         default="represented_vertex_hulls", init=False
     )
@@ -194,6 +195,13 @@ def prepare_polyhedral_translation(
             raise ValueError(f"Initial fixed/moving cells {i} and {j} overlap")
     exact_velocity = cast(Vector, tuple(Fraction(float(v)) for v in vector))
     pieces = collection_pieces(fixed, moving, exact_velocity, Fraction(step))
+    return _prepared_from_pieces(pieces, len(fixed) * len(moving))
+
+
+def _prepared_from_pieces(
+    pieces: tuple[ExactPiece, ...], pair_count: int
+) -> PreparedPolyhedralTranslation:
+    """Pack an already validated exact path, retaining its host polynomial model."""
     try:
         profile = _pack(pieces)
     except (OverflowError, FloatingPointError) as error:
@@ -208,7 +216,8 @@ def prepare_polyhedral_translation(
         profile,
         (*(p.lower for p in pieces), pieces[-1].upper),
         events,
-        len(fixed) * len(moving),
+        pair_count,
+        _exact_pieces=pieces,
     )
 
 
