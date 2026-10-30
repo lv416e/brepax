@@ -5,6 +5,7 @@ PYTHONPATH cannot hide a missing or broken installed module.
 """
 
 from importlib.metadata import version
+from itertools import product
 from pathlib import Path
 
 import jax
@@ -23,6 +24,15 @@ from brepax.brep.triangulate import (
 from brepax.experimental.planar_contact import planar_contact_set_volume_direction
 from brepax.experimental.planar_contact_collection_cad import (
     prepare_planar_contact_set_reference,
+)
+from brepax.experimental.planar_contact_placement import (
+    place_planar_contact_set,
+    placed_planar_contact_set_volume_direction,
+)
+from brepax.experimental.polyhedral_translation import (
+    polyhedral_translation_slope,
+    polyhedral_translation_volume,
+    prepare_polyhedral_translation,
 )
 from brepax.io.step import read_step
 
@@ -46,7 +56,39 @@ def check_contact_collection() -> None:
     )
     values = query(jnp.array([[-1.0, 0, -1], [1.0, 0, 1], [-1.0, 0, 0]]))
     np.testing.assert_allclose(values, [2, 0, 1], rtol=0, atol=1e-14)
+    placed = place_planar_contact_set(
+        contacts, rotation=np.eye(3), origin=(2, -1, 3), length_scale=0.001
+    )
+    world_rate = jax.jit(placed_planar_contact_set_volume_direction)(
+        placed,
+        jnp.array([-0.001, 0, -0.001]),
+        jnp.zeros(3),
+        jnp.array([2.0, -1, 3]),
+    )
+    np.testing.assert_allclose(world_rate, 2e-9, rtol=1e-14, atol=0)
     print("contact collection: actual CAD preparation and JIT/vmap passed")
+
+
+def check_finite_translation() -> None:
+    """Check installed exact preparation and finite values across an event."""
+    box = np.array(list(product((0.0, 1.0), repeat=3)))
+    profile = prepare_polyhedral_translation(
+        [box], [box + np.array([1, 1, 0])], (-1, -1, 0), max_step=2.0
+    ).profile
+    steps = jnp.array([0.0, 0.25, 1.0, 1.25, 2.0])
+    values = jax.jit(jax.vmap(polyhedral_translation_volume, in_axes=(None, 0)))(
+        profile, steps
+    )
+    np.testing.assert_allclose(values, [0, 0.0625, 1, 0.5625, 0], atol=1e-14)
+    np.testing.assert_allclose(
+        [
+            polyhedral_translation_slope(profile, 1.0, side="left"),
+            polyhedral_translation_slope(profile, 1.0, side="right"),
+        ],
+        [2, -2],
+        atol=1e-14,
+    )
+    print("finite translation: exact preparation, JIT/vmap and event slopes passed")
 
 
 def main() -> None:
@@ -74,6 +116,7 @@ def main() -> None:
         )
         print(f"{name}: STEP, mesh metrics and JIT gradient passed")
     check_contact_collection()
+    check_finite_translation()
 
 
 if __name__ == "__main__":

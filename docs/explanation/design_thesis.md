@@ -14,6 +14,7 @@ confusing a numerical surrogate with the intended CAD objective.
 | C: relation dispatch | Hard sampled forward value; primitive-volume derivatives or sigmoid STE backward | Sampled relation detection and intersecting-gradient approximation |
 | Experimental circular cut | Analytic disk/rectangle measure and boundary-flux first derivatives | Perpendicular extruded cut; no general CAD reconstruction |
 | Experimental planar contact | Positive one-sided volume response to a supplied rigid direction, including complete collections of opposing planar contacts | Known patches or explicit convex-cell bodies with disjoint interiors; nonlinear in direction; finite edits require CAD validation |
+| Experimental polyhedral translation | Event-delimited, piecewise-cubic overlap volume along one prescribed translation | Explicit represented convex cells; host preparation fixes geometry and direction; no rotation or arbitrary STEP certification |
 
 The [stratification explanation](stratification_theory.md) defines the
 current contract and contact regularity. Exact primitive-volume derivatives
@@ -34,6 +35,22 @@ does not establish a mathematical isomorphism with static Boolean
 differentiation: a trajectory has flow and reset rules that a static volume
 does not. The [TOI discussion](toi_derivation.md) separates these contracts
 and explains why the previous static correction was invalid.
+
+Finite motion asks more than the initial directional response. For a prescribed
+translation, polyhedral intersection vertices move affinely between geometric
+events, and the volume is a polynomial of degree at most three on each interval.
+This exposes finite overlap from edge/point contact even when the initial rate
+is zero. For rotation, higher terms depend on the full trajectory: compensating
+a pivot to preserve the initial velocity field does not preserve the finite
+path. The [finite-response derivation](stratification_theory.md#finite-translation-and-event-intervals)
+separates these contracts and their established mathematical background.
+
+Practical selection must distinguish a wrong ranking of the supplied finite
+actions from a candidate set that cannot reach the target. A few actual CAD
+observations can check and refine proposals, but absence of an observed target
+bracket does not establish that a target is unreachable. Equal probe counts,
+preparation costs, independent finite edits, and retained failures are needed
+to evaluate an improvement.
 
 ## Three Distinct Numerical Questions
 

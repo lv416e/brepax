@@ -58,7 +58,7 @@ class ContactFixture:
     """
 
     group_id: str
-    family: Family
+    family: str
     fixed_cells: tuple[Box, ...]
     moving_cells: tuple[Box, ...]
     patches: tuple[ContactPatchReference, ...]

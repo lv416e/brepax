@@ -61,7 +61,7 @@ from OCP.TopAbs import (
 )
 from OCP.TopExp import TopExp, TopExp_Explorer
 from OCP.TopLoc import TopLoc_Location
-from OCP.TopoDS import TopoDS
+from OCP.TopoDS import TopoDS, TopoDS_Compound
 from OCP.TopTools import (
     TopTools_IndexedDataMapOfShapeListOfShape,
     TopTools_IndexedMapOfShape,
@@ -128,6 +128,7 @@ __all__ = [
     "TopTools_IndexedDataMapOfShapeListOfShape",
     "TopTools_IndexedMapOfShape",
     "TopoDS",
+    "TopoDS_Compound",
     "gp_Ax2",
     "gp_Dir",
     "gp_Pln",

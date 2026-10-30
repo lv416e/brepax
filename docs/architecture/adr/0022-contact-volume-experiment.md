@@ -120,6 +120,50 @@ it is a separate comparator, not equivalent to fresh dimension-driven
 construction. The construction frame must not depend on the finite-difference
 step. Resolving an explicit design does not resolve uncertainty in imported CAD.
 
+### Finite translation profiles and preserved placement
+
+Extend the bounded experiment with host preparation of finite overlap profiles
+for a supplied translation of explicit convex vertex-cell collections. Retain
+disjoint same-body interiors and no initial cross-body overlap. Derive bounded
+cell halfspaces from their represented hulls; do not accept unchecked unbounded
+halfspace systems. Exact rational affine vertex paths delimit intervals of
+constant combinatorial structure. Oriented facet determinants give cubic
+volume polynomials without CAD sampling or fitted coefficients. All cell pairs
+remain relevant, including initially separated, edge, and point contacts.
+
+Separate the exact host computation from the JAX profile evaluator. Keep the
+geometry and direction fixed during traced step queries; support explicit
+one-sided slopes at events and ordinary AD inside open intervals. Reject
+unrepresentable interval packing instead of silently merging distinct events.
+Reject coefficient underflow as well as overflow; an unsupported unit scale
+must not turn a positive exact volume into an all-zero numerical profile.
+The rational reference does not make floating evaluation exact or certify
+source CAD. Preparation enumerates plane triples and can be expensive; this
+is a bounded small-polyhedron method, not a general fast Boolean kernel.
+
+Preserve supplied local CAD cells and their shared placement when available.
+Prepare their contact inventory locally, transform the supplied world motion
+into that frame, and apply dimensional scaling to the response. Retain local
+source residuals and the absence of source-contact certification. An explicit
+adapter may remove a genuinely common proper-rigid top-level CAD Location;
+it must preserve child geometry and reject mismatched or scaled Locations.
+Numerical unit scaling is separate metadata. Never infer a lost placement from
+baked vertices or repair their overlaps by enlarging a tolerance.
+
+Keep finite-action search in the benchmark: analytical candidate ordering,
+budgeted CAD confirmation, and bounded amount-refinement heuristics are compared
+with CAD-only adaptive search on the same inputs and attempted-call budgets.
+Every selected edit must have been observed and must pass an actual Cut check.
+Keep action-grid error separate from ranking excess; off-grid refinement can
+have negative excess relative to that grid. Missing brackets, failed probes,
+and targets exceeding known total material are explicit outcomes, not omitted
+cases. This introduces no generic optimizer or global reachability guarantee.
+
+The rotation benchmark separately verifies that equal initial velocity fields
+can have different higher-order volume terms. The full path, not just its
+initial twist, defines a finite comparison. A translation profile cannot
+substitute for a rotating path.
+
 ## Consequences
 
 The experiment can evaluate volume through a contact without freezing a
