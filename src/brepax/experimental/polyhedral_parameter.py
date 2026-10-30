@@ -197,7 +197,7 @@ def prepare_polyhedral_parameter(
                 or not np.isfinite(displacements).all()
             ):
                 raise ValueError(
-                    "Expected finite vertices (N,3) and displacements (P,N,3), P=1 or2"
+                    "Expected finite vertices (N,3) and displacements (P,N,3), P=1 or 2"
                 )
             if count is None:
                 count = displacements.shape[0]
