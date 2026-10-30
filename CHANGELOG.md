@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.6.3](https://github.com/lv416e/brepax/compare/v0.6.2...v0.6.3) (2026-10-30)
+
+
+### Features
+
+* **contact:** differentiate circular cuts through plate boundaries ([#117](https://github.com/lv416e/brepax/issues/117)) ([ee608ae](https://github.com/lv416e/brepax/commit/ee608ae7c83325fca36367ead3eb600d087296c3))
+* **contact:** evaluate finite translations and budget CAD edits ([#121](https://github.com/lv416e/brepax/issues/121)) ([2bb1a26](https://github.com/lv416e/brepax/commit/2bb1a26aa94d647c75caa59b11b32a9eb9816312))
+* **contact:** evaluate multiple contacts and finite CAD cuts ([#120](https://github.com/lv416e/brepax/issues/120)) ([1c3fc4e](https://github.com/lv416e/brepax/commit/1c3fc4e78f06805d2b5b2c97533cde37ea4721aa))
+* **contact:** evaluate one-sided planar contact volume response ([#118](https://github.com/lv416e/brepax/issues/118)) ([ea99ac0](https://github.com/lv416e/brepax/commit/ea99ac0f31607d97752d12f421cd1a76d5da6327))
+* **contact:** solve target positions and design sensitivities ([#122](https://github.com/lv416e/brepax/issues/122)) ([e9dd6f7](https://github.com/lv416e/brepax/commit/e9dd6f7350c57c6e4fa3c00545b174c1539ff777))
+* **experimental:** edit STEP through-hole centers ([#112](https://github.com/lv416e/brepax/issues/112)) ([f03630f](https://github.com/lv416e/brepax/commit/f03630f1c61420c258e538c5a4097abca3e123bc))
+
+
+### Bug Fixes
+
+* **csg:** reject unsupported volume shortcuts ([#115](https://github.com/lv416e/brepax/issues/115)) ([b5744ae](https://github.com/lv416e/brepax/commit/b5744ae0b6e4dc355090b3c90f0e26830df1d0b3))
+
+
+### Documentation
+
+* **readme:** simplify installation after 0.6.2 release ([#114](https://github.com/lv416e/brepax/issues/114)) ([6c14dde](https://github.com/lv416e/brepax/commit/6c14dde326a2cc090578b139e624de0502e7159f))
+* **theory:** correct contact derivatives and TOI scope ([#116](https://github.com/lv416e/brepax/issues/116)) ([701bd71](https://github.com/lv416e/brepax/commit/701bd717aa71b094d4943590e701f9764dee7779))
+
 ## [0.6.2](https://github.com/lv416e/brepax/compare/v0.6.1...v0.6.2) (2026-10-28)
 
 
