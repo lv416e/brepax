@@ -202,6 +202,99 @@ zero initial response nor a missing sampled bracket establishes that finite
 overlap or a target is impossible. Finite models still require an independent
 CAD check when applied to source solids.
 
+### Target positions along a finite path
+
+For a target volume $q$, solve $V(t)-q=0$ on every prepared interval. A
+finite-body intersection can enter and leave the stock, attain the target
+several times, or have a constant-volume interval. Consequently a sign change
+between sampled endpoints is sufficient to locate some roots, but its absence
+does not establish that no root exists. A target at a local extremum can be
+a repeated root without a sign change.
+
+The exact represented polynomial and target permit rational root counting
+and isolation, including repeated roots. Keep an isolating interval separate
+from a floating candidate that meets the requested step and volume tolerances.
+Failure to resolve such a candidate is a numerical outcome, not a proof of
+unreachability. Constant solution intervals are distinct from isolated roots.
+Range estimates likewise require the interval endpoints and interior stationary
+points, not just sampled values. Any reachability conclusion concerns only the
+represented geometry and supplied translation interval.
+
+Polynomial inversion of geometric volume is established. For example,
+[Kromer and Bothe, Section 2.4.1](https://arxiv.org/pdf/2101.03861) use the cubic
+volume within a bracket to position a cutting plane without further geometric
+truncation there. Their plane-cut volume is monotone; that uniqueness
+assumption does not extend to a bounded cutter entering and leaving a solid.
+
+### Design parameters and moving event boundaries
+
+With fixed plane normals and affine dimension controls $\theta$, consider
+
+$$
+P(t,\theta)=\{x:n_k\cdot x\le b_k+t c_k+d_k^\top\theta\}.
+$$
+
+Independent plane triples give vertices affine in both $t$ and $\theta$.
+A remaining inequality has the form
+$a+\beta t+\gamma^\top\theta\le0$. When $\beta\ne0$, its candidate event is
+
+$$
+\tau(\theta)=-\frac{a+\gamma^\top\theta}{\beta},\qquad
+\partial_\theta\tau=-\frac{\gamma^\top}{\beta}.
+$$
+
+A fixed ordering of these events and fixed active faces define a local
+parameter region. Within its event intervals, oriented facet determinants
+give volume polynomials of total degree at most three in $(t,\theta)$.
+Differentiating those polynomials includes the motion of the intersection
+vertices. This uses the same parametric-polytope principle as the fixed-path
+construction; it is not a new general shape-differentiation theorem.
+[Wegert et al., Section 3.2](https://arxiv.org/html/2504.09748v3#S3.SS2) similarly
+propagate derivatives through cut vertices and maps while assuming stable cut
+topology under small perturbations.
+
+The parameter region must also preserve valid, bounded, positive-volume
+cells, their fixed facet normals, and the disjoint-interior conditions used
+to sum component volumes. Checking these properties only at the reference
+parameter does not justify evaluation at another parameter. Conservative
+validity conditions need not describe the largest admissible region.
+Floating checks near a moving event require their own uncertainty policy;
+an exact host model does not make a rounded event comparison exact.
+
+For numerical evaluation, expanding near a moving event reduces cancellation
+in the value. Differentiating that rounded normalization introduces another
+chain-rule cancellation, which can obscure a structurally zero design
+derivative. The parameter evaluator therefore uses a custom first-order JVP
+from the physical derivative polynomials collected before floating packing.
+It represents the same volume model and is linear in the step/design tangents;
+the host-prepared coefficients are not differentiation variables. Independent
+derivative references are necessary to validate this choice. A query whose
+value or intended derivative cannot be resolved numerically returns NaN,
+even when its exact host model is valid. Some smooth stationary configurations
+are consequently outside the numerical chart's accepted queries.
+
+An event can be a redundant change of representation rather than physical
+contact. Moreover, events with distinct sensitivities can coincide: the first
+of $1+\theta$ and $1-\theta$ is $1-|\theta|$. Rejecting that event chart does
+not prove that the underlying volume lacks a derivative. Zero crossing speed,
+event-order changes, and simultaneous events require separate treatment.
+
+For a locally isolated target position $t_*(\theta)$ inside an event interval,
+where $V(t_*(\theta),\theta)=q(\theta)$ and $\partial_t V\ne0$, the implicit
+function theorem gives
+
+$$
+\partial_\theta t_*=
+\frac{\partial_\theta q-\partial_\theta V}{\partial_t V}.
+$$
+
+For a fixed physical target, its derivative is zero. If the target depends on
+$\theta$, include its derivative. This local formula does not select between
+multiple roots, certify that an
+arbitrary query is a target root, or extend through a zero slope or event
+boundary. Event-time sensitivity is not an additive correction to a static
+Boolean volume derivative; see [the TOI distinction](toi_derivation.md).
+
 ### Rotation depends on the full path
 
 The finite benchmark uses $x(t)=p+R(t\omega)(x-p)+t v$. Let $\Omega x=

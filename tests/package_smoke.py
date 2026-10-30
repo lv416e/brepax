@@ -29,6 +29,14 @@ from brepax.experimental.planar_contact_placement import (
     place_planar_contact_set,
     placed_planar_contact_set_volume_direction,
 )
+from brepax.experimental.polyhedral_parameter import (
+    AffinePolyhedralCell,
+    polyhedral_parameter_position_sensitivity,
+    polyhedral_parameter_volume,
+    prepare_polyhedral_parameter,
+    specialize_polyhedral_parameter,
+)
+from brepax.experimental.polyhedral_targets import polyhedral_translation_targets
 from brepax.experimental.polyhedral_translation import (
     polyhedral_translation_slope,
     polyhedral_translation_volume,
@@ -72,9 +80,10 @@ def check_contact_collection() -> None:
 def check_finite_translation() -> None:
     """Check installed exact preparation and finite values across an event."""
     box = np.array(list(product((0.0, 1.0), repeat=3)))
-    profile = prepare_polyhedral_translation(
+    prepared = prepare_polyhedral_translation(
         [box], [box + np.array([1, 1, 0])], (-1, -1, 0), max_step=2.0
-    ).profile
+    )
+    profile = prepared.profile
     steps = jnp.array([0.0, 0.25, 1.0, 1.25, 2.0])
     values = jax.jit(jax.vmap(polyhedral_translation_volume, in_axes=(None, 0)))(
         profile, steps
@@ -88,7 +97,40 @@ def check_finite_translation() -> None:
         [2, -2],
         atol=1e-14,
     )
-    print("finite translation: exact preparation, JIT/vmap and event slopes passed")
+    targets = polyhedral_translation_targets(
+        prepared, 0.25, step_tolerance=1e-12, volume_tolerance=1e-12
+    )
+    assert targets.status == "reachable"
+    np.testing.assert_allclose([root.step for root in targets.roots], [0.5, 1.5])
+    print("finite translation: JIT/vmap, event slopes and target inversion passed")
+
+
+def check_design_sensitivity() -> None:
+    """Check installed changing-geometry AD and exact host target specialization."""
+    box = np.array(list(product((0.0, 1.0), repeat=3)))
+    fixed = AffinePolyhedralCell(box, np.zeros((1, 8, 3)))
+    moving = AffinePolyhedralCell(
+        box + np.array([2, 0, 0]), np.tile(np.array([1.0, 0, 0]), (1, 8, 1))
+    )
+    prepared = prepare_polyhedral_parameter([fixed], [moving], (-1, 0, 0), max_step=4.0)
+    theta = jnp.array([0.125])
+    value = jax.jit(polyhedral_parameter_volume)(prepared.model, 1.5, theta)
+    gradient = jax.jit(jax.grad(polyhedral_parameter_volume, argnums=2))(
+        prepared.model, 1.5, theta
+    )
+    np.testing.assert_allclose(value, 0.375, rtol=0, atol=1e-14)
+    np.testing.assert_allclose(gradient, [-1], rtol=0, atol=1e-14)
+    path = specialize_polyhedral_parameter(prepared, theta)
+    targets = polyhedral_translation_targets(
+        path, 0.25, step_tolerance=1e-12, volume_tolerance=1e-12
+    )
+    assert targets.status == "reachable"
+    np.testing.assert_allclose([root.step for root in targets.roots], [1.375, 2.875])
+    sensitivity = jax.jit(polyhedral_parameter_position_sensitivity)(
+        prepared.model, 1.375, theta
+    )
+    np.testing.assert_allclose(sensitivity, [1], rtol=0, atol=1e-14)
+    print("design sensitivity: JIT parameter AD and specialized target roots passed")
 
 
 def main() -> None:
@@ -117,6 +159,7 @@ def main() -> None:
         print(f"{name}: STEP, mesh metrics and JIT gradient passed")
     check_contact_collection()
     check_finite_translation()
+    check_design_sensitivity()
 
 
 if __name__ == "__main__":

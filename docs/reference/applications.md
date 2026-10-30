@@ -484,6 +484,178 @@ velocity field cannot determine higher-order finite terms. See the
         - polyhedral_translation_slope
       show_source: false
 
+### Target positions and reachable volume
+
+`brepax.experimental.polyhedral_targets` uses the retained exact polynomials
+to find target-volume positions over the entire prepared translation path.
+It handles multiple roots, roots at extrema, and constant solution intervals.
+These are host queries; they do not differentiate the root-selection operation.
+
+```python
+from itertools import product
+
+import jax
+import numpy as np
+
+from brepax.experimental.polyhedral_targets import (
+    polyhedral_translation_range,
+    polyhedral_translation_targets,
+)
+from brepax.experimental.polyhedral_translation import prepare_polyhedral_translation
+
+jax.config.update("jax_enable_x64", True)
+box = np.array(list(product((0.0, 1.0), repeat=3)))
+path = prepare_polyhedral_translation(
+    [box], [box + (1, 1, 0)], (-1, -1, 0), max_step=2.0,
+)
+solutions = polyhedral_translation_targets(
+    path, 0.25, step_tolerance=1e-12, volume_tolerance=1e-12,
+)
+steps = [root.step for root in solutions.roots]  # [0.5, 1.5]
+volume_range = polyhedral_translation_range(
+    path, step_tolerance=1e-12, volume_tolerance=1e-12,
+)
+# The maximum volume enclosure is exactly [1, 1].
+```
+
+`unreachable` means no exact solution exists on this represented path.
+`unresolved` means exact solutions exist but some cannot be returned as
+distinct floating actions meeting the requested tolerances or refinement cap.
+`exact_reachable` records existence separately. Root records retain rational
+isolating bounds and the exact model residual at each proposed float step;
+constant solution intervals are returned separately. Inspect these outcomes
+before choosing a position, and verify the actual CAD edit independently.
+
+Step tolerance is absolute and dimensionless. Volume tolerance has cubic
+length units and must scale with the target when changing units. A floating
+target denotes that exact binary64 value; use `fractions.Fraction` for another
+exact rational target. Volume-range enclosures are conservative when their
+refinement is unresolved. They can be computed once for repeated targets;
+the target solver decides existence directly from the polynomials.
+
+::: brepax.experimental.polyhedral_targets
+    options:
+      members:
+        - TranslationTargetRoot
+        - TranslationTargetInterval
+        - TranslationTargetResult
+        - TranslationRangeCandidate
+        - TranslationVolumeRange
+        - polyhedral_translation_targets
+        - polyhedral_translation_range
+      show_source: false
+
+### Design sensitivities along a translation path
+
+`brepax.experimental.polyhedral_parameter` prepares an affine family of convex
+vertex cells with fixed facet normals and one or two dimensionless design
+parameters. Unlike a fixed translation profile, its traced volume evaluation
+changes the geometry with those parameters. Translation velocity stays fixed.
+
+The following example changes the initial gap and the stock extrusion height.
+At the reference design the target has two positions; the first is a simple
+root whose sensitivity can be evaluated inside its event interval.
+
+```python
+from itertools import product
+
+import jax
+import numpy as np
+
+from brepax.experimental.polyhedral_parameter import (
+    AffinePolyhedralCell,
+    polyhedral_parameter_position_sensitivity,
+    prepare_polyhedral_parameter,
+    specialize_polyhedral_parameter,
+)
+from brepax.experimental.polyhedral_targets import polyhedral_translation_targets
+
+jax.config.update("jax_enable_x64", True)
+stock = np.array([
+    (x, y, z) for z in (0.0, 1.0)
+    for x, y in ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0))
+])
+stock_changes = np.zeros((2, 6, 3))
+stock_changes[1, 3:, 2] = 1.0
+tool = np.array(list(product((-0.375, -0.125), (-0.5, 1.5), (-0.5, 1.5))))
+tool_changes = np.zeros((2, 8, 3))
+tool_changes[0, :, 0] = -1.0
+design = prepare_polyhedral_parameter(
+    [AffinePolyhedralCell(stock, stock_changes)],
+    [AffinePolyhedralCell(tool, tool_changes)],
+    (1.0, 0.0, 0.0), max_step=1.5,
+)
+theta = np.zeros(2)
+path = specialize_polyhedral_parameter(design, theta)
+solutions = polyhedral_translation_targets(
+    path, 15 / 128, step_tolerance=1e-12, volume_tolerance=1e-12,
+)
+steps = [root.step for root in solutions.roots]  # [23/32, 5/4]
+sensitivity = jax.jit(polyhedral_parameter_position_sensitivity)(
+    design.model, 23 / 32, theta,
+)  # [1, -15/32]: fixed physical target, dimensionless design parameters.
+```
+
+An `AffinePolyhedralCell` has vertices `(N, 3)` and parameter displacements
+`(P, N, 3)`. Its vertex map is affine in `theta`; vertices, displacement
+coefficients and velocity share a length unit. Preparation checks the fixed
+facet-normal assumption and derives sufficient strict linear conditions on
+`theta`. These preserve cell validity, disjoint interiors and event ordering;
+they need not describe the largest valid region. Conflicting event-order
+changes at the reference design are rejected even if volume itself is smooth.
+
+`polyhedral_parameter_volume` supports `jit`, `vmap` and first-order JVP/reverse
+derivatives in step and design parameters inside resolved open intervals.
+Its custom JVP uses the physical derivative polynomials, avoiding cancellation
+from differentiating rounded moving normalization anchors. Prepared model
+coefficients are not differentiation variables; higher derivatives are outside
+the contract. It returns NaN near moving events or parameter boundaries and
+when value/derivative cancellation or numerical range is unresolved. This can
+include a mathematically smooth stationary point. That is a limitation of the
+numerical derivative chart, not a claim that physical volume is undefined.
+Host specialization checks exact parameter
+conditions and creates a complete fixed-parameter translation profile with
+the existing boundary-value, one-sided-slope and target-query contracts.
+Specialization evaluates the affine represented family; independently rounded
+new vertices or rebuilt CAD can differ from that model.
+
+The position-sensitivity query computes the local volume-level-set derivative;
+it does not verify a target residual or select a root. Check the root first.
+Zero or unresolved slope, event boundaries and branch changes require separate
+treatment. Supply `target_parameter_gradient` when the target itself changes
+with the design. For fixed dimensionless parameters, scaling all lengths by
+`s` scales volume and its parameter derivatives by `s**3`; convert physical
+length sensitivities by the chain rule. Retain independent CAD validation.
+
+```bash
+uv run --group benchmark python -m benchmarks.multi_contact.parametric \
+  --output /tmp/parametric.json
+```
+
+This benchmark compares finite-profile inversion, first-order proposals and
+CAD-only search on the same supplied translation paths and ranges. It checks
+root inventories and path-unreachable targets against independent prism
+sections, evaluates design sensitivities, and validates actual rebuilt CAD
+edits. Parameter-volume differences rebuild CAD directly; position differences
+use specialized roots checked against independent section solutions and rebuilt
+CAD residuals. Failures and unsupported cases remain in the results. Timings
+include preparation and attempted CAD operations, but share one process and
+JAX caches; they are diagnostics rather than isolated cold-start comparisons.
+
+::: brepax.experimental.polyhedral_parameter
+    options:
+      members:
+        - AffinePolyhedralCell
+        - PolyhedralParameterModel
+        - ParameterTranslationEvent
+        - PreparedPolyhedralParameter
+        - prepare_polyhedral_parameter
+        - specialize_polyhedral_parameter
+        - polyhedral_parameter_volume
+        - polyhedral_parameter_events
+        - polyhedral_parameter_position_sensitivity
+      show_source: false
+
 ### Selecting finite edits with a CAD budget
 
 ```bash

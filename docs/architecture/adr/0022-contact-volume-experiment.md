@@ -164,6 +164,51 @@ can have different higher-order volume terms. The full path, not just its
 initial twist, defines a finite comparison. A translation profile cannot
 substitute for a rotating path.
 
+### Target inversion and bounded design sensitivities
+
+Retain the exact represented translation polynomials for host-side target
+queries. Find isolated roots, constant solution intervals, and volume-range
+enclosures over the complete supplied path. Use exact polynomial root counts
+to distinguish absent roots from unresolved floating candidates; sampling or
+a missing sign bracket cannot certify unreachability. State step and volume
+tolerances in their respective units. Reachability applies to the represented
+model and specified path, not to arbitrary source CAD or other directions.
+
+Add a bounded parameter-family experiment for one or two dimensionless design
+controls. Inputs remain explicit bounded convex vertex cells, with affine
+vertex displacements that preserve facet normals. Translation velocity is
+fixed. Host preparation derives a local parameter region, affine moving event
+positions, and volume polynomials. Retain cell validity, same-body interior
+disjointness, and absence of initial cross-body overlap throughout that region.
+Do not accept unchecked halfspace systems or infer deformation provenance from
+separately imported CAD.
+
+Separate exact host preparation and specialization from traced evaluation.
+JAX differentiation concerns the volume inside an admissible open event
+interval. Use a first-order custom JVP from exact-derived physical derivative
+polynomials to avoid cancellation introduced by differentiating rounded moving
+normalization anchors. Validate this rule independently and keep prepared
+model coefficients outside the differentiation contract. Numerical uncertainty
+near parameter boundaries or moving knots, unresolved cancellation, and
+unrepresentable intended derivatives must remain explicit. Valid exact models
+can have rejected numerical queries, including some smooth stationary points.
+Persistent identical event functions may be represented
+together; an unsupported event-order bifurcation is not evidence that the
+physical volume itself is nondifferentiable.
+
+Compute local target-position sensitivity only under its nonzero-slope,
+stable-branch conditions, including any supplied target derivative. Independent
+target verification remains necessary. Do not turn event sensitivities into
+a static TOI correction, or expose a general optimizer through this extension.
+
+Validate parameter derivatives with analytic references and independently
+rebuilt CAD differences, and target positions with actual Common/Cut operations.
+Compare finite-profile proposals, first-order proposals and CAD-only search
+on identical translation paths and ranges. Count preparation, compilation,
+attempted observations and final validation; separate repeated-target reuse
+from cold cost. Mathematical correctness, model-scoped reachability and
+practical speed are separate claims.
+
 ## Consequences
 
 The experiment can evaluate volume through a contact without freezing a
