@@ -2068,8 +2068,13 @@ confusing a numerical surrogate with the intended CAD objective.</p>
 </tr>
 <tr>
 <td>Experimental polyhedral translation</td>
-<td>Event-delimited, piecewise-cubic overlap volume along one prescribed translation</td>
+<td>Event-delimited, piecewise-cubic overlap volume, target positions and volume-range enclosures along one prescribed translation</td>
 <td>Explicit represented convex cells; host preparation fixes geometry and direction; no rotation or arbitrary STEP certification</td>
+</tr>
+<tr>
+<td>Experimental design sensitivity</td>
+<td>Volume and event-position sensitivities for affine vertex families, plus local target-position sensitivity</td>
+<td>Fixed facet normals and translation velocity; one or two design controls in a conservative parameter region; first derivatives only inside numerically resolved open event intervals</td>
 </tr>
 </tbody>
 </table>
@@ -2097,6 +2102,13 @@ is zero. For rotation, higher terms depend on the full trajectory: compensating
 a pivot to preserve the initial velocity field does not preserve the finite
 path. The <a href="../stratification_theory/#finite-translation-and-event-intervals">finite-response derivation</a>
 separates these contracts and their established mathematical background.</p>
+<p>An affine design family makes the polynomial coefficients and event positions
+depend on dimensions as well as step. Within a valid region, this connects
+changing-boundary volume derivatives to the position needed to maintain a
+target removal volume. Root existence, selection among several positions, and
+local sensitivity are separate calculations. Zero slopes, event boundaries and
+event-order bifurcations require separate analysis and lie outside the supported
+local inverse-sensitivity contract.</p>
 <p>Practical selection must distinguish a wrong ranking of the supplied finite
 actions from a candidate set that cannot reach the target. A few actual CAD
 observations can check and refine proposals, but absence of an observed target
