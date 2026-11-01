@@ -2076,6 +2076,11 @@ confusing a numerical surrogate with the intended CAD objective.</p>
 <td>Volume and event-position sensitivities for affine vertex families, plus local target-position sensitivity</td>
 <td>Fixed facet normals and translation velocity; one or two design controls in a conservative parameter region; first derivatives only inside numerically resolved open event intervals</td>
 </tr>
+<tr>
+<td>Experimental event boundary</td>
+<td>Exact host values and one-sided responses across one supplied event-order exchange</td>
+<td>One design parameter, fixed normals and velocity, one isolated pair of events; no JAX boundary gradient or automatic boundary discovery</td>
+</tr>
 </tbody>
 </table>
 <p>The <a href="../stratification_theory/">stratification explanation</a> defines the
@@ -2109,6 +2114,9 @@ target removal volume. Root existence, selection among several positions, and
 local sensitivity are separate calculations. Zero slopes, event boundaries and
 event-order bifurcations require separate analysis and lie outside the supported
 local inverse-sensitivity contract.</p>
+<p>A separate <a href="../stratification_theory/#a-supplied-event-order-exchange">host boundary evaluator</a>
+handles one prescribed exchange with adjacent exact polynomials and explicit
+one-sided responses; it does not extend that local inverse formula.</p>
 <p>Practical selection must distinguish a wrong ranking of the supplied finite
 actions from a candidate set that cannot reach the target. A few actual CAD
 observations can check and refine proposals, but absence of an observed target
