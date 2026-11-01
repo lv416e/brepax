@@ -192,9 +192,9 @@ model coefficients outside the differentiation contract. Numerical uncertainty
 near parameter boundaries or moving knots, unresolved cancellation, and
 unrepresentable intended derivatives must remain explicit. Valid exact models
 can have rejected numerical queries, including some smooth stationary points.
-Persistent identical event functions may be represented
-together; an unsupported event-order bifurcation is not evidence that the
-physical volume itself is nondifferentiable.
+Persistent identical event functions may be represented together. This strict
+parameter chart rejects conflicting event-order changes at its reference;
+that rejection does not establish that the physical volume is nondifferentiable.
 
 Compute local target-position sensitivity only under its nonzero-slope,
 stable-branch conditions, including any supplied target derivative. Independent
@@ -208,6 +208,31 @@ on identical translation paths and ranges. Count preparation, compilation,
 attempted observations and final validation; separate repeated-target reuse
 from cold cost. Mathematical correctness, model-scoped reachability and
 practical speed are separate claims.
+
+### One supplied event-order boundary
+
+Add a host evaluator for one dimensionless affine design parameter with fixed
+facet normals and translation velocity. The caller supplies an event-order
+exchange at theta=0 and a positive `parameter_radius` to seed regular charts
+at its negative and positive values. This radius is neither a tolerance nor
+the returned validity radius. Require the same affine event inventory, exactly
+one pair meeting inside the translation interval, and preservation of all
+non-event validity conditions. Reject other simultaneous exchanges, endpoint
+collisions and geometry changes outside these conditions.
+
+The certified parameter interval has open outer endpoints and includes zero.
+Check both exact polynomial closures against the fixed-parameter geometry.
+Preserve the two labeled affine events; their order changes across zero.
+Return exact host values, joint one-sided directional responses, and signed
+left/right parameter derivatives. Equal scalar derivatives establish only the
+ordinary parameter derivative at fixed step. A generally nonlinear direction
+map is not a JVP. Existing strict JAX charts and local target-position
+sensitivities retain their contracts.
+
+Host specialization on either side and at zero reuses the finite-profile and
+target-set APIs, including their numerical packing limits. This does not
+discover boundaries, build a parameter atlas, differentiate target selection,
+or certify separately imported CAD. Validate any applied edit independently.
 
 ## Consequences
 
