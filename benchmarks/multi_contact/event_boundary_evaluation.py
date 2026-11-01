@@ -113,7 +113,8 @@ def render_attempt(
     result = asdict(attempt)
     selection = result.pop("selection")
     preparation = selection.pop("model")
-    result["error"] = result["error"] or selection.pop("error")
+    selection_error = selection.pop("error")
+    result["error"] = result["error"] or selection_error
     result.update(selection)
     result.update(preparation)
     result.update(result.pop("timings"))

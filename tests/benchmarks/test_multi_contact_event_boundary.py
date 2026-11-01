@@ -12,9 +12,21 @@ from benchmarks.multi_contact.event_boundary_cad import (
     observe_scene,
     prepare_scene,
 )
-from benchmarks.multi_contact.event_boundary_evaluation import reference_audit, run
+from benchmarks.multi_contact.event_boundary_evaluation import (
+    audit,
+    reference_audit,
+    render_attempt,
+    run,
+    summary,
+)
 from benchmarks.multi_contact.event_boundary_fixtures import FAMILIES
-from benchmarks.multi_contact.event_boundary_selection import BoundaryCache, evaluate
+from benchmarks.multi_contact.event_boundary_selection import (
+    BoundaryCache,
+    EditAttempt,
+    SelectionResult,
+    evaluate,
+    operational_outcome,
+)
 from brepax._occt.backend import BRepAlgoAPI_Common, BRepCheck_Analyzer
 
 
@@ -76,6 +88,34 @@ def test_invalid_subcohorts_cannot_be_reported_as_success(tmp_path):
     with pytest.raises(ValueError, match="cannot omit"):
         run(output, modes=("sequential",), theta_index=1, audits=False)
     assert not output.exists()
+
+
+@pytest.mark.parametrize(
+    ("attempt_error", "selection_error", "expected"),
+    [
+        ("Initial CAD observation failed", None, "Initial CAD observation failed"),
+        (None, "Model preparation failed", "Model preparation failed"),
+        ("Final CAD failed", "Model query failed", "Final CAD failed"),
+    ],
+)
+def test_failed_attempt_errors_survive_rendering_and_summary(
+    attempt_error, selection_error, expected
+):
+    family = FAMILIES[0]
+    attempt = EditAttempt(
+        family.name,
+        Fraction(0),
+        "cad_search",
+        family.target,
+        None,
+        selection=SelectionResult(error=selection_error),
+        error=attempt_error,
+    )
+    attempt.outcome = operational_outcome(attempt)
+    row = render_attempt(attempt, audit(attempt, family, Fraction(0)), "cold")
+    assert row["error"] == expected
+    assert not row["operational_success"]
+    assert summary([row])["cold:cad_search"]["errors"] == 1
 
 
 def test_repeated_near_contact_queries_preserve_source_and_match_fresh_cad():
