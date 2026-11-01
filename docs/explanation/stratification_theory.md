@@ -333,6 +333,62 @@ implicit inverse formula does not extend to those branch changes. This bounded
 construction uses the chamber-volume background above; it is not a general
 stratification, boundary search or TOI correction.
 
+### Searching for a feasible design across the exchange
+
+Let $I$ be a compact closed parameter interval inside the boundary certificate,
+$t\in[0,T]$, and $V(t,\theta)$ the continuous overlap volume. The preparation
+contract gives $V(0,\theta)=0$. For a positive lower target-band limit $q_-$,
+therefore, a design is feasible precisely when
+
+$$
+M(\theta)=\max_{0\leq t\leq T} V(t,\theta)\ \geq\ q_-.
+$$
+
+This follows from continuity in $t$, not monotonicity. It does not imply that
+$M$ is monotone or differentiable in $\theta$, or that its feasible set is one
+interval. For example, a width/height tradeoff can leave both ends of $I$
+infeasible while an interior interval is feasible. At a limiting target that
+interval can shrink to an isolated point.
+
+Split $I$ at the supplied exchange. In each remaining interval $J=[a,b]$, map
+each affine event strip to a unit square using its two affine step boundaries.
+The volume polynomial has degree at most three in each coordinate. Its tensor
+Bernstein coefficients enclose every value on that square, including collapsed
+strip boundaries. Let their largest upper bound be $B_J$. This uses established
+[polynomial range bounds](https://shemesh.larc.nasa.gov/fm/papers/jar-mn-2012-draft.pdf),
+not a new differentiation rule.
+
+Subdividing only $\theta$ need not make $B_J$ tight: the unsplit translation
+coordinate can retain overestimation. Instead, also bound the *physical*
+$|\partial_\theta V|$ by $L_J$ over every strip. At fixed $t$, the finite
+piecewise-polynomial path is continuous through strip boundaries. Integrating
+these bounded derivatives and then maximizing over the same $[0,T]$ gives
+
+$$
+\sup_{\theta\in J} M(\theta)
+\leq \min\{B_J,\ \overline{M}(c)+L_J\max(c-a,b-c)\},
+\qquad c=(a+b)/2,
+$$
+
+where $\overline{M}(c)$ is a conservative fixed-parameter maximum enclosure.
+The derivative must include the chain rule for the moving step normalization;
+it is not the derivative at a fixed normalized strip coordinate.
+
+Discard $J$ only when this upper bound is strictly below $q_-$. The minimum
+of the distances from the initial parameter to all remaining intervals and the
+incumbent cost, when present, gives a global objective lower bound. A verified
+numerical edit supplies an upper bound. Their difference bounds how much a
+better feasible edit could improve the returned design. The witness is
+checked at its actual binary64 parameter and step using exact represented
+polynomials. An exact rational solution alone does not establish a usable float
+edit or source-CAD correctness.
+
+Finite refinement, the fixed-range enclosure tolerance, and isolated solutions
+can leave the result unresolved. In particular, equality in a bound is not an
+infeasibility proof. The capped search terminates, but need not resolve feasibility or optimality.
+No global smoothness or gradient of the selected design is claimed. See the
+[experimental query contract](../reference/applications.md#bounded-dimension-and-position-search).
+
 ### Rotation depends on the full path
 
 The finite benchmark uses $x(t)=p+R(t\omega)(x-p)+t v$. Let $\Omega x=

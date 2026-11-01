@@ -234,6 +234,29 @@ target-set APIs, including their numerical packing limits. This does not
 discover boundaries, build a parameter atlas, differentiate target selection,
 or certify separately imported CAD. Validate any applied edit independently.
 
+### Bounded dimension-and-position search
+
+Within that supplied boundary model, add a host query on a compact closed
+parameter interval strictly inside the open certificate. Minimize absolute
+change from an initial parameter while choosing a translation step whose
+represented overlap volume lies in a declared target band. This is a bounded
+experimental design task, not automatic event discovery or a generic optimizer.
+
+Use exact polynomial bounds over every affine event strip to exclude parameter
+intervals. Combine a tensor Bernstein bound with a fixed-parameter maximum
+upper enclosure plus a bound on the physical parameter derivative. The latter
+avoids relying on translation bounds becoming tight under parameter-only
+subdivision. No monotonicity or ordinary derivative of the maximum is assumed.
+
+Return an independently checked binary64 parameter/step witness separately from
+a lower bound on the required design change and the resulting objective gap.
+Only a strict volume upper bound below the allowed band proves infeasibility.
+Resource exhaustion, unresolved extrema, packing failures and isolated feasible
+points can leave the search unresolved. A tolerance-qualified edit is not a
+claim of exact target reachability. Validate actual CAD independently and compare
+against complete fixed-profile rebuilding and CAD-only search, charging setup
+and final validation. A certificate is not evidence of a runtime advantage.
+
 ## Consequences
 
 The experiment can evaluate volume through a contact without freezing a
