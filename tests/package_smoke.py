@@ -4,6 +4,7 @@ Run using the isolated installation's Python with ``-I`` so the checkout and
 PYTHONPATH cannot hide a missing or broken installed module.
 """
 
+from fractions import Fraction
 from importlib.metadata import version
 from itertools import product
 from pathlib import Path
@@ -28,6 +29,11 @@ from brepax.experimental.planar_contact_collection_cad import (
 from brepax.experimental.planar_contact_placement import (
     place_planar_contact_set,
     placed_planar_contact_set_volume_direction,
+)
+from brepax.experimental.polyhedral_boundary import (
+    polyhedral_event_boundary_response,
+    prepare_polyhedral_event_boundary,
+    specialize_polyhedral_event_boundary,
 )
 from brepax.experimental.polyhedral_parameter import (
     AffinePolyhedralCell,
@@ -133,6 +139,52 @@ def check_design_sensitivity() -> None:
     print("design sensitivity: JIT parameter AD and specialized target roots passed")
 
 
+def check_event_boundary() -> None:
+    """Check installed exact boundary response and singleton/interval target sets."""
+    box = np.array(list(product((0.0, 1.0), repeat=3)))
+    cutter = np.array(list(product((-1.5, -0.5), (-1.0, 2.0), (-1.0, 2.0))))
+    width = np.zeros((1, 8, 3))
+    width[0, cutter[:, 0] == -1.5, 0] = -1
+    prepared = prepare_polyhedral_event_boundary(
+        [AffinePolyhedralCell(box, np.zeros((1, 8, 3)))],
+        [AffinePolyhedralCell(cutter, width)],
+        (1, 0, 0),
+        max_step=3,
+        parameter_radius=Fraction(1, 8),
+    )
+    response = polyhedral_event_boundary_response(prepared, Fraction(3, 2))
+    assert response.volume == response.left_parameter_derivative == 1
+    assert response.right_parameter_derivative == 0
+    assert response.ordinary_parameter_derivative is None
+    # Installed behavior has no pytest type-checking hook to reject this input.
+    # NumPy's float conversion would otherwise silently discard its imaginary part.
+    try:
+        polyhedral_event_boundary_response(
+            prepared, Fraction(3, 2), parameter_direction=np.complex128(1 + 0.25j)
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("A complex boundary direction was silently accepted")
+    for theta in (Fraction(0), Fraction(1, 8)):
+        query = polyhedral_translation_targets(
+            specialize_polyhedral_event_boundary(prepared, theta),
+            1,
+            step_tolerance=1e-12,
+            volume_tolerance=1e-12,
+        )
+        assert query.status == "reachable"
+        if theta == 0:
+            assert len(query.roots) == 1 and query.roots[0].step == 1.5
+        else:
+            assert len(query.intervals) == 1
+            assert (query.intervals[0].lower, query.intervals[0].upper) == (
+                Fraction(3, 2),
+                Fraction(13, 8),
+            )
+    print("event boundary: exact responses and changing target solution sets passed")
+
+
 def main() -> None:
     """Check STEP extraction, analytic/B-spline evaluation, metrics and JAX AD."""
     jax.config.update("jax_enable_x64", True)
@@ -160,6 +212,7 @@ def main() -> None:
     check_contact_collection()
     check_finite_translation()
     check_design_sensitivity()
+    check_event_boundary()
 
 
 if __name__ == "__main__":

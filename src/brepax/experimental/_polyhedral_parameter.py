@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from itertools import combinations, combinations_with_replacement, pairwise, product
 from math import comb
-from typing import cast
+from typing import Literal, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -45,9 +45,27 @@ def affine_value(coefficients: Affine, parameters: Affine) -> Fraction:
     return coefficients[0] + _dot(coefficients[1:], parameters)
 
 
-def _guard(expression: Affine, guards: set[Affine]) -> None:
+@dataclass(frozen=True, order=True)
+class ParameterGuard:
+    """A sufficient affine inequality and why its boundary matters."""
+
+    expression: Affine
+    kind: Literal["cell", "separation", "static_feasibility", "event"]
+    operands: tuple[Affine, ...] = ()
+
+
+def _guard(
+    expression: Affine,
+    guards: set[Affine],
+    records: set[ParameterGuard] | None = None,
+    *,
+    kind: Literal["cell", "separation", "static_feasibility", "event"] = "event",
+    operands: tuple[Affine, ...] = (),
+) -> None:
     if not any(expression):
         return
+    if records is not None:
+        records.add(ParameterGuard(expression, kind, operands))
     if expression[0] == 0:
         raise ValueError("Reference parameters lie on a nonregular chart boundary")
     if expression[0] < 0:
@@ -72,6 +90,7 @@ def _cell(
     vertices: NDArray[np.float64],
     displacements: NDArray[np.float64],
     guards: set[Affine],
+    records: set[ParameterGuard] | None = None,
 ) -> _Cell:
     hull = vertex_hull(vertices)
     count = displacements.shape[0]
@@ -112,7 +131,7 @@ def _cell(
         coefficients = (offset, *rates)
         for vertex, motions in zip(exact_vertices, exact_displacements, strict=True):
             projections = (_dot(normal, vertex), *(_dot(normal, d) for d in motions))
-            _guard(_subtract(coefficients, projections), guards)
+            _guard(_subtract(coefficients, projections), guards, records, kind="cell")
         planes.append((normal, coefficients))
 
     # Preserve even currently infeasible plane triples. A previously infeasible
@@ -128,11 +147,21 @@ def _cell(
         points = cast(tuple[Vector, ...], columns)
         for normal, plane_offset in planes:
             residual = _subtract(tuple(_dot(normal, p) for p in points), plane_offset)
-            _guard(residual if residual[0] >= 0 else _scale(residual, -1), guards)
+            _guard(
+                residual if residual[0] >= 0 else _scale(residual, -1),
+                guards,
+                records,
+                kind="cell",
+            )
     return _Cell(exact_vertices, exact_displacements, hull, tuple(planes))
 
 
-def _separate(first: _Cell, second: _Cell, guards: set[Affine]) -> None:
+def _separate(
+    first: _Cell,
+    second: _Cell,
+    guards: set[Affine],
+    records: set[ParameterGuard] | None = None,
+) -> None:
     axes = {cast(Vector, tuple(Fraction(x) for x in a)) for a in first.hull.face_axes}
     axes.update(
         cast(Vector, tuple(Fraction(x) for x in a)) for a in second.hull.face_axes
@@ -163,13 +192,18 @@ def _separate(first: _Cell, second: _Cell, guards: set[Affine]) -> None:
         else:
             continue
         trial: set[Affine] = set()
+        trial_records: set[ParameterGuard] | None = (
+            set() if records is not None else None
+        )
         try:
             for a, b in product(left, right):
-                _guard(_subtract(b, a), trial)
+                _guard(_subtract(b, a), trial, trial_records, kind="separation")
         except ValueError:
             # Another separator may support an open parameter neighborhood.
             continue
         guards.update(trial)
+        if records is not None and trial_records is not None:
+            records.update(trial_records)
         return
     raise ValueError("Cells overlap or lack a regular parameter separation certificate")
 
@@ -195,6 +229,7 @@ def _vertices(
     parameter_count: int,
     maximum_step: Fraction,
     guards: set[Affine],
+    records: set[ParameterGuard] | None = None,
 ) -> tuple[_Vertex, ...]:
     zero = (_ZERO,) * (parameter_count + 1)
     end = (maximum_step, *zero[1:])
@@ -220,23 +255,23 @@ def _vertices(
                 static.append(no_step)
         violated = next((r for r in static if r[0] > 0), None)
         if violated is not None:
-            _guard(violated, guards)
+            _guard(violated, guards, records, kind="static_feasibility")
             continue
         for residual in static:
-            _guard(_scale(residual, -1), guards)
+            _guard(_scale(residual, -1), guards, records, kind="static_feasibility")
         lo, hi = max(lower, key=lambda q: q[0]), min(upper, key=lambda q: q[0])
         if lo == hi:
             continue
         if lo[0] == hi[0]:
             raise ValueError("Distinct affine events tie at the reference parameters")
         if lo[0] > hi[0]:
-            _guard(_subtract(lo, hi), guards)
+            _guard(_subtract(lo, hi), guards, records, operands=(lo, hi))
             continue
         for candidate in lower:
-            _guard(_subtract(lo, candidate), guards)
+            _guard(_subtract(lo, candidate), guards, records, operands=(lo, candidate))
         for candidate in upper:
-            _guard(_subtract(candidate, hi), guards)
-        _guard(_subtract(hi, lo), guards)
+            _guard(_subtract(candidate, hi), guards, records, operands=(candidate, hi))
+        _guard(_subtract(hi, lo), guards, records, operands=(hi, lo))
         result[columns] = _Vertex(columns, lo, hi)
     return tuple(result.values())
 
@@ -252,6 +287,7 @@ class ExactParameterGeometry:
     terms: tuple[tuple[int, int, int], ...]
     coefficients: tuple[tuple[Fraction, ...], ...]
     pair_count: int
+    guard_records: tuple[ParameterGuard, ...] = ()
 
     def specialize(self, parameters: Affine) -> tuple[ExactPiece, ...]:
         if not all(affine_value(g, parameters) > 0 for g in self.guards):
@@ -339,28 +375,45 @@ def prepare_geometry(
     maximum_step: float,
 ) -> ExactParameterGeometry:
     guards: set[Affine] = set()
-    count = fixed[0][1].shape[0]
     fixed_cells = tuple(_cell(v, d, guards) for v, d in fixed)
     moving_cells = tuple(_cell(v, d, guards) for v, d in moving)
+    return prepare_from_cells(
+        fixed_cells,
+        moving_cells,
+        _fraction_vector(velocity),
+        Fraction(maximum_step),
+        guards,
+    )
+
+
+def prepare_from_cells(
+    fixed_cells: tuple[_Cell, ...],
+    moving_cells: tuple[_Cell, ...],
+    vector: Vector,
+    maximum_step: Fraction,
+    guards: set[Affine],
+    records: set[ParameterGuard] | None = None,
+) -> ExactParameterGeometry:
+    """Build a chart from exact cells whose fixed-normal validity is guarded."""
+    count = len(fixed_cells[0].displacements[0])
     for body in (fixed_cells, moving_cells):
         for a, b in combinations(body, 2):
-            _separate(a, b, guards)
+            _separate(a, b, guards, records)
     for a, b in product(fixed_cells, moving_cells):
-        _separate(a, b, guards)
-    vector = _fraction_vector(velocity)
+        _separate(a, b, guards, records)
     pairs = []
     for a, b in product(fixed_cells, moving_cells):
         planes = tuple((n, (c[0], _ZERO, *c[1:])) for n, c in a.planes) + tuple(
             (n, (c[0], _dot(n, vector), *c[1:])) for n, c in b.planes
         )
-        pairs.append((planes, _vertices(planes, count, Fraction(maximum_step), guards)))
+        pairs.append((planes, _vertices(planes, count, maximum_step, guards, records)))
     knots = {(_ZERO,) * (count + 1), (Fraction(maximum_step), *(_ZERO,) * count)}
     for _, vertices in pairs:
         for vertex in vertices:
             knots.update((vertex.lower, vertex.upper))
     ordered = tuple(sorted(knots, key=lambda k: k[0]))
     for lo, hi in pairwise(ordered):
-        _guard(_subtract(hi, lo), guards)
+        _guard(_subtract(hi, lo), guards, records, operands=(hi, lo))
 
     terms = tuple(combinations_with_replacement(range(count + 2), 3))
     coefficients, origins, widths = [], [], []
@@ -463,4 +516,5 @@ def prepare_geometry(
         terms,
         tuple(coefficients),
         len(pairs),
+        tuple(sorted(records)) if records is not None else (),
     )

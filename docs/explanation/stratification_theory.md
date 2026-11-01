@@ -275,9 +275,10 @@ are consequently outside the numerical chart's accepted queries.
 
 An event can be a redundant change of representation rather than physical
 contact. Moreover, events with distinct sensitivities can coincide: the first
-of $1+\theta$ and $1-\theta$ is $1-|\theta|$. Rejecting that event chart does
-not prove that the underlying volume lacks a derivative. Zero crossing speed,
-event-order changes, and simultaneous events require separate treatment.
+of $1+\theta$ and $1-\theta$ is $1-|\theta|$. The strict parameter chart rejects
+that changing event order; its rejection does not prove that the underlying
+volume lacks a derivative. Zero crossing speed, event-order changes, and
+simultaneous events require separate treatment.
 
 For a locally isolated target position $t_*(\theta)$ inside an event interval,
 where $V(t_*(\theta),\theta)=q(\theta)$ and $\partial_t V\ne0$, the implicit
@@ -294,6 +295,43 @@ multiple roots, certify that an
 arbitrary query is a target root, or extend through a zero slope or event
 boundary. Event-time sensitivity is not an additive correction to a static
 Boolean volume derivative; see [the TOI distinction](toi_derivation.md).
+
+### A supplied event-order exchange
+
+For one design parameter, suppose exactly two distinct affine events
+$\tau_1(\theta)$ and $\tau_2(\theta)$ meet at an interior step $t_0$ when
+$\theta=0$. This is a codimension-one boundary in design space. Their lines
+intersect at a codimension-two point in the joint $(t,\theta)$ plane. Stable
+labels preserve each affine derivative; sorting the events can introduce a
+cusp, as in $\min(1+\theta,1-\theta)=1-|\theta|$.
+
+The bounded host construction prepares the two adjacent parameter regions,
+retains non-event validity conditions at zero, and checks that their polynomial
+closures agree with the exact fixed-parameter profile. It then selects incident
+pieces by the signs of an infinitesimal ray and evaluates
+
+$$
+D^+V(t_0,0;d_t,d_\theta)=
+\lim_{\epsilon\downarrow0}
+\frac{V(t_0+\epsilon d_t,\epsilon d_\theta)-V(t_0,0)}{\epsilon}.
+$$
+
+This map is positively homogeneous but need not be linear. For two independent
+contacts with areas 1 and 2, unit normal speed, and onset times $1+\theta$ and
+$1-\theta$, respectively,
+the local response is $(d_t-d_\theta)_+ + 2(d_t+d_\theta)_+$, where
+$x_+=\max(x,0)$. It cannot define a JVP. At fixed step, the signed left derivative
+is $-D^+V(t_0,0;0,-1)$ and the right derivative is $D^+V(t_0,0;0,1)$; here they
+are -1 and 2. Equality would establish an ordinary scalar parameter derivative,
+not a joint gradient. Tangent rays require agreement of all incident limits.
+
+Event regularity, volume regularity and target-set regularity are different
+questions. The independent-contact example has a smooth small positive-target
+root through the exchange. A cutter attaining full coverage can instead change
+from no target solution to one position to a whole interval. The existing
+implicit inverse formula does not extend to those branch changes. This bounded
+construction uses the chamber-volume background above; it is not a general
+stratification, boundary search or TOI correction.
 
 ### Rotation depends on the full path
 

@@ -16,6 +16,7 @@ confusing a numerical surrogate with the intended CAD objective.
 | Experimental planar contact | Positive one-sided volume response to a supplied rigid direction, including complete collections of opposing planar contacts | Known patches or explicit convex-cell bodies with disjoint interiors; nonlinear in direction; finite edits require CAD validation |
 | Experimental polyhedral translation | Event-delimited, piecewise-cubic overlap volume, target positions and volume-range enclosures along one prescribed translation | Explicit represented convex cells; host preparation fixes geometry and direction; no rotation or arbitrary STEP certification |
 | Experimental design sensitivity | Volume and event-position sensitivities for affine vertex families, plus local target-position sensitivity | Fixed facet normals and translation velocity; one or two design controls in a conservative parameter region; first derivatives only inside numerically resolved open event intervals |
+| Experimental event boundary | Exact host values and one-sided responses across one supplied event-order exchange | One design parameter, fixed normals and velocity, one isolated pair of events; no JAX boundary gradient or automatic boundary discovery |
 
 The [stratification explanation](stratification_theory.md) defines the
 current contract and contact regularity. Exact primitive-volume derivatives
@@ -53,6 +54,10 @@ target removal volume. Root existence, selection among several positions, and
 local sensitivity are separate calculations. Zero slopes, event boundaries and
 event-order bifurcations require separate analysis and lie outside the supported
 local inverse-sensitivity contract.
+
+A separate [host boundary evaluator](stratification_theory.md#a-supplied-event-order-exchange)
+handles one prescribed exchange with adjacent exact polynomials and explicit
+one-sided responses; it does not extend that local inverse formula.
 
 Practical selection must distinguish a wrong ranking of the supplied finite
 actions from a candidate set that cannot reach the target. A few actual CAD

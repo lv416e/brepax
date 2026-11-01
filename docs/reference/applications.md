@@ -526,6 +526,10 @@ isolating bounds and the exact model residual at each proposed float step;
 constant solution intervals are returned separately. Inspect these outcomes
 before choosing a position, and verify the actual CAD edit independently.
 
+Exact unreachability does not exclude an edit within a nonzero application
+error allowance. Root existence, numerical root resolution, and acceptance of
+an independently checked CAD residual are separate decisions.
+
 Step tolerance is absolute and dimensionless. Volume tolerance has cubic
 length units and must scale with the target when changing units. A floating
 target denotes that exact binary64 value; use `fractions.Fraction` for another
@@ -654,6 +658,96 @@ JAX caches; they are diagnostics rather than isolated cold-start comparisons.
         - polyhedral_parameter_volume
         - polyhedral_parameter_events
         - polyhedral_parameter_position_sensitivity
+      show_source: false
+
+### One supplied event-order boundary
+
+`brepax.experimental.polyhedral_boundary` handles one supplied exchange at
+`theta=0` for a single affine design parameter. It requires fixed facet normals
+and translation velocity, valid bounded cells, disjoint same-body interiors,
+and no initial cross-body overlap throughout its certified region.
+
+```python
+from fractions import Fraction
+from itertools import product
+
+import jax
+import numpy as np
+
+from brepax.experimental.polyhedral_boundary import (
+    polyhedral_event_boundary_response,
+    prepare_polyhedral_event_boundary,
+    specialize_polyhedral_event_boundary,
+)
+from brepax.experimental.polyhedral_parameter import AffinePolyhedralCell
+from brepax.experimental.polyhedral_targets import polyhedral_translation_targets
+
+jax.config.update("jax_enable_x64", True)
+stock = np.array(list(product((0.0, 1.0), repeat=3)))
+tool = np.array(list(product((-1.5, -0.5), (-1.0, 2.0), (-1.0, 2.0))))
+changes = np.zeros((1, 8, 3))
+changes[0, tool[:, 0] == -1.5, 0] = -1.0
+boundary = prepare_polyhedral_event_boundary(
+    [AffinePolyhedralCell(stock, np.zeros((1, 8, 3)))],
+    [AffinePolyhedralCell(tool, changes)], (1.0, 0.0, 0.0),
+    max_step=3, parameter_radius=Fraction(1, 8),
+)
+response = polyhedral_event_boundary_response(boundary, Fraction(3, 2))
+# Signed left/right theta derivatives are 1 and 0; no ordinary theta derivative.
+path = specialize_polyhedral_event_boundary(boundary, Fraction(1, 8))
+solutions = polyhedral_translation_targets(
+    path, 1, step_tolerance=1e-12, volume_tolerance=1e-12,
+)
+# Full-volume solutions form the interval [3/2, 13/8].
+```
+
+`parameter_radius` selects reference points at `-radius` and `+radius`; it is
+not a tolerance, finite-difference step, or claimed validity bound. Inspect
+`parameter_interval`: its outer endpoints are open, zero is included, and
+`None` denotes an unbounded endpoint. Preparation rejects references that do
+not certify exactly one isolated pair of events with the same surrounding
+inventory. The returned `events` are stable affine labels, not chronological
+positions on both sides.
+
+The response query evaluates `(step, theta=0)` along
+`epsilon * (step_direction, parameter_direction)` as epsilon decreases to zero
+from above. Results are exact `Fraction` values. The signed left parameter
+derivative is the negative of the response in direction `(0,-1)`.
+`ordinary_parameter_derivative` returns their common value when they agree,
+or `None` otherwise; it is not a joint differentiability certificate. Directions
+exiting the supplied translation interval or inconsistent tangent limits reject.
+
+Preparation and responses are host operations, without `jit`, `vmap` or
+boundary AD. Specialization requires JAX x64 and retains the existing profile
+packing/target-query limits. All queries preserve supplied `Fraction` scalars;
+float scalars denote their exact binary64 values. With dimensionless step and
+design parameter, scaling geometry, displacement coefficients and velocity
+by `s > 0` scales volume and directional responses by `s**3`. Exact rigid
+coordinate changes preserve them; independently rounded inputs can change the certificate.
+See the [directional derivation](../explanation/stratification_theory.md#a-supplied-event-order-exchange).
+
+```bash
+uv run --group benchmark python -m benchmarks.multi_contact.event_boundary \
+  --output /tmp/event-boundary.json
+```
+
+This bounded comparison changes one design dimension along prescribed
+translation paths and compares reuse of a boundary model, rebuilding the exact
+fixed-dimension profile, and CAD-only search at the same requested accuracy.
+Boolean operations use disposable copies of both inputs so repeated observations
+preserve source topology and tolerances; copying time is included in CAD cost.
+Exact target existence and meeting the CAD residual allowance are reported
+separately. Failed probes and model/source disagreements remain visible even
+when a selected edit passes its final CAD checks.
+
+::: brepax.experimental.polyhedral_boundary
+    options:
+      members:
+        - PreparedPolyhedralEventBoundary
+        - PolyhedralBoundaryResponse
+        - prepare_polyhedral_event_boundary
+        - specialize_polyhedral_event_boundary
+        - polyhedral_event_boundary_response
       show_source: false
 
 ### Selecting finite edits with a CAD budget
