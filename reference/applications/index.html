@@ -2027,6 +2027,95 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#bounded-dimension-and-position-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bounded dimension-and-position search
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        polyhedral_design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="polyhedral_design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.DesignTargetWitness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DesignTargetWitness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.DesignTargetResult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DesignTargetResult
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DesignTargetResult">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.DesignTargetResult.optimality_gap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        optimality_gap
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.DesignQueryFailure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DesignQueryFailure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.polyhedral_design_target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        polyhedral_design_target
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#selecting-finite-edits-with-a-cad-budget" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3990,6 +4079,95 @@
     <span class="md-ellipsis">
       
         polyhedral_event_boundary_response
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bounded-dimension-and-position-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bounded dimension-and-position search
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        polyhedral_design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="polyhedral_design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.DesignTargetWitness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DesignTargetWitness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.DesignTargetResult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DesignTargetResult
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DesignTargetResult">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.DesignTargetResult.optimality_gap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        optimality_gap
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.DesignQueryFailure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DesignQueryFailure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.polyhedral_design.polyhedral_design_target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        polyhedral_design_target
       
     </span>
   </a>
@@ -7386,9 +7564,10 @@ See the <a href="../../explanation/stratification_theory/#a-supplied-event-order
 <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.event_boundary<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/event-boundary.json
 </code></pre></div>
-<p>This bounded comparison changes one design dimension along prescribed
-translation paths and compares reuse of a boundary model, rebuilding the exact
-fixed-dimension profile, and CAD-only search at the same requested accuracy.
+<p>For each supplied design dimension, this bounded comparison finds a target
+position along a prescribed translation path. It compares reuse of a boundary
+model, rebuilding the exact fixed-dimension profile, and CAD-only search at the
+same requested accuracy; it does not search for the smallest dimension change.
 Boolean operations use disposable copies of both inputs so repeated observations
 preserve source topology and tolerances; copying time is included in CAD cost.
 Exact target existence and meeting the CAD residual allowance are reported
@@ -7671,9 +7850,331 @@ No higher derivative or general boundary discovery is provided.</p>
 
     </div>
 
+</div><h3 id="bounded-dimension-and-position-search">Bounded dimension-and-position search<a class="headerlink" href="#bounded-dimension-and-position-search" title="Permanent link">&para;</a></h3>
+<p><code>brepax.experimental.polyhedral_design.polyhedral_design_target</code> searches a
+closed parameter interval inside a prepared event-boundary certificate. It
+chooses a parameter and translation step that meet the target-volume allowance,
+while bounding how much the absolute change from an initial parameter could
+still improve. It does not assume a monotone volume or connected feasible set.</p>
+<p>Using <code>boundary</code> from the example above:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_design</span><span class="w"> </span><span class="kn">import</span> <span class="n">polyhedral_design_target</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">polyhedral_design_target</span><span class="p">(</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">boundary</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="n">parameter_bounds</span><span class="o">=</span><span class="p">(</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)),</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="n">initial_parameter</span><span class="o">=</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="n">parameter_tolerance</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>    <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>    <span class="n">max_boxes</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="p">)</span>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">witness</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>    <span class="n">theta</span><span class="p">,</span> <span class="n">step</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">witness</span><span class="o">.</span><span class="n">parameter</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">witness</span><span class="o">.</span><span class="n">step</span>
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>    <span class="c1"># Validate this numerical design and edit against actual rebuilt CAD.</span>
+</code></pre></div>
+<p>The parameter bounds must lie strictly inside the certificate's open outer
+endpoints. Scalar floats denote exact binary64 inputs; use <code>Fraction</code> when an
+exact rational target or bound matters. <code>volume_tolerance</code> defines the allowed
+absolute volume residual. <code>status="optimal_within_tolerance"</code> certifies that
+the gap between the returned change and the best possible change is at most
+<code>parameter_tolerance</code>; an unresolved result may have a larger gap or no witness.
+<code>step_tolerance</code> instead controls numerical target-position refinement.</p>
+<p>The returned witness is checked at its actual binary64 parameter and step.
+Its objective supplies an upper bound; unresolved parameter intervals supply a
+lower bound. A witness can remain useful when the optimality gap is unresolved.
+An infeasible result requires excluding the entire requested interval; merely
+finding no witness is not enough. Exact target reachability is distinct from
+meeting the volume allowance. Isolated feasible points, numerical packing
+limits and refinement caps can prevent resolution.</p>
+<p>This host operation uses the existing x64 profile specialization and its
+packing limits; it is not a traced optimizer and supplies no selection gradient.
+The objective measures distance in the supplied parameter coordinate; rescaling
+that coordinate also rescales the objective and parameter tolerance. With
+dimensionless parameter and step, rigid coordinate changes preserve feasibility
+and optimal objective values. Scaling geometry, affine displacements and
+velocity by <code>s</code> requires target and volume tolerance to scale by <code>s**3</code>. Exact
+represented-coordinate laws do not certify separately rounded geometry or the accuracy of an OCCT edit. See the
+<a href="../../explanation/stratification_theory/#searching-for-a-feasible-design-across-the-exchange">bound derivation</a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.design_search<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/design-search.json
+</code></pre></div>
+<p>The bounded comparison searches the design dimension as well as translation.
+It compares the certified model with complete fixed-profile rebuilding and
+adaptive CAD observations, with whole-task Boolean and cooperative wall limits.
+Reports retain proposed model witnesses even when CAD rejects them, independent
+optimality enclosures, every measured probe, and fresh final Common/Cut checks.
+The model's optimality certificate and CAD validity are separate findings;
+sampled baselines do not claim global infeasibility. These constructed tasks
+are mechanism checks, not evidence of generalization or runtime superiority.</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="brepax.experimental.polyhedral_design" class="doc doc-heading">
+            <code>brepax.experimental.polyhedral_design</code>
+
+
+<a href="#brepax.experimental.polyhedral_design" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Bounded design search across one supplied polyhedral event-order exchange.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="brepax.experimental.polyhedral_design.DesignTargetWitness" class="doc doc-heading">
+            <code>DesignTargetWitness</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#brepax.experimental.polyhedral_design.DesignTargetWitness" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>An executable binary64 pair, checked in exact represented-model arithmetic.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="brepax.experimental.polyhedral_design.DesignTargetResult" class="doc doc-heading">
+            <code>DesignTargetResult</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#brepax.experimental.polyhedral_design.DesignTargetResult" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>A bounded search certificate, not a complete design-feasibility atlas.</p>
+<p>The lower objective bound concerns continuous real parameter/step pairs in
+the queried closed domain and volume band. The upper bound belongs to the
+returned binary64 witness, whose volume and residual are exact rational
+model values. <code>infeasible</code> excludes the entire continuous domain;
+<code>unresolved</code> retains regions not excluded within the search budget.
+No status certifies source CAD, an exact central-target root, or a gradient.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="brepax.experimental.polyhedral_design.DesignTargetResult.optimality_gap" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">optimality_gap</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#brepax.experimental.polyhedral_design.DesignTargetResult.optimality_gap" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Certified objective gap when an executable witness is available.</p>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="brepax.experimental.polyhedral_design.DesignQueryFailure" class="doc doc-heading">
+            <code>DesignQueryFailure</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#brepax.experimental.polyhedral_design.DesignQueryFailure" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>A valid exact parameter whose existing numerical profile could not be packed.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.experimental.polyhedral_design.polyhedral_design_target" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">polyhedral_design_target</span><span class="p">(</span><span class="n">prepared</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">parameter_bounds</span><span class="p">,</span> <span class="n">initial_parameter</span><span class="p">,</span> <span class="n">parameter_tolerance</span><span class="p">,</span> <span class="n">step_tolerance</span><span class="p">,</span> <span class="n">volume_tolerance</span><span class="p">,</span> <span class="n">max_boxes</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">max_refinements</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span></code>
+
+<a href="#brepax.experimental.polyhedral_design.polyhedral_design_target" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Minimize design change while finding a target-volume translation action.</p>
+<p>Search a finite closed parameter interval strictly inside <code>prepared</code>'s
+open certificate. The objective is <code>abs(theta-initial_parameter)</code>; the
+constraint is <code>abs(V(step,theta)-target) &lt;= volume_tolerance</code>. This volume
+tolerance defines a feasible band, unlike the exact-existence semantics of
+<code>polyhedral_translation_targets</code>. Both returned coordinates are binary64
+values, rechecked as exact rationals against the original band and domain.</p>
+<p>Parameters and step are dimensionless; target/tolerance have volume units.
+Scale both by s**3 when scaling geometry, displacements, and velocity by s.
+Exact coordinate-frame laws and represented-input limitations of the
+prepared boundary apply. This host query is neither JAX-transformable nor
+a derivative of target selection, and retains existing JAX x64/profile
+packing requirements. Failed numerical packing remains explicitly recorded.</p>
+<p><code>parameter_tolerance</code> bounds the reported objective gap; <code>step_tolerance</code>
+controls candidate-root refinement, not a separate feasibility constraint.
+<code>max_boxes</code> caps examined design intervals; <code>max_refinements</code> caps each
+existing root-isolation path. Fixed range tolerances can leave bound floors;
+isolated feasible points, unavailable float actions, or exhausted budgets
+may remain unresolved. No finite-completeness guarantee is made.</p>
+<p>Example::</p>
+<div class="highlight"><pre><span></span><code>result = polyhedral_design_target(
+    boundary, 0.2, parameter_bounds=(-0.1, 0.1),
+    initial_parameter=0.08, parameter_tolerance=1e-4,
+    step_tolerance=1e-10, volume_tolerance=1e-8,
+)
+if result.witness is not None:
+    # Independently validate this model action with the actual CAD.
+    theta, step = result.witness.parameter, result.witness.step
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
 </div><h3 id="selecting-finite-edits-with-a-cad-budget">Selecting finite edits with a CAD budget<a class="headerlink" href="#selecting-finite-edits-with-a-cad-budget" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.selection<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/finite-selection.json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.selection<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/finite-selection.json
 </code></pre></div>
 <p>This benchmark compares analytical candidate ordering and CAD confirmation
 with CAD-only adaptive selection. Its separate amount-refinement panel uses
