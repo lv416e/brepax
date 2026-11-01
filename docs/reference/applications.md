@@ -731,9 +731,10 @@ uv run --group benchmark python -m benchmarks.multi_contact.event_boundary \
   --output /tmp/event-boundary.json
 ```
 
-This bounded comparison changes one design dimension along prescribed
-translation paths and compares reuse of a boundary model, rebuilding the exact
-fixed-dimension profile, and CAD-only search at the same requested accuracy.
+For each supplied design dimension, this bounded comparison finds a target
+position along a prescribed translation path. It compares reuse of a boundary
+model, rebuilding the exact fixed-dimension profile, and CAD-only search at the
+same requested accuracy; it does not search for the smallest dimension change.
 Boolean operations use disposable copies of both inputs so repeated observations
 preserve source topology and tolerances; copying time is included in CAD cost.
 Exact target existence and meeting the CAD residual allowance are reported
@@ -748,6 +749,82 @@ when a selected edit passes its final CAD checks.
         - prepare_polyhedral_event_boundary
         - specialize_polyhedral_event_boundary
         - polyhedral_event_boundary_response
+      show_source: false
+
+### Bounded dimension-and-position search
+
+`brepax.experimental.polyhedral_design.polyhedral_design_target` searches a
+closed parameter interval inside a prepared event-boundary certificate. It
+chooses a parameter and translation step that meet the target-volume allowance,
+while bounding how much the absolute change from an initial parameter could
+still improve. It does not assume a monotone volume or connected feasible set.
+
+Using `boundary` from the example above:
+
+```python
+from brepax.experimental.polyhedral_design import polyhedral_design_target
+
+result = polyhedral_design_target(
+    boundary, 1,
+    parameter_bounds=(Fraction(-1, 4), Fraction(1, 4)),
+    initial_parameter=Fraction(-1, 8),
+    parameter_tolerance=1e-4,
+    step_tolerance=1e-10,
+    volume_tolerance=1e-8,
+    max_boxes=256,
+)
+if result.witness is not None:
+    theta, step = result.witness.parameter, result.witness.step
+    # Validate this numerical design and edit against actual rebuilt CAD.
+```
+
+The parameter bounds must lie strictly inside the certificate's open outer
+endpoints. Scalar floats denote exact binary64 inputs; use `Fraction` when an
+exact rational target or bound matters. `volume_tolerance` defines the allowed
+absolute volume residual. `status="optimal_within_tolerance"` certifies that
+the gap between the returned change and the best possible change is at most
+`parameter_tolerance`; an unresolved result may have a larger gap or no witness.
+`step_tolerance` instead controls numerical target-position refinement.
+
+The returned witness is checked at its actual binary64 parameter and step.
+Its objective supplies an upper bound; unresolved parameter intervals supply a
+lower bound. A witness can remain useful when the optimality gap is unresolved.
+An infeasible result requires excluding the entire requested interval; merely
+finding no witness is not enough. Exact target reachability is distinct from
+meeting the volume allowance. Isolated feasible points, numerical packing
+limits and refinement caps can prevent resolution.
+
+This host operation uses the existing x64 profile specialization and its
+packing limits; it is not a traced optimizer and supplies no selection gradient.
+The objective measures distance in the supplied parameter coordinate; rescaling
+that coordinate also rescales the objective and parameter tolerance. With
+dimensionless parameter and step, rigid coordinate changes preserve feasibility
+and optimal objective values. Scaling geometry, affine displacements and
+velocity by `s` requires target and volume tolerance to scale by `s**3`. Exact
+represented-coordinate laws do not certify separately rounded geometry or the accuracy of an OCCT edit. See the
+[bound derivation](../explanation/stratification_theory.md#searching-for-a-feasible-design-across-the-exchange).
+
+```bash
+uv run --group benchmark python -m benchmarks.multi_contact.design_search \
+  --output /tmp/design-search.json
+```
+
+The bounded comparison searches the design dimension as well as translation.
+It compares the certified model with complete fixed-profile rebuilding and
+adaptive CAD observations, with whole-task Boolean and cooperative wall limits.
+Reports retain proposed model witnesses even when CAD rejects them, independent
+optimality enclosures, every measured probe, and fresh final Common/Cut checks.
+The model's optimality certificate and CAD validity are separate findings;
+sampled baselines do not claim global infeasibility. These constructed tasks
+are mechanism checks, not evidence of generalization or runtime superiority.
+
+::: brepax.experimental.polyhedral_design
+    options:
+      members:
+        - DesignTargetWitness
+        - DesignTargetResult
+        - DesignQueryFailure
+        - polyhedral_design_target
       show_source: false
 
 ### Selecting finite edits with a CAD budget

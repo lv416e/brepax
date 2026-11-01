@@ -107,8 +107,8 @@ def _rational(value: float | int | Fraction, name: str) -> Fraction:
 
 def _query_inputs(
     prepared: PreparedPolyhedralTranslation,
-    step_tolerance: float,
-    volume_tolerance: float,
+    step_tolerance: float | int | Fraction,
+    volume_tolerance: float | int | Fraction,
     max_refinements: int,
 ) -> tuple[tuple[ExactPiece, ...], Fraction, Fraction]:
     if not prepared._exact_pieces:
@@ -212,8 +212,8 @@ def polyhedral_translation_targets(
     prepared: PreparedPolyhedralTranslation,
     target: float | int | Fraction,
     *,
-    step_tolerance: float,
-    volume_tolerance: float,
+    step_tolerance: float | int | Fraction,
+    volume_tolerance: float | int | Fraction,
     max_refinements: int = 128,
 ) -> TranslationTargetResult:
     """Find every target-volume location on a prepared finite translation path.
@@ -301,8 +301,8 @@ def polyhedral_translation_targets(
 def polyhedral_translation_range(
     prepared: PreparedPolyhedralTranslation,
     *,
-    step_tolerance: float,
-    volume_tolerance: float,
+    step_tolerance: float | int | Fraction,
+    volume_tolerance: float | int | Fraction,
     max_refinements: int = 128,
 ) -> TranslationVolumeRange:
     """Enclose the full attainable volume range without CAD or grid sampling.
