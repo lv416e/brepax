@@ -35,19 +35,28 @@ parameters independently, so a vertex on an edge shared by two faces gets two
 numerically close but generally distinct copies; the mesh is not literally
 watertight at the index level. `triangulate_shape_watertight` is an opt-in
 mode that instead welds shared vertices identified from OCCT's own per-edge
-mesh discretization (not a distance tolerance) and returns an indexed
-`WatertightMesh` whose `vertices[faces]` is a true index-level watertight
-mesh. A shared vertex's position is a two-level mean -- each incident face's
-own nodes there, then those per-face means across the vertex's distinct
-incident faces -- so `jax.grad` distributes symmetrically per incident face
-even when one face (e.g. at a periodic face's own seam) contributes more
-than one of its own nodes to that vertex. `extract_watertight_topology` and
-`evaluate_watertight_mesh` split the host-side OCCT extraction and
-validation from this averaging, a pure JAX function of explicit per-face
-parameters, so a caller can differentiate, `jit`, or `vmap` with respect to
-specific per-face surface parameters without repeating the OCCT work.
-`WatertightMesh.max_gap` reports an upper bound on the largest disagreement
-between two faces' independent evaluations at a shared vertex, and an
+mesh discretization (not a distance tolerance) and returns a `WatertightMesh`
+(`vertices`, `faces`, `max_gap`) whose `vertices[faces]` is a true
+index-level watertight mesh. `WatertightMesh` is a registered JAX pytree (an
+`equinox.Module` of arrays only), so `jit` and `vmap` can return it directly;
+host metadata such as `surface_type` and per-face triangle counts is not
+array data and lives instead on `WatertightTopology`, from
+`extract_watertight_topology`. A shared vertex's position is a two-level
+mean -- each incident face's own nodes there, then those per-face means
+across the vertex's distinct incident faces -- so `jax.grad` distributes
+symmetrically per incident face even when one face (e.g. at a periodic
+face's own seam) contributes more than one of its own nodes to that vertex.
+`extract_watertight_topology` and `evaluate_watertight_mesh` split the
+host-side OCCT extraction and validation from this averaging, a pure JAX
+function of explicit per-face parameters (B-spline degrees excluded -- they
+are shape-determining dispatch keys, not differentiable data, and stay on
+`WatertightTopology` so a traced call never needs to hash one), so a caller
+can differentiate, `jit`, or `vmap` with respect to specific per-face
+surface parameters without repeating the OCCT work. `WatertightMesh.max_gap`
+reports an upper bound on the largest disagreement between any two of a
+shared vertex's incident *nodes* -- computed from their raw evaluations, not
+the per-face means used for `vertices`, so it still catches two nodes of the
+*same* face disagreeing (e.g. across a periodic face's own seam) -- and an
 optional `tolerance` argument rejects a mesh whose evaluations disagree by
 more than that bound instead of silently welding through the disagreement.
 

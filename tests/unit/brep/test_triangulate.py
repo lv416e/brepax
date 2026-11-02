@@ -37,6 +37,7 @@ from benchmarks.abc_evaluation import evaluate_step as evaluation
 from brepax._occt.backend import BRepPrimAPI_MakeBox
 from brepax.brep.gprop import compute_gprop_ground_truth
 from brepax.brep.triangulate import (
+    WatertightMesh,
     WatertightTopology,
     _check_manifold_closed,
     _check_vertex_links_manifold,
@@ -430,8 +431,12 @@ class TestTriangulateShape:
         Hashes were captured from this exact function and independently
         cross-checked byte-for-byte against the pre-refactor implementation
         (before :func:`triangulate_shape` and :func:`triangulate_shape_watertight`
-        shared host-extraction helpers) on every ``.step`` fixture tracked in
-        this repository.
+        shared host-extraction helpers) on eleven of the twelve ``.step``
+        fixtures tracked in this repository (the twelfth, ``nurbs_revol.step``,
+        raises ``NotImplementedError`` in both versions: an unrelated,
+        pre-existing unsupported-surface limitation with no output to
+        compare). These four are locked in as a standing regression check;
+        see ADR-0024 for the full comparison.
         """
         shape = read_step(FIXTURES / f"{fixture}.step")
         tris, _ = triangulate_shape(shape)
@@ -969,8 +974,9 @@ class TestTriangulateShapeWatertight:
         exact_volume = 2.0 / 3.0 * math.pi * radius**3
         exact_area = 3.0 * math.pi * radius**2
 
-        mesh = triangulate_shape_watertight(shape, deflection=0.01)
-        assert len(mesh.params_list) == 2
+        topology = extract_watertight_topology(shape, deflection=0.01)
+        assert len(topology.face_records) == 2
+        mesh = evaluate_watertight_mesh(topology, topology.params_list)
         _assert_index_mesh_closed_manifold(mesh.vertices, mesh.faces)
         triangles = mesh.vertices[mesh.faces]
         volume = float(divergence_volume(triangles))
@@ -1040,18 +1046,21 @@ class TestTriangulateShapeWatertight:
         mesh = triangulate_shape_watertight(compound)
         assert mesh.vertices.shape == (0, 3)
         assert mesh.faces.shape == (0, 3)
-        assert mesh.params_list == []
         assert float(mesh.max_gap) == 0.0
+
+        topology = extract_watertight_topology(compound)
+        assert topology.face_records == []
+        assert topology.params_list == []
 
     def test_tolerance_argument_gates_on_reported_gap(self) -> None:
         """``tolerance`` raises exactly when the reported ``max_gap`` exceeds it.
 
-        Uses the hemisphere fixture (a curved pole cap and a planar cap,
-        two genuinely different faces meeting at the equator) rather than
-        the full sphere: at a pole touched by only one face, the two-level
-        mean in :func:`evaluate_watertight_mesh` reports an exact zero gap
-        (there is only one incident face to average across), so it cannot
-        exercise this argument.
+        Uses the hemisphere fixture (a curved pole cap and a planar cap
+        meeting at the equator): its ``max_gap`` is a reliably nonzero
+        residual (the raw per-node evaluation noise described in
+        :class:`WatertightMesh`), large enough to exercise both the
+        loose-tolerance and tight-tolerance branches below without being
+        exactly zero to machine precision.
         """
         shape = BRepBuilderAPI_NurbsConvert(
             BRepPrimAPI_MakeSphere(5.0, 0.0, math.pi / 2).Shape(), True
@@ -1239,3 +1248,83 @@ class TestTriangulateShapeWatertight:
         # An ordinary single tetrahedron is rejected by neither check.
         _check_manifold_closed(tetra_a)
         _check_vertex_links_manifold(tetra_a)
+
+    def test_evaluate_watertight_mesh_jit_with_bspline_params(self) -> None:
+        """``evaluate_watertight_mesh`` is ``jax.jit``-compatible over a full
+        ``params_list`` that includes a B-spline face.
+
+        B-spline degrees are shape-determining dispatch/cache keys, not
+        differentiable data (see ``WatertightTopology.face_records``): if
+        they leaked into the traced ``params_list`` pytree, ``jax.jit``
+        would turn them into unhashable tracers used as dict keys inside
+        ``_evaluate_positions_per_face``'s batched-group dispatch.
+        """
+        shape = read_step(FIXTURES / "nurbs_box.step")
+        topology = extract_watertight_topology(shape)
+        assert any(rec["surface_type"] == "bspline" for rec in topology.face_records)
+        assert all("deg_u" not in p for p in topology.params_list)
+
+        jitted = jax.jit(lambda params: evaluate_watertight_mesh(topology, params))
+        mesh = jitted(topology.params_list)
+        eager = evaluate_watertight_mesh(topology, topology.params_list)
+        np.testing.assert_allclose(mesh.vertices, eager.vertices)
+        np.testing.assert_array_equal(mesh.faces, eager.faces)
+        # Both values are at machine-epsilon scale for this exact box, so
+        # only an absolute tolerance is meaningful: XLA's fused jit
+        # evaluation order and eager NumPy/JAX dispatch round differently
+        # at that scale without indicating a real discrepancy.
+        np.testing.assert_allclose(mesh.max_gap, eager.max_gap, atol=1e-9)
+
+    def test_evaluate_watertight_mesh_returns_from_jit_and_vmap(self) -> None:
+        """A ``WatertightMesh`` is a registered pytree (an ``equinox.Module``
+        of arrays only), so ``jax.jit`` and ``jax.vmap`` can return it
+        directly, not just take it as an input.
+        """
+        shape = read_step(FIXTURES / "sample_box.step")
+        topology = extract_watertight_topology(shape)
+
+        jitted = jax.jit(lambda params: evaluate_watertight_mesh(topology, params))
+        mesh = jitted(topology.params_list)
+        assert isinstance(mesh, WatertightMesh)
+        assert mesh.vertices.shape == (8, 3)
+        assert mesh.faces.shape == (12, 3)
+
+        def scaled(scale: jnp.ndarray) -> WatertightMesh:
+            params = [
+                {**p, "origin": p["origin"] * scale} for p in topology.params_list
+            ]
+            return evaluate_watertight_mesh(topology, params)
+
+        batched = jax.vmap(scaled)(jnp.array([0.5, 1.0, 2.0]))
+        assert isinstance(batched, WatertightMesh)
+        assert batched.vertices.shape == (3, 8, 3)
+        assert batched.faces.shape == (3, 12, 3)
+        assert batched.max_gap.shape == (3,)
+
+    def test_max_gap_reports_raw_node_disagreement_within_one_face(self) -> None:
+        """``max_gap`` exposes two of the *same* face's own nodes
+        disagreeing, which the face-weighted mean used for ``vertices``
+        does not.
+
+        Edits one control point of a full periodic B-spline sphere, near
+        its own pole: the pole is touched by only one face, so the
+        per-face mean used for ``vertices`` has nothing to average it
+        against and just absorbs the edit into that face's own mean.
+        ``max_gap`` instead looks at the raw per-node evaluations before
+        either level of averaging, so it must report the edit's own
+        scale, not an unrelated near-zero baseline residual.
+        """
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeSphere(5.0).Shape(), True
+        ).Shape()
+        topology = extract_watertight_topology(shape, deflection=0.01)
+        baseline = evaluate_watertight_mesh(topology, topology.params_list)
+        assert float(baseline.max_gap) < 1e-6
+
+        params = [dict(p) for p in topology.params_list]
+        control_points = params[0]["control_points"]
+        edited = control_points.at[0, 0].add(jnp.array([10.0, 0.0, 0.0]))
+        params[0] = {**params[0], "control_points": edited}
+        edited_mesh = evaluate_watertight_mesh(topology, params)
+
+        assert float(edited_mesh.max_gap) == pytest.approx(10.0, rel=1e-6)

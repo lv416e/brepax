@@ -73,15 +73,31 @@ unchanged.
   mesh metric with respect to specific per-face surface parameters (e.g.
   one face's B-spline control points) without repeating the OCCT work,
   analogous to the existing `extract_mesh_topology`/`evaluate_mesh` split
-  for the non-welded mesh.
+  for the non-welded mesh. B-spline degrees are shape-determining dispatch
+  and cache keys, not differentiable data, so they stay concrete Python
+  ints on `WatertightTopology.face_records` rather than inside
+  `params_list`: a degree sitting in the traced pytree would become an
+  unhashable tracer the first time it was used as a dict key.
+- `WatertightMesh` is a registered JAX pytree (an `equinox.Module` of arrays
+  only -- `vertices`, `faces`, `max_gap`), so `jit` and `vmap` can return it,
+  not just take it as an argument. Host metadata that `triangulate_shape`
+  carries alongside its triangle array (`surface_type`, per-face triangle
+  counts) is not array data, so it lives on `WatertightTopology` instead
+  (`face_records`, `n_triangles_per_face`), not on `WatertightMesh`.
 - `WatertightMesh.max_gap` reports an upper bound on the largest disagreement
-  between two faces' independent evaluations at a shared vertex (twice the
-  largest distance from any incident face's own mean to the vertex's final
-  mean; exact by the triangle inequality). `triangulate_shape_watertight`'s
-  optional `tolerance` raises when this bound is exceeded, so a genuine
-  evaluator disagreement is surfaced and can be rejected against the shape's
-  own CAD tolerance instead of being silently absorbed into an averaged
-  position.
+  between any two of a shared vertex's incident *nodes* (twice the largest
+  distance from any individual node's raw evaluation to the vertex's final
+  welded position; exact by the triangle inequality), computed directly from
+  those raw evaluations rather than from the per-face means above. The two
+  are deliberately different: the per-face mean used for `vertices` would
+  otherwise silently absorb a disagreement between two nodes of the *same*
+  face (e.g. both sides of a periodic face's own seam) into that face's own
+  mean, reporting an exact zero gap even when editing one control point
+  measurably moves one of those two nodes relative to the other.
+  `triangulate_shape_watertight`'s optional `tolerance` raises when this
+  bound is exceeded, so a genuine evaluator disagreement is surfaced and can
+  be rejected against the shape's own CAD tolerance instead of being
+  silently absorbed into an averaged position.
 - Validation checks both that every edge is shared by exactly two
   consistently oriented triangles, and that every vertex's incident triangles
   form one closed fan (a vertex-link check): the edge check alone accepts two
