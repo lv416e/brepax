@@ -2325,6 +2325,13 @@ remain relevant, including initially separated, edge, and point contacts.</p>
 geometry and direction fixed during traced step queries; support explicit
 one-sided slopes at events and ordinary AD inside open intervals. Reject
 unrepresentable interval packing instead of silently merging distinct events.
+Before packing, coalesce adjacent knots whose neighboring pieces already carry
+an exactly identical total polynomial: such a knot is combinatorial only for
+one contributing cell pair and is not an event of the reported total volume,
+including one a same-body cell decomposition introduces at a shared internal
+face. This never merges two knots with a genuinely distinct total polynomial,
+so it does not relax the rejection above; a redundant knot can still remain
+when the total volume genuinely changes there for a different reason.
 Reject coefficient underflow as well as overflow; an unsupported unit scale
 must not turn a positive exact volume into an all-zero numerical profile.
 The rational reference does not make floating evaluation exact or certify

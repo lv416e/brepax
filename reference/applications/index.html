@@ -6462,10 +6462,11 @@ rational event times and cubic coefficients from the represented geometry;
 the JAX evaluator uses floating coefficients. It does not fit CAD samples.</p>
 <p>Vertices, velocity components and <code>max_step</code> also accept <code>fractions.Fraction</code>,
 <code>int</code>, or a decimal or rational <code>str</code> such as <code>"1.2"</code>, parsed without binary64
-rounding. Rounded decimal dimensions can split events that coincide by design
-into exact times too close to pack, which raises "no resolvable float64
-chamber"; exact input removes that cause without relaxing the rejection of
-genuinely distinct events.</p>
+rounding. Rounded decimal dimensions can split a knot that coincides by design
+into two exact times a few ULP apart. Adjacent pieces with an exactly identical
+total polynomial are coalesced before packing, so such a split disappears when
+the total volume does not change across it; distinct events that cannot be
+packed still raise "no resolvable float64 chamber".</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
@@ -6494,11 +6495,14 @@ geometry and direction differentiation are outside the contract.</p>
 <p>The profile's floating thresholds round rational event times upward for
 binary64 query classification. A threshold need not equal the exact event:
 <code>path.events</code> retains its rational time and exact left/right slope limits.
-Distinct events without a resolvable floating interval and overflowing or
-underflowing coefficients are rejected. Out-of-range queries, and slope requests from a
-side outside the prepared interval, return NaN. Preparation is intended for
-small convex cells and can be expensive. It does not support rotation or
-certify that a separate CAD model matches the represented hulls.</p>
+<code>path.events</code> and <code>path.exact_knots</code> omit coalesced knots. A remaining knot
+can still be combinatorial for one cell pair when the total volume also changes
+there. Distinct events without a resolvable
+floating interval and overflowing or underflowing coefficients are rejected.
+Out-of-range queries, and slope requests from a side outside the prepared
+interval, return NaN. Preparation is intended for small convex cells and can
+be expensive. It does not support rotation or certify that a separate CAD
+model matches the represented hulls.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.translation<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/translation.json<span class="w"> </span>--step-output<span class="w"> </span>/tmp/translation-edit.step
 </code></pre></div>
@@ -6624,7 +6628,8 @@ the explicit slope query or host event limits at chamber boundaries.</p>
         <p>Exact model diagnostics plus the rounded numerical evaluator.</p>
 <p>This certifies only the supplied vertex-hull model. It does not establish
 correspondence to separately supplied CAD or identify every knot as a
-physical contact event: redundant combinatorial knots can remain.</p>
+physical contact event. Knots between pieces with an exactly identical
+total polynomial are coalesced; other combinatorial knots can remain.</p>
 
 
 
@@ -6728,15 +6733,17 @@ volume unit.</p>
 <p>Vertices, velocity components and <code>max_step</code> accept <code>Fraction</code>,
 <code>int</code> or a decimal/rational <code>str</code> such as <code>"1.2"</code>, parsed without
 binary64 rounding; a plain <code>float</code> keeps its binary64 value. Binary64
-rounding of decimal dimensions can split events that coincide by design
-into distinct exact times too close to pack, which then reject. Exact input
-removes that cause only; genuinely distinct unresolvable events still raise.</p>
+rounding of decimal dimensions can split a knot that coincides by design
+into two exact times too close to pack. Adjacent pieces with an exactly
+identical total polynomial are coalesced, which removes such a split when
+the total volume does not change across it; otherwise exact input is needed.</p>
 <p>Preparation enumerates exact hull facets and triple-plane intersections;
 it is intended for small cells, not large meshes. No volume measurements
 are fitted. No new contacts are omitted within the prepared interval.
 Rational event times and one-sided limits remain in the host record.
 Numerically unresolvable intervals or overflowing/underflowing coefficients
-raise <code>ValueError</code> instead of merging events or snapping geometry.</p>
+raise <code>ValueError</code> instead of merging two knots with distinct total
+polynomials or snapping geometry.</p>
 <p>Exact global rigid coordinate changes preserve volume; scaling geometry
 and velocity by s scales volume and step derivatives by s**3. Independently
 rounding transformed vertices can change the represented contact state and
@@ -6755,8 +6762,9 @@ prepared = prepare_polyhedral_translation(
 # Edge contact has zero initial slope but positive finite overlap.
 volume = polyhedral_translation_volume(prepared.profile, 0.25)  # 0.0625
 </code></pre></div>
-<p>Exact-decimal example, resolving a design coincidence that binary64
-vertices would place at two barely separated events::</p>
+<p>Exact-decimal example, placing a design coincidence at one exact knot
+instead of relying on coalescing a redundant sliver between two knots
+that binary64 vertices would place a few ULP apart::</p>
 <div class="highlight"><pre><span></span><code>from fractions import Fraction
 from itertools import product
 
