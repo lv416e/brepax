@@ -6460,6 +6460,12 @@ vertex arrays, not CAD solids. Each body's cell interiors must be disjoint,
 and the bodies must have no initial interior overlap. Preparation computes
 rational event times and cubic coefficients from the represented geometry;
 the JAX evaluator uses floating coefficients. It does not fit CAD samples.</p>
+<p>Vertices, velocity components and <code>max_step</code> also accept <code>fractions.Fraction</code>,
+<code>int</code>, or a decimal or rational <code>str</code> such as <code>"1.2"</code>, parsed without binary64
+rounding. Rounded decimal dimensions can split events that coincide by design
+into exact times too close to pack, which raises "no resolvable float64
+chamber"; exact input removes that cause without relaxing the rejection of
+genuinely distinct events.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
@@ -6516,9 +6522,10 @@ velocity field cannot determine higher-order finite terms. See the
     <div class="doc doc-contents first">
 
         <p>Finite translation-volume profiles for explicit convex-cell bodies.</p>
-<p>Host preparation uses exact rational geometry of represented binary64 vertices.
-The numerical profile supports JAX step queries. This is neither an importer
-nor a general Boolean JVP: cells and velocity remain fixed after preparation.</p>
+<p>Host preparation uses exact rational geometry of represented vertices, taken
+from either binary64 coordinates or exact rational/decimal-string input. The
+numerical profile supports JAX step queries. This is neither an importer nor
+a general Boolean JVP: cells and velocity remain fixed after preparation.</p>
 
 
 
@@ -6711,12 +6718,19 @@ physical contact event: redundant combinatorial knots can remain.</p>
     <div class="doc doc-contents ">
 
         <p>Prepare exact finite overlap along <code>moving + step * velocity</code>.</p>
-<p>Each nonempty body is a list of bounded convex cells, each supplied as
-finite float64 vertices of shape <code>(N, 3)</code>. Every hull must have positive
-volume; same-body interiors and initial cross-body interiors must be
-disjoint. Face, edge, point contact and positive gaps are retained.
-<code>max_step</code> is finite and positive. Step is dimensionless; vertices and
-velocity share a length unit, and output has its cube as the volume unit.</p>
+<p>Each nonempty body is a list of bounded convex cells. A cell is a float64
+array of shape <code>(N, 3)</code> or a nested sequence of exact coordinates. Every
+hull must have positive volume; same-body interiors and initial cross-body
+interiors must be disjoint. Face, edge, point contact and positive gaps are
+retained. <code>max_step</code> is finite and positive. Step is dimensionless;
+vertices and velocity share a length unit, and output has its cube as the
+volume unit.</p>
+<p>Vertices, velocity components and <code>max_step</code> accept <code>Fraction</code>,
+<code>int</code> or a decimal/rational <code>str</code> such as <code>"1.2"</code>, parsed without
+binary64 rounding; a plain <code>float</code> keeps its binary64 value. Binary64
+rounding of decimal dimensions can split events that coincide by design
+into distinct exact times too close to pack, which then reject. Exact input
+removes that cause only; genuinely distinct unresolvable events still raise.</p>
 <p>Preparation enumerates exact hull facets and triple-plane intersections;
 it is intended for small cells, not large meshes. No volume measurements
 are fitted. No new contacts are omitted within the prepared interval.
@@ -6740,6 +6754,23 @@ prepared = prepare_polyhedral_translation(
 )
 # Edge contact has zero initial slope but positive finite overlap.
 volume = polyhedral_translation_volume(prepared.profile, 0.25)  # 0.0625
+</code></pre></div>
+<p>Exact-decimal example, resolving a design coincidence that binary64
+vertices would place at two barely separated events::</p>
+<div class="highlight"><pre><span></span><code>from fractions import Fraction
+from itertools import product
+
+def box(lo, hi):
+    return [tuple(c) for c in product(*zip(lo, hi))]
+
+fixed = [
+    box((0, 0, 0), (1, 1, &quot;0.2&quot;)),
+    box((0, 0, &quot;0.2&quot;), (1, 1, &quot;1.0&quot;)),
+]
+cutter = box((&quot;0.3&quot;, &quot;0.3&quot;, &quot;1.2&quot;), (&quot;0.7&quot;, &quot;0.7&quot;, &quot;2.0&quot;))
+prepared = prepare_polyhedral_translation(
+    fixed, [cutter], (0, 0, Fraction(-1)), max_step=&quot;1.5&quot;
+)
 </code></pre></div>
 
 
