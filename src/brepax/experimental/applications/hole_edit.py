@@ -215,7 +215,9 @@ class PreparedHoleEdit:
 
         This host operation is not differentiable. Raises ValueError for an
         invalid radius/shift vector and RuntimeError for reconstruction failure
-        or disagreement with isolated-hole volume, area or center of mass. Input CAD
+        or disagreement with isolated-hole volume, area or center of mass. When
+        whole-solid OCCT properties disagree, the removed and added regions must
+        still match the edit and stay beside the edited bores. Input CAD
         remains owned by the caller; each reconstruction uses an owned copy.
         Same-domain faces/edges are unified, so unselected geometry is preserved
         but original face partitions and IDs are not.

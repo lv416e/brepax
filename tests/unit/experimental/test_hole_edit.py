@@ -9,9 +9,17 @@ import numpy as np
 import pytest
 from OCP.BRep import BRep_Builder
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
-from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
+from OCP.BRepBuilderAPI import (
+    BRepBuilderAPI_Copy,
+    BRepBuilderAPI_NurbsConvert,
+    BRepBuilderAPI_Transform,
+)
 from OCP.BRepGProp import BRepGProp
-from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
+from OCP.BRepPrimAPI import (
+    BRepPrimAPI_MakeBox,
+    BRepPrimAPI_MakeCylinder,
+    BRepPrimAPI_MakeSphere,
+)
 from OCP.gp import gp_Ax1, gp_Ax2, gp_Dir, gp_Pnt, gp_Trsf
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
@@ -24,6 +32,12 @@ from brepax.brep.triangulate import (
     divergence_volume,
     mesh_surface_area,
     triangulate_shape,
+)
+from brepax.experimental.applications._hole_geometry import (
+    _local_edit_error,
+    normalize_shape,
+    rebuild_holes,
+    recognize_holes,
 )
 from brepax.experimental.applications.cad_frame import CadFrame
 from brepax.experimental.applications.hole_edit import prepare_hole_edit
@@ -607,3 +621,43 @@ def test_inverse_center_edit_step_roundtrip_preserves_unselected_hole(tmp_path):
     np.testing.assert_allclose(
         cad_metrics(source)[0], oracle("rectangular", np.array([2, 3]))[0], rtol=1e-12
     )
+
+
+def domed_plate():
+    # The B-spline dome shares the top face with the hole. Booleans that
+    # rebuild that face shift whole-solid OCCT properties by about 1e-7.
+    dome = BRepAlgoAPI_Cut(
+        BRepPrimAPI_MakeSphere(gp_Pnt(30, 12, 6), 5).Shape(),
+        BRepPrimAPI_MakeBox(gp_Pnt(20, 0, -10), gp_Pnt(40, 24, 6)).Shape(),
+    ).Shape()
+    return BRepAlgoAPI_Fuse(
+        BRepPrimAPI_MakeBox(40, 24, 6).Shape(),
+        BRepBuilderAPI_NurbsConvert(dome, True).Shape(),
+    ).Shape()
+
+
+def difference_volume(a, b):
+    region = BRepAlgoAPI_Cut(
+        BRepBuilderAPI_Copy(a, True, False).Shape(),
+        BRepBuilderAPI_Copy(b, True, False).Shape(),
+    ).Shape()
+    return cad_metrics(region)[0][0]
+
+
+@pytest.mark.parametrize("radius, shift", [(2.1, (0, 0, 0)), (2.05, (0.03, -0.02, 0))])
+def test_rebuild_accepts_exact_edit_beside_bspline_faces(radius, shift):
+    source = BRepAlgoAPI_Cut(domed_plate(), cylinder((10, 12, 0), (0, 0, 1), 2, 6))
+    working, _ = normalize_shape(source.Shape(), CadFrame(1.0, (0.0, 0.0, 0.0)))
+    (hole,), _, _ = recognize_holes(working)
+    radii, shifts = np.array([radius]), np.array([shift], dtype=float)
+    rebuilt = rebuild_holes(working, (hole,), radii, shifts)
+    base = np.array([10.0, 12.0, 0.0]) + shifts[0]
+    direct = BRepAlgoAPI_Cut(
+        domed_plate(), cylinder(base, (0, 0, 1), radius, 6)
+    ).Shape()
+    assert difference_volume(rebuilt, direct) == pytest.approx(0, abs=1e-9)
+    assert difference_volume(direct, rebuilt) == pytest.approx(0, abs=1e-9)
+    misplaced = BRepAlgoAPI_Cut(
+        domed_plate(), cylinder(base + np.array([0.2, 0, 0]), (0, 0, 1), radius, 6)
+    ).Shape()
+    assert _local_edit_error(working, misplaced, (hole,), radii, shifts) is not None
