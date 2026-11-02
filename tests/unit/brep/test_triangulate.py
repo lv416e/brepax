@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 from pathlib import Path
 
@@ -19,7 +20,12 @@ from OCP.BRepBuilderAPI import (
     BRepBuilderAPI_NurbsConvert,
 )
 from OCP.BRepCheck import BRepCheck_Analyzer
-from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism, BRepPrimAPI_MakeSphere
+from OCP.BRepPrimAPI import (
+    BRepPrimAPI_MakeCone,
+    BRepPrimAPI_MakeCylinder,
+    BRepPrimAPI_MakePrism,
+    BRepPrimAPI_MakeSphere,
+)
 from OCP.Geom import Geom_BezierCurve
 from OCP.gp import gp_Pln, gp_Pnt, gp_Vec
 from OCP.IFSelect import IFSelect_RetDone
@@ -31,8 +37,12 @@ from benchmarks.abc_evaluation import evaluate_step as evaluation
 from brepax._occt.backend import BRepPrimAPI_MakeBox
 from brepax.brep.gprop import compute_gprop_ground_truth
 from brepax.brep.triangulate import (
+    _DEFAULT_DEFLECTION,
     _eval_sphere,
+    _evaluate_positions_per_face,
     _extract_ax3,
+    _extract_face_records,
+    _weld_shared_vertices,
     divergence_volume,
     evaluate_mesh,
     extract_mesh_topology,
@@ -41,10 +51,36 @@ from brepax.brep.triangulate import (
     mesh_surface_area,
     per_face_geometric_params,
     triangulate_shape,
+    triangulate_shape_watertight,
 )
 from brepax.io.step import read_step
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
+
+
+def _assert_index_mesh_closed_manifold(
+    vertices: jnp.ndarray, faces: jnp.ndarray
+) -> None:
+    """Independent closure/manifold/orientation check on welded indices.
+
+    Unlike :func:`_assert_closed_mesh`, no coordinate quantization is
+    needed: ``faces`` already indexes a deduplicated ``vertices`` array,
+    so two triangle corners are the same vertex only if they share an
+    index.
+    """
+    faces_np = np.asarray(faces)
+    assert faces_np.shape[0] > 0
+    directed_edges = np.concatenate(
+        [faces_np[:, [0, 1]], faces_np[:, [1, 2]], faces_np[:, [2, 0]]]
+    )
+    assert not np.any(directed_edges[:, 0] == directed_edges[:, 1])
+    _, edge_ids, counts = np.unique(
+        np.sort(directed_edges, axis=1), axis=0, return_inverse=True, return_counts=True
+    )
+    assert np.all(counts == 2), f"Unpaired edges: {np.count_nonzero(counts != 2)}"
+    signs = np.where(directed_edges[:, 0] < directed_edges[:, 1], 1, -1)
+    assert np.all(np.bincount(edge_ids, weights=signs) == 0)
+    assert int(np.max(faces_np)) == np.asarray(vertices).shape[0] - 1
 
 
 def _assert_closed_mesh(triangles: jnp.ndarray) -> None:
@@ -347,6 +383,45 @@ class TestTriangulateShape:
         assert tris.shape == (0, 3, 3)
         assert params == []
         assert extract_mesh_topology(compound) == []
+
+    @pytest.mark.parametrize(
+        ("fixture", "expected_hash"),
+        [
+            (
+                "sample_box",
+                "efe7fcd638267ba3a70298fecf4a9246ef7309cf64fc3a48f5634e18cdc7a9c4",
+            ),
+            (
+                "sample_sphere",
+                "a1e8d505377f48e4b4a0591108cf35e38adac3516fdc00bf4715438bbdc73ae3",
+            ),
+            (
+                "l_bracket",
+                "db9c90523ed914ff9701d4616e5f200f5edc0a68343fdc82ca745d88223db2d8",
+            ),
+            (
+                "nurbs_box",
+                "12a43173384fa7fd42d48d378d665ac4ce840a334f373c92e73eaff1ae8857d6",
+            ),
+        ],
+    )
+    def test_default_output_is_bit_identical(
+        self, fixture: str, expected_hash: str
+    ) -> None:
+        """Adding watertight triangulation must not change the default path.
+
+        Hashes were captured from this exact function and independently
+        cross-checked byte-for-byte against the pre-refactor implementation
+        (before :func:`triangulate_shape` and :func:`triangulate_shape_watertight`
+        shared host-extraction helpers) on every ``.step`` fixture tracked in
+        this repository.
+        """
+        shape = read_step(FIXTURES / f"{fixture}.step")
+        tris, _ = triangulate_shape(shape)
+        digest = hashlib.sha256(
+            np.asarray(tris, dtype=np.float64).tobytes()
+        ).hexdigest()
+        assert digest == expected_hash
 
 
 class TestMeshMetrics:
@@ -773,3 +848,267 @@ class TestParametricOptimization:
                     np.testing.assert_allclose(
                         jacobian @ direction, finite_difference, rtol=1e-6, atol=1e-7
                     )
+
+
+class TestTriangulateShapeWatertight:
+    """Tests for triangulate_shape_watertight()."""
+
+    def test_box_exact_closure_and_metrics(self) -> None:
+        """A box welds its 24 duplicated corners down to the true 8 vertices."""
+        shape = read_step(FIXTURES / "sample_box.step")
+        mesh = triangulate_shape_watertight(shape)
+        assert mesh.vertices.shape == (8, 3)
+        assert mesh.faces.shape == (12, 3)
+        _assert_index_mesh_closed_manifold(mesh.vertices, mesh.faces)
+        assert float(mesh.max_gap) == 0.0
+        triangles = mesh.vertices[mesh.faces]
+        assert float(divergence_volume(triangles)) == pytest.approx(6000.0, rel=1e-12)
+        assert float(mesh_surface_area(triangles)) == pytest.approx(2200.0, rel=1e-12)
+
+    @pytest.mark.parametrize(
+        "fixture",
+        [
+            "sample_cylinder",
+            "sample_sphere",
+            "sample_cone",
+            "sample_torus",
+            "l_bracket",
+            "nurbs_box",
+            "box_with_holes",
+            "box_with_pocket",
+            "box_with_slot",
+        ],
+    )
+    def test_closed_manifold_matches_occt_gprop(self, fixture: str) -> None:
+        """Every tracked solid fixture welds to a closed, manifold mesh.
+
+        Checks the result both against :func:`_assert_index_mesh_closed_manifold`
+        (an independent recomputation of edge-count/orientation from the
+        returned indices alone) and against OCCT's own ``BRepGProp`` for
+        volume and area, the same oracle :func:`triangulate_shape` is
+        checked against elsewhere in this module.
+        """
+        shape = read_step(FIXTURES / f"{fixture}.step")
+        reference = compute_gprop_ground_truth(shape)
+        mesh = triangulate_shape_watertight(shape)
+        _assert_index_mesh_closed_manifold(mesh.vertices, mesh.faces)
+        # BRepMesh shares node parameters bit-identically across faces, so
+        # independent per-face re-evaluations of the same shared point
+        # should agree far tighter than the mesh's own discretization error.
+        scale = max(1.0, float(jnp.max(jnp.abs(mesh.vertices))))
+        assert float(mesh.max_gap) < 1e-6 * scale
+        triangles = mesh.vertices[mesh.faces]
+        volume = float(divergence_volume(triangles))
+        area = float(mesh_surface_area(triangles))
+        assert volume == pytest.approx(reference["volume"], rel=1e-2)
+        assert area == pytest.approx(reference["surface_area"], rel=1e-2)
+
+    def test_periodic_bspline_sphere_closes_at_both_poles(self) -> None:
+        """A full NURBS-converted sphere welds its two pole fans shut.
+
+        ``triangulate_shape``'s own test for this fixture explicitly does
+        not assert closure, because independent per-face evaluations at
+        the pole only agree to about 1e-10, not bit-exactly. Averaging
+        those evaluations (instead of picking one, as a naive weld would)
+        both closes the mesh and keeps ``max_gap`` reporting that residual
+        disagreement instead of hiding it.
+        """
+        radius = 5.0
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeSphere(radius).Shape(), True
+        ).Shape()
+        assert BRepCheck_Analyzer(shape).IsValid()
+        reference = compute_gprop_ground_truth(shape)
+        exact_volume = 4.0 / 3.0 * math.pi * radius**3
+        exact_area = 4.0 * math.pi * radius**2
+
+        mesh_coarse = triangulate_shape_watertight(shape, deflection=0.01)
+        _assert_index_mesh_closed_manifold(mesh_coarse.vertices, mesh_coarse.faces)
+        assert float(mesh_coarse.max_gap) < 1e-6
+        tris_coarse = mesh_coarse.vertices[mesh_coarse.faces]
+        vol_coarse = float(divergence_volume(tris_coarse))
+        area_coarse = float(mesh_surface_area(tris_coarse))
+        assert vol_coarse == pytest.approx(exact_volume, rel=1e-2)
+        assert area_coarse == pytest.approx(exact_area, rel=1e-2)
+        assert vol_coarse == pytest.approx(reference["volume"], rel=1e-2)
+        assert area_coarse == pytest.approx(reference["surface_area"], rel=1e-2)
+
+        mesh_fine = triangulate_shape_watertight(shape, deflection=0.001)
+        _assert_index_mesh_closed_manifold(mesh_fine.vertices, mesh_fine.faces)
+        tris_fine = mesh_fine.vertices[mesh_fine.faces]
+        vol_fine = float(divergence_volume(tris_fine))
+        area_fine = float(mesh_surface_area(tris_fine))
+        assert abs(vol_fine - exact_volume) < abs(vol_coarse - exact_volume)
+        assert abs(area_fine - exact_area) < abs(area_coarse - exact_area)
+
+    def test_periodic_bspline_hemisphere_closes_pole_and_planar_seam(self) -> None:
+        """A curved pole cap and a planar equatorial cap weld at their shared seam."""
+        radius = 5.0
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeSphere(radius, 0.0, math.pi / 2).Shape(), True
+        ).Shape()
+        assert BRepCheck_Analyzer(shape).IsValid()
+        reference = compute_gprop_ground_truth(shape)
+        exact_volume = 2.0 / 3.0 * math.pi * radius**3
+        exact_area = 3.0 * math.pi * radius**2
+
+        mesh = triangulate_shape_watertight(shape, deflection=0.01)
+        assert len(mesh.params_list) == 2
+        _assert_index_mesh_closed_manifold(mesh.vertices, mesh.faces)
+        triangles = mesh.vertices[mesh.faces]
+        volume = float(divergence_volume(triangles))
+        area = float(mesh_surface_area(triangles))
+        assert volume == pytest.approx(exact_volume, rel=1e-2)
+        assert area == pytest.approx(exact_area, rel=1e-2)
+        assert volume == pytest.approx(reference["volume"], rel=2e-2)
+        assert area == pytest.approx(reference["surface_area"], rel=2e-2)
+
+    def test_periodic_bspline_cylinder_seam_without_pole(self) -> None:
+        """A periodic (but non-polar) BSpline face welds its own self-seam.
+
+        ``BRepBuilderAPI_NurbsConvert`` rewrites the cylinder's analytic
+        lateral surface as a BSpline that is periodic in U but has no
+        degenerate edge, exercising the seam-matching path independently
+        of degenerate-edge handling.
+        """
+        radius, height = 2.0, 5.0
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeCylinder(radius, height).Shape(), True
+        ).Shape()
+        assert BRepCheck_Analyzer(shape).IsValid()
+        reference = compute_gprop_ground_truth(shape)
+        exact_volume = math.pi * radius**2 * height
+
+        mesh = triangulate_shape_watertight(shape, deflection=0.001)
+        _assert_index_mesh_closed_manifold(mesh.vertices, mesh.faces)
+        volume = float(divergence_volume(mesh.vertices[mesh.faces]))
+        assert volume == pytest.approx(exact_volume, rel=5e-3)
+        # OCCT's own BRepGProp quadrature over the NURBS-converted lateral
+        # surface (not this mesh) carries its own ~1% residual error here,
+        # measured independently of this fix (same effect noted in
+        # test_periodic_bspline_hemisphere_closes_pole_and_planar_seam).
+        assert volume == pytest.approx(reference["volume"], rel=2e-2)
+
+    def test_cone_apex_closes(self) -> None:
+        """A cone's single-point apex (a degenerate edge, not a seam) welds shut."""
+        radius, height = 1.0, 2.0
+        shape = BRepPrimAPI_MakeCone(radius, 0.0, height).Shape()
+        reference = compute_gprop_ground_truth(shape)
+        exact_volume = math.pi * radius**2 * height / 3.0
+
+        mesh = triangulate_shape_watertight(shape, deflection=0.001)
+        _assert_index_mesh_closed_manifold(mesh.vertices, mesh.faces)
+        assert float(mesh.max_gap) < 1e-9
+        volume = float(divergence_volume(mesh.vertices[mesh.faces]))
+        assert volume == pytest.approx(exact_volume, rel=5e-3)
+        assert volume == pytest.approx(reference["volume"], rel=5e-3)
+
+    def test_rejects_open_shell_free_boundary(self) -> None:
+        """A single open BSpline patch has no second face at its boundary."""
+        shape = read_step(FIXTURES / "nurbs_saddle.step")
+        with pytest.raises(ValueError, match="face occurrences"):
+            triangulate_shape_watertight(shape)
+
+    def test_unsupported_face_rejects_partial_mesh(self) -> None:
+        """A valid solid with an unsupported roof must not lose that face."""
+        shape = _curved_roof_shape(1.0)
+        with pytest.raises(NotImplementedError, match="GeomAbs_SurfaceOfExtrusion"):
+            triangulate_shape_watertight(shape)
+
+    def test_empty_shape_returns_empty(self) -> None:
+        """Shape with no faces returns an empty, zero-gap watertight mesh."""
+        builder = BRep_Builder()
+        compound = TopoDS_Compound()
+        builder.MakeCompound(compound)
+        mesh = triangulate_shape_watertight(compound)
+        assert mesh.vertices.shape == (0, 3)
+        assert mesh.faces.shape == (0, 3)
+        assert mesh.params_list == []
+        assert float(mesh.max_gap) == 0.0
+
+    def test_tolerance_argument_gates_on_reported_gap(self) -> None:
+        """``tolerance`` raises exactly when the reported ``max_gap`` exceeds it."""
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeSphere(5.0).Shape(), True
+        ).Shape()
+        mesh = triangulate_shape_watertight(shape, deflection=0.01)
+        assert float(mesh.max_gap) > 0.0
+
+        # A loose tolerance above the reported gap must not raise.
+        triangulate_shape_watertight(shape, deflection=0.01, tolerance=1.0)
+
+        # A tolerance tighter than the reported gap must raise, quoting it.
+        with pytest.raises(ValueError, match="exceeds tolerance"):
+            triangulate_shape_watertight(
+                shape, deflection=0.01, tolerance=float(mesh.max_gap) / 2.0
+            )
+
+    def test_gradient_averages_symmetrically_across_incident_faces(self) -> None:
+        """A shared vertex's gradient splits evenly between its two faces.
+
+        A cylinder's lateral face and one planar cap share their circular
+        boundary two-to-one (unlike a box corner, which is a three-face
+        junction). Perturbs one face's own position parameter at a time
+        (``center`` for the cylinder, ``origin`` for the cap plane) along
+        an arbitrary fixed direction, independent of that face's true
+        normal, and differentiates the resulting *welded* vertex position
+        with respect to each perturbation. Since the welded position is the
+        mean of exactly two incident evaluations here, moving only one
+        face's parameter must move the shared vertex by exactly half the
+        naive (single-face) displacement -- and moving both faces by the
+        same amount must recover the full displacement. Checked both as an
+        exact linear identity and against finite differences.
+        """
+        position_key = {"plane": "origin", "cylinder": "center"}
+        shape = BRepPrimAPI_MakeCylinder(2.0, 5.0).Shape()
+        face_records = _extract_face_records(shape, _DEFAULT_DEFLECTION)
+        group_of, n_vertices = _weld_shared_vertices(shape, face_records)
+        offsets = np.cumsum([0] + [r["n_points"] for r in face_records], dtype=np.int64)
+
+        shared_vertex = next(
+            v for v in range(n_vertices) if np.count_nonzero(group_of == v) == 2
+        )
+        member_indices = np.nonzero(group_of == shared_vertex)[0]
+        face_a, face_b = (
+            int(np.searchsorted(offsets, idx, side="right") - 1)
+            for idx in member_indices
+        )
+        assert face_a != face_b
+        key_a = position_key[face_records[face_a]["surface_type"]]
+        key_b = position_key[face_records[face_b]["surface_type"]]
+
+        direction = jnp.array([1.0, 0.0, 0.0])
+        mask = jnp.asarray(group_of == shared_vertex)
+
+        def welded_vertex(delta_a: jnp.ndarray, delta_b: jnp.ndarray) -> jnp.ndarray:
+            patched = []
+            for i, rec in enumerate(face_records):
+                params = rec["params"]
+                if i == face_a:
+                    params = {**params, key_a: params[key_a] + delta_a * direction}
+                if i == face_b:
+                    params = {**params, key_b: params[key_b] + delta_b * direction}
+                patched.append({**rec, "params": params})
+            positions = jnp.concatenate(_evaluate_positions_per_face(patched), axis=0)
+            return jnp.mean(positions[mask], axis=0)
+
+        jac_a, jac_b = jax.jacrev(welded_vertex, argnums=(0, 1))(
+            jnp.array(0.0), jnp.array(0.0)
+        )
+        np.testing.assert_allclose(jac_a, 0.5 * direction, atol=1e-12)
+        np.testing.assert_allclose(jac_b, 0.5 * direction, atol=1e-12)
+
+        for step in (1e-2, 1e-3, 1e-4):
+            forward = welded_vertex(jnp.array(step), jnp.array(0.0))
+            backward = welded_vertex(jnp.array(-step), jnp.array(0.0))
+            fd_a = (forward - backward) / (2 * step)
+            np.testing.assert_allclose(fd_a, jac_a, rtol=1e-8, atol=1e-10)
+
+            forward = welded_vertex(jnp.array(0.0), jnp.array(step))
+            backward = welded_vertex(jnp.array(0.0), jnp.array(-step))
+            fd_b = (forward - backward) / (2 * step)
+            np.testing.assert_allclose(fd_b, jac_b, rtol=1e-8, atol=1e-10)
+
+        # Moving both faces together recovers the full (unwelded) displacement.
+        both = jax.jacrev(lambda d: welded_vertex(d, d))(jnp.array(0.0))
+        np.testing.assert_allclose(both, direction, atol=1e-12)

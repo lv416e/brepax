@@ -1,0 +1,143 @@
+# ADR-0024: Watertight triangulation
+
+## Status
+
+Proposed
+
+## Context
+
+`triangulate_shape` tessellates each face with OCCT `BRepMesh`, then
+re-evaluates every triangle corner from that face's own JAX-native surface
+parameters, independently of its neighbors. A vertex on an edge shared by two
+faces therefore gets two numerically close but generally distinct copies: the
+triangle mesh is watertight as a surface covering (no missing faces, see
+ADR-0016) but not watertight at the index level (no single, shared vertex
+identity for a physically coincident point).
+
+This absence of true index-level sharing blocks `prepare_hole_edit`'s
+`closed_mesh` weld (ADR-0021), which instead reconstructs identity after the
+fact from a position-distance tolerance bucket. On the local NIST, FreeCAD and
+misc fixtures, that tolerance weld fails to close 8 of 39 solids, and succeeds
+only by discarding genuine topological information in favor of a tunable
+distance threshold that cannot distinguish a real gap from independent
+re-evaluation noise.
+
+OCCT's own `BRepMesh` triangulation already shares bit-identical boundary
+nodes and curve parameters between a shared edge's two owning faces
+(`Poly_PolygonOnTriangulation`), including a periodic face's own seam (which
+OCCT represents as two distinct, oriented boundary occurrences of that one
+face) and a degenerate edge's collapsed pole or apex. A prototype that
+identifies shared vertices from this OCCT edge topology (union-find over
+`Poly_PolygonOnTriangulation` node correspondence, matched by the edge's own
+curve parameter) and evaluates each global vertex once closed most of the
+previously failing solids.
+
+That prototype picked one of the two incident faces' evaluations as each
+shared vertex's representative, which silently gives `d(vertex)/d(params)`
+one-sided: the other incident face's shape-derivative contribution at that
+row is zero, biasing any future optimization that moves both adjacent
+surfaces, and on NIST FTC-07/STC-07 (and STC-10) picking the worse of the two
+sides inflated an existing, narrow evaluator defect (see below) up to 46%
+relative area error with no signal that anything was wrong.
+
+## Decision
+
+Add `triangulate_shape_watertight`, an explicit opt-in alternative to
+`triangulate_shape` that leaves the latter's output, including its exact
+floating-point values, unchanged. It:
+
+- Identifies shared vertices from OCCT edge topology, not a distance
+  tolerance: a union-find over `(face, local node)` pairs, matched through
+  each edge's own `Poly_PolygonOnTriangulation` node correspondence and its
+  intrinsic curve parameter (not vertex position). Walking each face's own
+  `TopExp_Explorer` (rather than the shape-level edge-to-face ancestor map)
+  yields two oriented occurrences of a periodic face's seam edge, handled by
+  the same matching code as an edge shared by two different faces. A
+  degenerate edge (pole, apex) collapses every node any of its occurrences
+  references into one vertex, further unioned across degenerate edges that
+  share a topological vertex.
+- Evaluates every incident face's own JAX-native surface parameters at its
+  own node, then averages the incident evaluations for each shared vertex, so
+  `jax.grad` distributes symmetrically to every incident face's parameters
+  instead of favoring whichever face a representative-picking rule happened
+  to choose.
+- Reports the largest gap between two faces' independent evaluations at a
+  shared vertex (`WatertightMesh.max_gap`) and accepts an optional
+  `tolerance` that raises when exceeded, so a genuine evaluator disagreement
+  is surfaced and can be rejected against the shape's own CAD tolerance
+  instead of being silently absorbed into an averaged position.
+- Returns an indexed `(vertices, faces)` pair (a `WatertightMesh`), not a
+  `(n, 3, 3)` triangle-corner array: the index level is exactly what welding
+  establishes, and `vertices[faces]` reproduces the existing triangle-corner
+  layout for `divergence_volume` and the other mesh metrics.
+
+`triangulate_shape` and `triangulate_shape_watertight` share their OCCT
+host-side extraction and batched JAX evaluation (both already existed as one
+combined function; the shared parts are now two private helpers), so the
+default path's numerical contract is unaffected; this is verified bit-for-bit
+against the prior implementation for every `.step` fixture tracked in this
+repository, and locked in as a regression test.
+
+Investigating the prototype's FTC-07/STC-07/STC-10 discrepancy found it is
+not the representative-picking defect it first appeared to be, and not a
+parametrization-mismatch bug introduced by that prototype. Both the
+unchanged `triangulate_shape` and the new `triangulate_shape_watertight`
+reuse the same `_snap_mesh_parameters_to_knot_domain` function, whose
+ulp-based overshoot tolerance is occasionally too tight (observed roughly
+9-10 ulps on these specific B-spline faces, against an 8-ulp allowance),
+leaving a handful of mesh boundary nodes a few ulps outside their face's
+clamped knot domain. Evaluating a clamped B-spline basis there returns the
+degenerate all-basis-functions-vanish fallback the function's own docstring
+already describes, collapsing those nodes to the origin. This defect already
+exists on `main`, independent of this change: `triangulate_shape` has 403 of
+92,058 triangle corners collapsed to the origin on FTC-07 alone, contributing
+part of its existing ~0.3-1% baseline error. Welding does not introduce this
+defect, but it does spread each defective node's influence from one face's
+own triangles to the correctly evaluated neighboring face sharing that edge,
+which is why the welded relative error is larger (up to several percent
+volume, tens of percent area) than the unwelded baseline on exactly these
+three fixtures. `max_gap` reports this gap directly (hundreds of working
+units, far past any plausible CAD tolerance), so passing the shape's own
+tolerance rejects these three meshes instead of silently returning them.
+Fixing the evaluator's ulp threshold itself is a separate, pre-existing
+numerical defect in a shared function used by both triangulation modes, out
+of this decision's scope.
+
+`prepare_hole_edit`'s `triangulate_shape` + `closed_mesh` weld is a clean
+drop-in replacement for `triangulate_shape_watertight` (verified against all
+39 local fixtures without changing `_hole_mesh.py`'s API), but is not wired in
+by this decision: `closed_mesh`'s position-based weld keeps whichever
+duplicate point it meets first, while watertight welding averages, so
+swapping it changes `prepare_hole_edit`'s computed vertex positions (and
+therefore its downstream volumes and gradients) by sub-tolerance amounts on
+every fixture, not just the 8 that previously failed to close. That is an
+intentional numerical change to an experimental public contract with its own
+tests and should be a separate, deliberately scoped change.
+
+## Consequences
+
+Easier:
+
+- 38 of the 39 local NIST, FreeCAD and misc solids close under
+  `triangulate_shape_watertight` (the 39th, `nurbs_saddle.step`, is a single
+  open B-spline patch with a genuine free boundary, not a solid).
+- A caller differentiating a mesh metric with respect to a per-face surface
+  parameter (e.g. B-spline control points) gets a shape derivative that is
+  symmetric across a shared boundary, matching the planned use this ADR's
+  context describes for future per-face parameter edits.
+- An evaluator disagreement at a shared vertex is a reportable, rejectable
+  number instead of a silent, one-sided pick.
+
+Harder:
+
+- Two function entry points now extract and batch-evaluate per-face data
+  (via shared private helpers); a future change to that extraction must keep
+  both call sites' contracts in mind.
+- `triangulate_shape_watertight` raises instead of returning a best-effort
+  mesh when OCCT edge topology cannot resolve a shared vertex (a free
+  boundary, a non-manifold edge, or an edge discretization with no stored
+  curve parameters); callers that need a result for an open shell must use
+  `triangulate_shape` instead.
+- `prepare_hole_edit` still relies on `closed_mesh`'s tolerance weld and
+  therefore keeps failing to close those same 8 fixtures until a dedicated,
+  separately scoped change adopts `triangulate_shape_watertight` there.

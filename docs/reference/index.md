@@ -30,6 +30,20 @@ the mesh's signed volume. Accuracy against the original curved CAD depends
 on tessellation. The [integration report](benchmarks.md) records fixture
 measurements, not an error bound for every supported surface or input.
 
+`triangulate_shape` evaluates each triangle corner from its own face's
+parameters independently, so a vertex on an edge shared by two faces gets two
+numerically close but generally distinct copies; the mesh is not literally
+watertight at the index level. `triangulate_shape_watertight` is an opt-in
+mode that instead welds shared vertices identified from OCCT's own per-edge
+mesh discretization (not a distance tolerance), averages every incident
+face's evaluation at each shared vertex, and returns an indexed
+`WatertightMesh` whose `vertices[faces]` is a true index-level watertight
+mesh. Averaging keeps `jax.grad` flowing symmetrically to every incident
+face's parameters. It reports the largest gap between incident faces'
+independent evaluations at a shared vertex as `max_gap`, and an optional
+`tolerance` argument rejects a mesh whose evaluations disagree by more than
+that bound instead of silently welding through the disagreement.
+
 | Function | Numerical contract |
 |----------|--------------------|
 | `divergence_volume` | Cubic polynomial in triangle vertices; signed volume in length cubed. |
@@ -85,6 +99,8 @@ the remaining distinction between surface, face, and solid derivatives.
     options:
       members:
         - triangulate_shape
+        - triangulate_shape_watertight
+        - WatertightMesh
         - extract_mesh_topology
         - evaluate_mesh
         - divergence_volume

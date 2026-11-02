@@ -5,11 +5,21 @@ vertex positions inside the JAX computation graph using parametric
 surface functions.  This gives ``jax.grad`` flow from volume through
 triangle vertices to primitive parameters (control points, radius,
 etc.) while preserving mesh watertightness.
+
+``triangulate_shape`` evaluates each triangle corner from its own
+face's parameters independently, so a vertex on a shared edge gets two
+numerically close but distinct copies: watertight as a surface
+covering, but not at the index level. ``triangulate_shape_watertight``
+additionally welds those copies into one vertex per physical point,
+identified from OCCT edge topology rather than a distance tolerance.
+See its docstring and ADR-0024 for the design rationale.
 """
 
 from __future__ import annotations
 
 import functools
+from dataclasses import dataclass
+from itertools import pairwise
 from typing import Any
 
 import jax
@@ -28,12 +38,16 @@ from brepax._occt.backend import (
     GeomAbs_Torus,
     TColStd_Array1OfInteger,
     TColStd_Array1OfReal,
+    TopAbs_EDGE,
     TopAbs_FACE,
     TopAbs_FORWARD,
     TopAbs_SOLID,
+    TopAbs_VERTEX,
+    TopExp,
     TopExp_Explorer,
     TopLoc_Location,
     TopoDS,
+    TopTools_IndexedMapOfShape,
 )
 from brepax._occt.types import TopoDS_Shape
 from brepax.nurbs.evaluate import evaluate_surface
@@ -659,34 +673,21 @@ def _snap_mesh_parameters_to_knot_domain(
     return np.where(np.abs(values - clipped) <= tolerance, clipped, values)
 
 
-def triangulate_shape(
-    shape: TopoDS_Shape,
-    *,
-    deflection: float = _DEFAULT_DEFLECTION,
-) -> tuple[jnp.ndarray, list[dict[str, Any]]]:
-    """Triangulate all faces of a shape with JAX-native vertices.
+def _extract_face_records(
+    shape: TopoDS_Shape, deflection: float
+) -> list[dict[str, Any]]:
+    """Mesh ``shape`` and extract per-face UV/connectivity/params in numpy.
 
-    Uses OCCT BRepMesh for watertight mesh topology, then re-evaluates
-    each vertex position using JAX-native parametric surface functions.
-    Faces are grouped by surface type (and BSpline signature) so each
-    group is evaluated with a single batched ``jax.vmap``, eliminating
-    per-face Python dispatch overhead.
-
-    Args:
-        shape: An OCCT topological shape.
-        deflection: Mesh deflection tolerance for OCCT tessellation.
-
-    Returns:
-        Tuple of ``(triangles, params_list)`` where triangles has
-        shape ``(n_total, 3, 3)`` and params_list contains one
-        parameter dict per face, in traversal order.
+    Shared host-side extraction pass ("Pass 1") for :func:`triangulate_shape`
+    and :func:`triangulate_shape_watertight`. Each record additionally keeps
+    the originating OCCT face, triangulation handle and location so the
+    watertight path can look up per-edge mesh discretizations without
+    re-meshing or re-walking the shape; :func:`triangulate_shape` ignores
+    those three keys.
 
     Raises:
         NotImplementedError: An evaluated face has an unsupported surface type.
         ValueError: An evaluated face has no triangulation or no triangles.
-
-    If solids are present, only their faces are evaluated. Otherwise all
-    faces are evaluated. A shape with no faces returns empty arrays and metadata.
     """
     BRepMesh_IncrementalMesh(shape, deflection)
 
@@ -700,7 +701,6 @@ def triangulate_shape(
     if not face_sources:
         face_sources.append(shape)
 
-    # Pass 1: walk faces, extract raw UV + connectivity + params in numpy.
     face_records: list[dict[str, Any]] = []
     for source in face_sources:
         exp = TopExp_Explorer(source, TopAbs_FACE)
@@ -757,20 +757,31 @@ def triangulate_shape(
                     "n_points": n_nodes,
                     "n_triangles": int(n_tris),
                     "conn": conn,
+                    "face": face,
+                    "poly_tri": poly_tri,
+                    "loc": loc,
                 }
             )
             exp.Next()
 
-    if not face_records:
-        return jnp.zeros((0, 3, 3)), []
+    return face_records
 
-    # Pass 2: group faces by signature, batch-evaluate each group.
+
+def _evaluate_positions_per_face(
+    face_records: list[dict[str, Any]],
+) -> list[jnp.ndarray]:
+    """Batch-evaluate JAX-native vertex positions for each face ("Pass 2").
+
+    Faces are grouped by surface type (and BSpline signature) so each
+    group is evaluated with a single batched ``jax.vmap``, eliminating
+    per-face Python dispatch overhead. Returns one ``(n_points, 3)``
+    position array per face, in ``face_records`` order.
+    """
     groups: dict[tuple[Any, ...], list[int]] = {}
     for idx, rec in enumerate(face_records):
         key = _face_group_key(rec["surface_type"], rec["params"])
         groups.setdefault(key, []).append(idx)
 
-    # For each face: (n_points, 3) positions array produced via group dispatch.
     positions_per_face: list[jnp.ndarray] = [jnp.zeros((0, 3))] * len(face_records)
 
     for _key, indices in groups.items():
@@ -799,7 +810,51 @@ def triangulate_shape(
             n_pts = group_recs[i]["n_points"]
             positions_per_face[face_idx] = batched_out[i, :n_pts]
 
-    # Pass 3: remap per-face connectivity to global indices, single indexed fetch.
+    return positions_per_face
+
+
+def triangulate_shape(
+    shape: TopoDS_Shape,
+    *,
+    deflection: float = _DEFAULT_DEFLECTION,
+) -> tuple[jnp.ndarray, list[dict[str, Any]]]:
+    """Triangulate all faces of a shape with JAX-native vertices.
+
+    Uses OCCT BRepMesh for watertight mesh topology, then re-evaluates
+    each vertex position using JAX-native parametric surface functions.
+    Faces are grouped by surface type (and BSpline signature) so each
+    group is evaluated with a single batched ``jax.vmap``, eliminating
+    per-face Python dispatch overhead.
+
+    Each triangle corner is evaluated independently from its own face's
+    parameters: a vertex shared by two faces gets two numerically close
+    but generally distinct copies (see :func:`triangulate_shape_watertight`
+    for a mode that welds them to a single, shared vertex). This is the
+    original, unchanged contract depended on by existing callers.
+
+    Args:
+        shape: An OCCT topological shape.
+        deflection: Mesh deflection tolerance for OCCT tessellation.
+
+    Returns:
+        Tuple of ``(triangles, params_list)`` where triangles has
+        shape ``(n_total, 3, 3)`` and params_list contains one
+        parameter dict per face, in traversal order.
+
+    Raises:
+        NotImplementedError: An evaluated face has an unsupported surface type.
+        ValueError: An evaluated face has no triangulation or no triangles.
+
+    If solids are present, only their faces are evaluated. Otherwise all
+    faces are evaluated. A shape with no faces returns empty arrays and metadata.
+    """
+    face_records = _extract_face_records(shape, deflection)
+    if not face_records:
+        return jnp.zeros((0, 3, 3)), []
+
+    positions_per_face = _evaluate_positions_per_face(face_records)
+
+    # Remap per-face connectivity to global indices, single indexed fetch.
     offsets = np.cumsum([0] + [r["n_points"] for r in face_records], dtype=np.int64)
 
     global_conn = np.concatenate(
@@ -823,6 +878,356 @@ def triangulate_shape(
     ]
 
     return triangles, all_params
+
+
+class _UnionFind:
+    """Union-find over the flattened (face, local node) index space."""
+
+    __slots__ = ("parent",)
+
+    def __init__(self, n: int) -> None:
+        self.parent = list(range(n))
+
+    def find(self, x: int) -> int:
+        root = x
+        while self.parent[root] != root:
+            root = self.parent[root]
+        while self.parent[x] != root:
+            self.parent[x], x = root, self.parent[x]
+        return root
+
+    def union(self, a: int, b: int) -> None:
+        ra, rb = self.find(a), self.find(b)
+        if ra != rb:
+            self.parent[max(ra, rb)] = min(ra, rb)
+
+
+def _polygon_on_edge(rec: dict[str, Any], occ_edge: Any) -> Any:
+    """``Poly_PolygonOnTriangulation`` for one face's use of one edge.
+
+    OCCT keys a seam edge's two boundary occurrences by orientation, not
+    just by the underlying edge: passing the oriented edge object as it
+    appears in the face's own wire (not a canonical, unoriented copy)
+    returns the occurrence-specific polygon, including for the two
+    occurrences of a periodic face's self-seam.
+    """
+    return BRep_Tool.PolygonOnTriangulation_s(occ_edge, rec["poly_tri"], rec["loc"])
+
+
+def _weld_shared_vertices(
+    shape: TopoDS_Shape, face_records: list[dict[str, Any]]
+) -> tuple[np.ndarray, int]:
+    """Union-find over (face, local node) pairs that share an OCCT edge.
+
+    Identifies vertices shared between faces using OCCT's own per-edge mesh
+    discretization (``Poly_PolygonOnTriangulation``), which BRepMesh shares
+    bit-identically across every face bordering an edge, matched by the
+    edge's own curve parameter -- not by a vertex distance tolerance.
+
+    Each face is walked with its own ``TopExp_Explorer`` so a periodic
+    face's seam edge naturally yields two distinct, oriented occurrences
+    of the same canonical edge (one per side of the seam), handled by the
+    same code path as an edge shared by two different faces. A degenerate
+    edge (a pole or an apex) collapses every node any of its occurrences
+    references into one vertex; degenerate edges that share a topological
+    vertex (e.g. a pole touched by several patches) are unioned too.
+
+    Returns:
+        ``(group_of, n_vertices)`` where ``group_of[i]`` is the welded
+        global vertex index for flattened (face, local node) index ``i``
+        (offsets given by cumulative ``n_points`` over ``face_records``),
+        and ``n_vertices`` is the number of distinct welded vertices.
+
+    Raises:
+        ValueError: An edge's shared discretization cannot be identified
+            from OCCT topology: a free boundary or non-manifold edge (not
+            exactly two occurrences), a missing per-face discretization,
+            or two occurrences whose node count or curve parameters
+            disagree beyond floating-point roundoff.
+    """
+    offsets = np.cumsum([0] + [r["n_points"] for r in face_records], dtype=np.int64)
+    n_global = int(offsets[-1])
+    uf = _UnionFind(n_global)
+
+    def gid(face_idx: int, local_idx: int) -> int:
+        return int(offsets[face_idx]) + local_idx
+
+    edges_map = TopTools_IndexedMapOfShape()
+    TopExp.MapShapes_s(shape, TopAbs_EDGE, edges_map)
+
+    occurrences: dict[int, list[tuple[int, Any]]] = {}
+    for face_idx, rec in enumerate(face_records):
+        exp = TopExp_Explorer(rec["face"], TopAbs_EDGE)
+        while exp.More():
+            occ_edge = TopoDS.Edge_s(exp.Current())
+            edge_id = edges_map.FindIndex(occ_edge)
+            occurrences.setdefault(edge_id, []).append((face_idx, occ_edge))
+            exp.Next()
+
+    vertex_map = TopTools_IndexedMapOfShape()
+    TopExp.MapShapes_s(shape, TopAbs_VERTEX, vertex_map)
+    degenerate_representative_by_vertex: dict[int, list[int]] = {}
+
+    for edge_id, occs in occurrences.items():
+        edge = TopoDS.Edge_s(edges_map.FindKey(edge_id))
+
+        if BRep_Tool.Degenerated_s(edge):
+            nodes: list[int] = []
+            for face_idx, occ_edge in occs:
+                poly = _polygon_on_edge(face_records[face_idx], occ_edge)
+                if poly is None:
+                    continue
+                nodes.extend(
+                    gid(face_idx, poly.Node(k) - 1)
+                    for k in range(1, poly.NbNodes() + 1)
+                )
+            for a, b in pairwise(nodes):
+                uf.union(a, b)
+            if nodes:
+                vexp = TopExp_Explorer(edge, TopAbs_VERTEX)
+                vertex_id = vertex_map.FindIndex(TopoDS.Vertex_s(vexp.Current()))
+                degenerate_representative_by_vertex.setdefault(vertex_id, []).append(
+                    nodes[0]
+                )
+            continue
+
+        if len(occs) != 2:
+            msg = (
+                f"Edge shared by {len(occs)} face occurrences (expected exactly 2 "
+                "for a closed manifold solid); cannot build a watertight mesh"
+            )
+            raise ValueError(msg)
+
+        (face_a, edge_a), (face_b, edge_b) = occs
+        poly_a = _polygon_on_edge(face_records[face_a], edge_a)
+        poly_b = _polygon_on_edge(face_records[face_b], edge_b)
+        if poly_a is None or poly_b is None:
+            raise ValueError(
+                "Shared edge is missing a per-face mesh discretization "
+                "(Poly_PolygonOnTriangulation)"
+            )
+        na, nb = poly_a.NbNodes(), poly_b.NbNodes()
+        if na != nb:
+            raise ValueError(
+                f"Shared edge discretizations disagree in node count ({na} != {nb})"
+            )
+        if not (poly_a.HasParameters() and poly_b.HasParameters()):
+            raise ValueError(
+                "Shared edge discretization has no stored curve parameters; "
+                "cannot match nodes between its two faces from topology alone"
+            )
+        params_a = np.array([poly_a.Parameter(k) for k in range(1, na + 1)])
+        params_b = np.array([poly_b.Parameter(k) for k in range(1, nb + 1)])
+        order_a = np.argsort(params_a, kind="stable")
+        order_b = np.argsort(params_b, kind="stable")
+        # The edge's own curve parameter is intrinsic (shared by both faces'
+        # discretizations of the same curve), so both sides should agree up
+        # to floating-point roundoff -- not an adjustable weld tolerance.
+        scale = max(1.0, float(np.ptp(params_a)))
+        if not np.allclose(params_a[order_a], params_b[order_b], atol=1e-9 * scale):
+            raise ValueError(
+                "Shared edge discretizations disagree in curve parameter "
+                "beyond floating-point roundoff"
+            )
+        for ia, ib in zip(order_a, order_b, strict=True):
+            uf.union(
+                gid(face_a, poly_a.Node(int(ia) + 1) - 1),
+                gid(face_b, poly_b.Node(int(ib) + 1) - 1),
+            )
+
+    # Cross-union degenerate edges that share a topological vertex (e.g. a
+    # pole touched by several faces, each with its own degenerate edge).
+    for representatives in degenerate_representative_by_vertex.values():
+        for a, b in pairwise(representatives):
+            uf.union(a, b)
+
+    if n_global == 0:
+        return np.zeros(0, dtype=np.int64), 0
+    roots = np.array([uf.find(i) for i in range(n_global)])
+    _, group_of = np.unique(roots, return_inverse=True)
+    n_vertices = int(group_of.max()) + 1
+    return group_of.astype(np.int64), n_vertices
+
+
+def _check_manifold_closed(faces: np.ndarray) -> None:
+    """Verify every undirected edge is shared by exactly two consistently
+    oriented triangles.
+
+    Operates purely on (already-welded) vertex indices, so it checks the
+    union-find connectivity result itself rather than vertex positions.
+    """
+    if faces.shape[0] == 0:
+        return
+    edges = np.concatenate((faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]))
+    if np.any(edges[:, 0] == edges[:, 1]):
+        raise ValueError("Watertight mesh has a degenerate (zero-length) edge")
+    _, labels, counts = np.unique(
+        np.sort(edges, axis=1), axis=0, return_inverse=True, return_counts=True
+    )
+    if np.any(counts != 2):
+        raise ValueError(
+            "Watertight mesh is not closed: some edge is not shared by "
+            "exactly two triangles"
+        )
+    orientation = np.bincount(labels, weights=np.sign(edges[:, 1] - edges[:, 0]))
+    if np.any(orientation != 0):
+        raise ValueError(
+            "Watertight mesh is not consistently oriented across a shared edge"
+        )
+
+
+@dataclass(frozen=True)
+class WatertightMesh:
+    """Welded, consistently oriented mesh for :func:`triangulate_shape_watertight`.
+
+    ``vertices[faces]`` reproduces the ``(n, 3, 3)`` triangle-corner layout
+    :func:`triangulate_shape` returns, so it can be passed directly to
+    :func:`divergence_volume`, :func:`mesh_surface_area`, and the other
+    mesh metrics in this module.
+    """
+
+    vertices: jnp.ndarray
+    """Welded vertex positions, shape ``(n_vertices, 3)``. Each row is the
+    mean of every incident face's own independent surface evaluation at
+    that shared vertex, so ``jax.grad`` distributes symmetrically to every
+    incident face's parameters."""
+
+    faces: jnp.ndarray
+    """Triangle connectivity into ``vertices``, shape ``(n_triangles, 3)``,
+    ``int32``."""
+
+    params_list: list[dict[str, Any]]
+    """Per-face parameter dicts, in traversal order; same contents as
+    :func:`triangulate_shape`'s second return value."""
+
+    max_gap: jnp.ndarray
+    """Scalar upper bound (twice the largest incident-evaluation distance
+    from its vertex's mean) on the distance between any two faces'
+    independent evaluations at a shared vertex. Large values indicate
+    faces whose surface reconstructions disagree at a shared boundary;
+    see the ``tolerance`` argument of :func:`triangulate_shape_watertight`."""
+
+
+def triangulate_shape_watertight(
+    shape: TopoDS_Shape,
+    *,
+    deflection: float = _DEFAULT_DEFLECTION,
+    tolerance: float | None = None,
+) -> WatertightMesh:
+    """Triangulate a shape into a single welded, watertight mesh.
+
+    Unlike :func:`triangulate_shape`, which gives each triangle corner an
+    independent evaluation from its own face (so a shared edge gets two
+    numerically close but distinct copies), this evaluates every face's
+    contribution to a shared vertex and averages them, producing one
+    vertex per physical point with gradients that flow symmetrically to
+    every incident face's parameters. Shared vertices are identified from
+    OCCT's own per-edge mesh discretization (topology and the edge's own
+    curve parameter), not from a vertex distance tolerance; degenerate
+    edges (poles, apices) and a periodic face's seam are handled
+    explicitly (see :func:`_weld_shared_vertices`).
+
+    Args:
+        shape: An OCCT topological shape.
+        deflection: Mesh deflection tolerance for OCCT tessellation.
+        tolerance: If given, raise when the largest gap between two
+            faces' independent evaluations at a shared vertex (see
+            ``WatertightMesh.max_gap``) exceeds it. Pass the shape's own
+            CAD tolerance (e.g. :func:`brepax.experimental.applications.
+            _hole_geometry.shape_tolerance`) to reject faces whose
+            reconstructions disagree by more than the model already
+            tolerates. ``None`` (default) never raises on the gap; the
+            value is still returned in ``max_gap`` for the caller to
+            inspect.
+
+    Returns:
+        A :class:`WatertightMesh`.
+
+    Raises:
+        NotImplementedError: An evaluated face has an unsupported surface type.
+        ValueError: A face has no triangulation; a shared edge cannot be
+            identified from OCCT topology (see :func:`_weld_shared_vertices`);
+            the welded result is not a closed, manifold, consistently
+            oriented mesh; or ``tolerance`` is given and exceeded.
+
+    Examples:
+        >>> shape = read_step("model.step")
+        >>> mesh = triangulate_shape_watertight(shape, tolerance=1e-4)
+        >>> vol = divergence_volume(mesh.vertices[mesh.faces])
+        >>> grad = jax.grad(
+        ...     lambda v: divergence_volume(v[mesh.faces])
+        ... )(mesh.vertices)
+    """
+    face_records = _extract_face_records(shape, deflection)
+    if not face_records:
+        return WatertightMesh(
+            vertices=jnp.zeros((0, 3)),
+            faces=jnp.zeros((0, 3), dtype=jnp.int32),
+            params_list=[],
+            max_gap=jnp.zeros(()),
+        )
+
+    positions_per_face = _evaluate_positions_per_face(face_records)
+    all_positions = jnp.concatenate(positions_per_face, axis=0)
+
+    group_of, n_vertices = _weld_shared_vertices(shape, face_records)
+    group_of_j = jnp.asarray(group_of)
+
+    counts = np.bincount(group_of, minlength=n_vertices).astype(all_positions.dtype)
+    summed = (
+        jnp.zeros((n_vertices, 3), dtype=all_positions.dtype)
+        .at[group_of_j]
+        .add(all_positions)
+    )
+    vertices = summed / counts[:, None]
+
+    deviation = jnp.linalg.norm(all_positions - vertices[group_of_j], axis=-1)
+    max_gap = 2.0 * jnp.max(deviation) if deviation.shape[0] else jnp.zeros(())
+    if tolerance is not None and float(max_gap) > tolerance:
+        raise ValueError(
+            f"Largest shared-vertex evaluation gap {float(max_gap):.6g} exceeds "
+            f"tolerance {tolerance:.6g}"
+        )
+
+    offsets = np.cumsum([0] + [r["n_points"] for r in face_records], dtype=np.int64)
+    per_face_faces: list[np.ndarray] = []
+    per_face_counts: list[int] = []
+    for i, rec in enumerate(face_records):
+        local_group = group_of[offsets[i] : offsets[i] + rec["n_points"]]
+        face_tris = local_group[rec["conn"]]
+        # A full-revolution pole/apex can leave OCCT's own mesh with a
+        # zero-area triangle spanning both of the degenerate edge's node
+        # copies (e.g. a seam-closing triangle at a sphere pole); welding
+        # those copies to one vertex turns it into a repeated-corner row.
+        # It already contributed exactly zero area/volume before welding,
+        # so dropping it changes nothing but the bookkeeping.
+        degenerate = (
+            (face_tris[:, 0] == face_tris[:, 1])
+            | (face_tris[:, 1] == face_tris[:, 2])
+            | (face_tris[:, 0] == face_tris[:, 2])
+        )
+        if np.any(degenerate):
+            face_tris = face_tris[~degenerate]
+        per_face_faces.append(face_tris)
+        per_face_counts.append(int(face_tris.shape[0]))
+    global_faces = np.concatenate(per_face_faces, axis=0)
+    _check_manifold_closed(global_faces)
+
+    all_params = [
+        {
+            "surface_type": rec["surface_type"],
+            "n_triangles": n_triangles,
+            **rec["params"],
+        }
+        for rec, n_triangles in zip(face_records, per_face_counts, strict=True)
+    ]
+
+    return WatertightMesh(
+        vertices=vertices,
+        faces=jnp.asarray(global_faces, dtype=jnp.int32),
+        params_list=all_params,
+        max_gap=max_gap,
+    )
 
 
 def divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
@@ -1309,6 +1714,7 @@ def evaluate_mesh(
 
 
 __all__ = [
+    "WatertightMesh",
     "divergence_volume",
     "evaluate_mesh",
     "extract_mesh_topology",
@@ -1317,4 +1723,5 @@ __all__ = [
     "mesh_surface_area",
     "per_face_geometric_params",
     "triangulate_shape",
+    "triangulate_shape_watertight",
 ]
