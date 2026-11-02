@@ -676,6 +676,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#discovering-adjacent-parameter-regions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovering adjacent parameter regions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#rotation-depends-on-the-full-path" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2157,6 +2168,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#discovering-adjacent-parameter-regions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovering adjacent parameter regions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#rotation-depends-on-the-full-path" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2586,6 +2608,38 @@ can leave the result unresolved. In particular, equality in a bound is not an
 infeasibility proof. The capped search terminates, but need not resolve feasibility or optimality.
 No global smoothness or gradient of the selected design is claimed. See the
 <a href="../../reference/applications/#bounded-dimension-and-position-search">experimental query contract</a>.</p>
+<h3 id="discovering-adjacent-parameter-regions">Discovering adjacent parameter regions<a class="headerlink" href="#discovering-adjacent-parameter-regions" title="Permanent link">&para;</a></h3>
+<p>In one parameter, each strict affine guard has at most one isolated rational
+root. The closest roots bound the current certified open interval. A root can
+mark the expiry of a sufficient cell, separation, or feasibility certificate;
+it need not change the physical overlap. This is the distinction between
+internal certificate events and output changes in
+<a href="https://users.ime.usp.br/~cris/aulas/19_1_6957/BaschGH-DSforMobileData.pdf">kinetic data structures</a>.</p>
+<p>The bounded continuation handles a root only when every vanishing guard names
+the same isolated pair of interior translation events. It constructs the
+adjacent region with exact rational centers, checks event inventories and all
+guard closures, and compares both limiting polynomials with a separate exact
+fixed-parameter construction. The original affine family is preserved; rounded
+vertices at a new center would define a different family. Exact event ordering
+and independent static reconstruction are established techniques; see
+<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3001684/">Russel, Karavelas, and Guibas, sections 4.4 and 5</a>.
+These checks do not establish that every physically valid region can be reached.</p>
+<p>Let <span class="arithmatex">\(H\)</span> be the uncovered part of the requested closed design window, including
+any unconfirmed singleton endpoints. Every component <span class="arithmatex">\(J\)</span> contributes
+<span class="arithmatex">\(\inf_{\theta\in J}|\theta-\theta_0|\)</span> to the global objective lower bound,
+together with the bounds from unfinished searches and the incumbent cost.
+The width of an unknown interval is irrelevant to this rule: an arbitrarily
+small interval containing <span class="arithmatex">\(\theta_0\)</span> has lower bound zero. A positive volume
+allowance can also leave an isolated feasible design at a local maximum.
+Conversely, a sufficiently distant unknown region need not prevent a valid
+objective-gap certificate. Whole-window infeasibility requires full coverage
+and exclusion of every covered region and point.</p>
+<p>Physical values obey the same exact frame and unit laws on jointly certified
+inputs. The current choice of sufficient separating certificate can produce
+different coverage after a coordinate rotation, so coverage and resource-limited
+search status are not claimed to be equivariant. Equal-cost designs can also
+have different selected numerical witnesses. No ordinary gradient of boundary
+discovery or design selection follows from these host computations.</p>
 <h3 id="rotation-depends-on-the-full-path">Rotation depends on the full path<a class="headerlink" href="#rotation-depends-on-the-full-path" title="Permanent link">&para;</a></h3>
 <p>The finite benchmark uses <span class="arithmatex">\(x(t)=p+R(t\omega)(x-p)+t v\)</span>. Let <span class="arithmatex">\(\Omega x=
 \omega\mathbin{\times}x\)</span>. Replacing <span class="arithmatex">\(p\)</span> by <span class="arithmatex">\(p+d\)</span> and <span class="arithmatex">\(v\)</span> by <span class="arithmatex">\(v+\Omega d\)</span>

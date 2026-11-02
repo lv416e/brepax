@@ -2081,6 +2081,11 @@ confusing a numerical surrogate with the intended CAD objective.</p>
 <td>Exact host values and one-sided responses across one supplied event-order exchange</td>
 <td>One design parameter, fixed normals and velocity, one isolated pair of events; no JAX boundary gradient or automatic boundary discovery</td>
 </tr>
+<tr>
+<td>Experimental design search and continuation</td>
+<td>Discover isolated event-order exchanges from a regular design and search a bounded dimension/position domain with a checked edit and objective gap</td>
+<td>Explicit one-parameter fixed-normal families; unsupported frontiers and exhausted budgets remain unconfirmed; no source-CAD or selection-gradient guarantee</td>
+</tr>
 </tbody>
 </table>
 <p>The <a href="../stratification_theory/">stratification explanation</a> defines the
@@ -2117,6 +2122,12 @@ local inverse-sensitivity contract.</p>
 <p>A separate <a href="../stratification_theory/#a-supplied-event-order-exchange">host boundary evaluator</a>
 handles one prescribed exchange with adjacent exact polynomials and explicit
 one-sided responses; it does not extend that local inverse formula.</p>
+<p>Automatic continuation can discover those isolated exchanges from a regular
+design and connect their certified regions to bounded design search. It retains
+unknown regions in the global optimality assessment. This removes manual
+boundary placement within the restricted family; it does not establish a
+complete stratification. Even a geometrically valid family can outlive a chosen
+sufficient certificate, and certificate coverage need not be frame invariant.</p>
 <p>Practical selection must distinguish a wrong ranking of the supplied finite
 actions from a candidate set that cannot reach the target. A few actual CAD
 observations can check and refine proposals, but absence of an observed target
