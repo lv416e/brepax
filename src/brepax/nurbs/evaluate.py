@@ -29,6 +29,18 @@ def bspline_basis(
         n_basis: Number of basis functions (= number of control points
             along this parametric direction).
 
+    Outside ``[knots[degree], knots[-degree - 1]]``, this continues the
+    polynomial piece of the span nearest the domain rather than
+    returning a zero basis: the degree-0 indicator stays pinned to the
+    first (last) non-degenerate span for ``t`` below (above) the
+    domain, and the Cox-de Boor recurrence above it keeps using the
+    true (unclamped) ``t``, which reproduces the analytic continuation
+    of that end polynomial piece. This matches
+    ``Geom_BSplineSurface::Value`` evaluated at an out-of-domain
+    parameter, which is how OCCT's own mesher places some trimmed-face
+    mesh UV nodes that :func:`~brepax.brep.triangulate.triangulate_shape`
+    evaluates directly, without clamping them into the domain first.
+
     Returns:
         Basis function values, shape ``(n_basis,)``.
 
@@ -42,7 +54,11 @@ def bspline_basis(
     left = knots[:n_spans]
     right = knots[1 : n_spans + 1]
     basis = jnp.where((left <= t) & (t < right), 1.0, 0.0)
-    # Clamped right endpoint: last non-degenerate span is closed on right
+    # Extended endpoints: the first and last non-degenerate spans are
+    # pinned open past the domain so the recurrence below continues
+    # each end's polynomial piece instead of vanishing (first span) or
+    # stopping (last span) outside [knots[degree], knots[-degree - 1]].
+    basis = basis.at[degree].set(jnp.where(t <= knots[degree], 1.0, basis[degree]))
     basis = basis.at[n_basis - 1].set(
         jnp.where(t >= knots[n_basis], 1.0, basis[n_basis - 1])
     )
