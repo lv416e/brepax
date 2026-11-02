@@ -7,10 +7,21 @@ from fractions import Fraction
 from itertools import pairwise
 from math import inf, isfinite, nextafter, sqrt, ulp
 from time import perf_counter
-from typing import Literal
+from typing import Literal, Protocol
 
 from benchmarks.face_contact.cad import boundary_tolerance, cad_volume
-from brepax.experimental.polyhedral_boundary import prepare_polyhedral_event_boundary
+from brepax.experimental._polyhedral_continuation import (
+    ContinuationAttempt,
+    ContinuationGap,
+)
+from brepax.experimental.polyhedral_boundary import (
+    PreparedPolyhedralEventBoundary,
+    prepare_polyhedral_event_boundary,
+)
+from brepax.experimental.polyhedral_continuation import (
+    PreparedPolyhedralContinuation,
+    prepare_polyhedral_continuation,
+)
 from brepax.experimental.polyhedral_design import (
     DesignTargetResult,
     polyhedral_design_target,
@@ -24,12 +35,70 @@ from brepax.experimental.polyhedral_translation import (
     prepare_polyhedral_translation,
 )
 
-from .design_search_fixtures import DesignTask
+from .design_search_fixtures import OptimalityReference
 from .event_boundary_cad import CadCallCounts, observe_scene
+from .event_boundary_fixtures import AffineBodies, VertexBody
 from .parametric_cad import CadMeasurement, CadScene, valid_observation
+from .parametric_fixtures import PrismBodies
 
-Method = Literal["certified_boundary", "rebuild_profile", "adaptive_cad"]
+Method = Literal[
+    "certified_boundary", "automatic_continuation", "rebuild_profile", "adaptive_cad"
+]
 BandStatus = Literal["inside", "outside", "boundary_indeterminate", "invalid"]
+
+
+class BoundedDesignTask(Protocol):
+    """Geometry/target inputs plus evaluator-only independent references."""
+
+    @property
+    def name(self) -> str: ...
+
+    @property
+    def target(self) -> Fraction: ...
+
+    @property
+    def theta0(self) -> Fraction: ...
+
+    @property
+    def bounds(self) -> tuple[Fraction, Fraction]: ...
+
+    @property
+    def extent(self) -> float: ...
+
+    @property
+    def velocity(self) -> tuple[float, float, float]: ...
+
+    def bodies(self, theta: Fraction | float | int) -> PrismBodies: ...
+
+    def vertices(
+        self, theta: Fraction | float | int
+    ) -> tuple[VertexBody, VertexBody]: ...
+
+    def affine_cells(self) -> AffineBodies: ...
+
+    def scene(
+        self, theta: Fraction | float | int, counts: CadCallCounts
+    ) -> tuple[CadScene, float]: ...
+
+    def reference_volume(
+        self, theta: Fraction | float | int, step: Fraction | float | int
+    ) -> Fraction: ...
+
+    def reference_optimality(
+        self,
+        volume_tolerance: Fraction,
+        theta_tolerance: Fraction = Fraction(1, 10**10),
+    ) -> OptimalityReference: ...
+
+
+@dataclass(frozen=True)
+class ContinuationEvidence:
+    """Public preparation diagnostics without private exact model storage."""
+
+    chart_count: int
+    boundary_parameters: tuple[Fraction, ...]
+    uncovered: tuple[ContinuationGap, ...]
+    attempts: tuple[ContinuationAttempt, ...]
 
 
 @dataclass(frozen=True)
@@ -41,11 +110,15 @@ class SearchBudget:
     model_work_limit: int = 256
     parameter_tolerance: Fraction = Fraction(1, 1000)
     volume_relative_tolerance: Fraction = Fraction(1, 1000)
+    continuation_max_charts: int = 8
+    continuation_max_center_trials: int = 8
 
     def __post_init__(self) -> None:
         for name, value, minimum in (
             ("boolean_operations", self.boolean_operations, 0),
             ("model_work_limit", self.model_work_limit, 1),
+            ("continuation_max_charts", self.continuation_max_charts, 1),
+            ("continuation_max_center_trials", self.continuation_max_center_trials, 1),
         ):
             if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
                 raise ValueError(f"{name} must be an integer at least {minimum}")
@@ -75,6 +148,8 @@ class Observation:
     stock_volume: float | None = None
     actual_removed_volume: float | None = None
     removed_band_status: BandStatus | None = None
+    elapsed_seconds: float = 0.0
+    cumulative_calls: CadCallCounts = field(default_factory=CadCallCounts)
 
 
 @dataclass
@@ -102,8 +177,13 @@ class DesignSearchResult:
     model_queries: int = 0
     boxes_examined: int = 0
     boundary_preparations: int = 0
+    continuation_preparations: int = 0
+    continuation: ContinuationEvidence | None = None
     profile_rebuilds: int = 0
     model_seconds: float = 0.0
+    model_preparation_seconds: float = 0.0
+    model_search_seconds: float = 0.0
+    model_query_elapsed_seconds: float | None = None
     geometry_seconds: float = 0.0
     final_seconds: float = 0.0
     total_seconds: float = 0.0
@@ -150,7 +230,7 @@ class CadLedger:
     """One task's scene cache, attempts, and reserved fresh final validation."""
 
     def __init__(
-        self, task: DesignTask, budget: SearchBudget, result: DesignSearchResult
+        self, task: BoundedDesignTask, budget: SearchBudget, result: DesignSearchResult
     ) -> None:
         self.task, self.budget, self.result = task, budget, result
         self.started = perf_counter()
@@ -224,6 +304,10 @@ class CadLedger:
             classify_band(removed, self.task.target, self.result.volume_tolerance)
             if final
             else None,
+            perf_counter() - self.started,
+            CadCallCounts(
+                self.result.calls.common, self.result.calls.cut, self.result.calls.fuse
+            ),
         )
         self.result.observations.append(observation)
         if not final:
@@ -306,7 +390,7 @@ def _profile_action(
     return None
 
 
-def _seed_parameters(task: DesignTask, divisions: int) -> list[Fraction]:
+def _seed_parameters(task: BoundedDesignTask, divisions: int) -> list[Fraction]:
     lower, upper = task.bounds
     seeds = {lower + (upper - lower) * i / divisions for i in range(divisions + 1)}
     seeds.add(task.theta0)
@@ -316,7 +400,10 @@ def _seed_parameters(task: DesignTask, divisions: int) -> list[Fraction]:
 
 
 def _next_parameter(
-    task: DesignTask, seen: dict[Fraction, bool], iteration: int, tolerance: Fraction
+    task: BoundedDesignTask,
+    seen: dict[Fraction, bool],
+    iteration: int,
+    tolerance: Fraction,
 ) -> Fraction | None:
     points = sorted(seen)
     intervals = [(a, b) for a, b in pairwise(points) if b - a > tolerance]
@@ -362,14 +449,22 @@ def _rebuild_search(ledger: CadLedger) -> None:
             break
         started = perf_counter()
         try:
-            fixed, moving = task.vertices(theta)
-            result.profile_rebuilds += 1
-            profile = prepare_polyhedral_translation(
-                fixed, moving, task.velocity, max_step=task.extent
-            )
-            step = _profile_action(
-                profile, task.target, result.volume_tolerance, task.extent
-            )
+            preparation_started = perf_counter()
+            try:
+                fixed, moving = task.vertices(theta)
+                result.profile_rebuilds += 1
+                profile = prepare_polyhedral_translation(
+                    fixed, moving, task.velocity, max_step=task.extent
+                )
+            finally:
+                result.model_preparation_seconds += perf_counter() - preparation_started
+            search_started = perf_counter()
+            try:
+                step = _profile_action(
+                    profile, task.target, result.volume_tolerance, task.extent
+                )
+            finally:
+                result.model_search_seconds += perf_counter() - search_started
             result.model_queries += 1
         finally:
             result.model_seconds += perf_counter() - started
@@ -516,31 +611,60 @@ def _cad_search(ledger: CadLedger) -> None:
 
 def _certified_search(ledger: CadLedger) -> None:
     task, result = ledger.task, ledger.result
-    fixed, moving = task.affine_cells()
     ledger.check()
     started = perf_counter()
     try:
-        result.boundary_preparations += 1
-        prepared = prepare_polyhedral_event_boundary(
-            fixed,
-            moving,
-            task.velocity,
-            max_step=task.extent,
-            parameter_radius=Fraction(1, 8),
-        )
+        preparation_started = perf_counter()
+        prepared: PreparedPolyhedralEventBoundary | PreparedPolyhedralContinuation
+        try:
+            fixed, moving = task.affine_cells()
+            if result.method == "automatic_continuation":
+                result.continuation_preparations += 1
+                prepared = prepare_polyhedral_continuation(
+                    fixed,
+                    moving,
+                    task.velocity,
+                    max_step=task.extent,
+                    parameter_bounds=task.bounds,
+                    seed_parameter=task.theta0,
+                    max_charts=ledger.budget.continuation_max_charts,
+                    max_center_trials=ledger.budget.continuation_max_center_trials,
+                )
+                result.continuation = ContinuationEvidence(
+                    prepared.chart_count,
+                    prepared.boundary_parameters,
+                    prepared.uncovered,
+                    prepared.attempts,
+                )
+            else:
+                result.boundary_preparations += 1
+                prepared = prepare_polyhedral_event_boundary(
+                    fixed,
+                    moving,
+                    task.velocity,
+                    max_step=task.extent,
+                    parameter_radius=Fraction(1, 8),
+                )
+        finally:
+            result.model_preparation_seconds += perf_counter() - preparation_started
         ledger.check()
-        query = polyhedral_design_target(
-            prepared,
-            task.target,
-            parameter_bounds=task.bounds,
-            initial_parameter=task.theta0,
-            parameter_tolerance=ledger.budget.parameter_tolerance,
-            step_tolerance=task.extent / 1000,
-            volume_tolerance=result.volume_tolerance,
-            max_boxes=ledger.budget.model_work_limit,
-        )
+        search_started = perf_counter()
+        try:
+            query = polyhedral_design_target(
+                prepared,
+                task.target,
+                parameter_bounds=task.bounds,
+                initial_parameter=task.theta0,
+                parameter_tolerance=ledger.budget.parameter_tolerance,
+                step_tolerance=task.extent / 1000,
+                volume_tolerance=result.volume_tolerance,
+                max_boxes=ledger.budget.model_work_limit,
+            )
+        finally:
+            result.model_search_seconds += perf_counter() - search_started
         result.model_status = query.status
         result.model_query = query
+        result.model_query_elapsed_seconds = perf_counter() - ledger.started
         result.objective_lower, result.objective_upper = (
             query.objective_lower,
             query.objective_upper,
@@ -557,7 +681,7 @@ def _certified_search(ledger: CadLedger) -> None:
 
 
 def evaluate_design_search(
-    task: DesignTask, method: Method, budget: SearchBudget = DEFAULT_BUDGET
+    task: BoundedDesignTask, method: Method, budget: SearchBudget = DEFAULT_BUDGET
 ) -> DesignSearchResult:
     """Run one cold task; independent references are deliberately not consulted."""
     result = DesignSearchResult(
@@ -569,7 +693,7 @@ def evaluate_design_search(
     )
     ledger = CadLedger(task, budget, result)
     try:
-        if method == "certified_boundary":
+        if method in ("certified_boundary", "automatic_continuation"):
             _certified_search(ledger)
         elif method == "rebuild_profile":
             _rebuild_search(ledger)

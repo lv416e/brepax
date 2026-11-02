@@ -389,6 +389,43 @@ infeasibility proof. The capped search terminates, but need not resolve feasibil
 No global smoothness or gradient of the selected design is claimed. See the
 [experimental query contract](../reference/applications.md#bounded-dimension-and-position-search).
 
+### Discovering adjacent parameter regions
+
+In one parameter, each strict affine guard has at most one isolated rational
+root. The closest roots bound the current certified open interval. A root can
+mark the expiry of a sufficient cell, separation, or feasibility certificate;
+it need not change the physical overlap. This is the distinction between
+internal certificate events and output changes in
+[kinetic data structures](https://users.ime.usp.br/~cris/aulas/19_1_6957/BaschGH-DSforMobileData.pdf).
+
+The bounded continuation handles a root only when every vanishing guard names
+the same isolated pair of interior translation events. It constructs the
+adjacent region with exact rational centers, checks event inventories and all
+guard closures, and compares both limiting polynomials with a separate exact
+fixed-parameter construction. The original affine family is preserved; rounded
+vertices at a new center would define a different family. Exact event ordering
+and independent static reconstruction are established techniques; see
+[Russel, Karavelas, and Guibas, sections 4.4 and 5](https://pmc.ncbi.nlm.nih.gov/articles/PMC3001684/).
+These checks do not establish that every physically valid region can be reached.
+
+Let $H$ be the uncovered part of the requested closed design window, including
+any unconfirmed singleton endpoints. Every component $J$ contributes
+$\inf_{\theta\in J}|\theta-\theta_0|$ to the global objective lower bound,
+together with the bounds from unfinished searches and the incumbent cost.
+The width of an unknown interval is irrelevant to this rule: an arbitrarily
+small interval containing $\theta_0$ has lower bound zero. A positive volume
+allowance can also leave an isolated feasible design at a local maximum.
+Conversely, a sufficiently distant unknown region need not prevent a valid
+objective-gap certificate. Whole-window infeasibility requires full coverage
+and exclusion of every covered region and point.
+
+Physical values obey the same exact frame and unit laws on jointly certified
+inputs. The current choice of sufficient separating certificate can produce
+different coverage after a coordinate rotation, so coverage and resource-limited
+search status are not claimed to be equivariant. Equal-cost designs can also
+have different selected numerical witnesses. No ordinary gradient of boundary
+discovery or design selection follows from these host computations.
+
 ### Rotation depends on the full path
 
 The finite benchmark uses $x(t)=p+R(t\omega)(x-p)+t v$. Let $\Omega x=

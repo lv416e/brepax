@@ -257,6 +257,40 @@ claim of exact target reachability. Validate actual CAD independently and compar
 against complete fixed-profile rebuilding and CAD-only search, charging setup
 and final validation. A certificate is not evidence of a runtime advantage.
 
+### Automatic continuation from a regular design
+
+For the same one-parameter, fixed-normal affine family, accept a finite closed
+parameter window and an ordinary seed parameter. Discover the next exact root
+of the local validity guards in either direction, instead of requiring the
+caller to supply an exchange position and reference radius. Only an isolated
+exchange of two interior translation events is supported. Collect all guards
+vanishing at the root; a non-event condition, simultaneous exchange, changed
+event inventory, or failed adjacent-chart construction leaves that frontier
+unconfirmed. Failure of a sufficient certificate is not geometric invalidity.
+
+Choose trial centers using exact distances and bounded refinement. Rebase the
+original affine family without rounding its vertices, and compare both chart
+closures with an independently rebuilt fixed-parameter profile from exact
+planes. Retain regular open chart intervals, certified boundary points, and
+the uncovered part of the requested window separately. A nonregular seed or an
+event at a requested outer endpoint can remain unresolved. Chart and trial
+budgets do not imply that the resulting coverage is complete.
+
+Reuse the bounded design query with one global interval budget. Every uncovered
+interval or singleton contributes its distance from the initial design to the
+objective lower bound. Partial coverage may still establish the requested gap
+if every unconfirmed region is too far away to improve the witness. It cannot
+establish whole-window infeasibility. Recheck numerical witnesses in the
+original global parameter coordinate, including after non-dyadic rebasing.
+
+Exact volume and feasible-design laws do not imply that the chosen sufficient
+certificates are frame invariant: selecting a separating axis can change the
+confirmed region after a coordinate transformation. Report that limitation
+separately from physical value accuracy. There is no selection derivative,
+general parameter atlas, automatic STEP decomposition, or simultaneous-event
+solver. Validate edits against actual CAD, and distinguish preparation, first
+accuracy-qualified action, and final certificate costs in comparisons.
+
 ## Consequences
 
 The experiment can evaluate volume through a contact without freezing a

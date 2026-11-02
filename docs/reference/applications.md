@@ -754,7 +754,8 @@ when a selected edit passes its final CAD checks.
 ### Bounded dimension-and-position search
 
 `brepax.experimental.polyhedral_design.polyhedral_design_target` searches a
-closed parameter interval inside a prepared event-boundary certificate. It
+closed parameter interval inside a prepared event-boundary certificate or an
+[automatically continued domain](#automatic-event-continuation). It
 chooses a parameter and translation step that meet the target-volume allowance,
 while bounding how much the absolute change from an initial parameter could
 still improve. It does not assume a monotone volume or connected feasible set.
@@ -778,8 +779,10 @@ if result.witness is not None:
     # Validate this numerical design and edit against actual rebuilt CAD.
 ```
 
-The parameter bounds must lie strictly inside the certificate's open outer
-endpoints. Scalar floats denote exact binary64 inputs; use `Fraction` when an
+For a supplied event-boundary certificate, the parameter bounds must lie
+strictly inside its open outer endpoints. For continuation, they must lie
+inside the requested closed preparation window; unconfirmed parts remain in
+the objective lower bound. Scalar floats denote exact binary64 inputs; use `Fraction` when an
 exact rational target or bound matters. `volume_tolerance` defines the allowed
 absolute volume residual. `status="optimal_within_tolerance"` certifies that
 the gap between the returned change and the best possible change is at most
@@ -825,6 +828,83 @@ are mechanism checks, not evidence of generalization or runtime superiority.
         - DesignTargetResult
         - DesignQueryFailure
         - polyhedral_design_target
+      show_source: false
+
+### Automatic event continuation
+
+`brepax.experimental.polyhedral_continuation` starts from an ordinary design
+parameter and discovers isolated exchanges of translation-event order. It
+retains the same explicit convex cells, one affine design parameter, fixed
+facet normals and fixed translation velocity as the local parameter model.
+It does not require event positions or trial radii from the caller.
+
+Using `stock`, `tool`, and `changes` from the event-boundary example above:
+
+```python
+from brepax.experimental.polyhedral_continuation import prepare_polyhedral_continuation
+
+coverage = prepare_polyhedral_continuation(
+    [AffinePolyhedralCell(stock, np.zeros((1, 8, 3)))],
+    [AffinePolyhedralCell(tool, changes)], (1.0, 0.0, 0.0),
+    max_step=3,
+    parameter_bounds=(Fraction(-1, 4), Fraction(1, 4)),
+    seed_parameter=Fraction(-1, 8),
+    max_charts=8,
+    max_center_trials=8,
+)
+result = polyhedral_design_target(
+    coverage, 1,
+    parameter_bounds=coverage.parameter_bounds,
+    initial_parameter=Fraction(-1, 8),
+    parameter_tolerance=1e-4,
+    step_tolerance=1e-10,
+    volume_tolerance=1e-8,
+)
+```
+
+The original cells at parameter zero must admit fixed-normal preparation, and
+the seed must admit a regular local chart. A nonregular seed, an unsupported
+frontier, exhausted chart/refinement budgets, or an event at the requested
+window endpoint can leave an interval or singleton unconfirmed. This is not a
+claim that the geometry is invalid or the target unreachable. Preparation
+retains open chart intervals, separately certified event points, and failure
+reasons. Exact rational rebasing preserves the original family, including at
+non-binary event positions; it does not round the shape to create a new family.
+
+The design query uses a single interval budget across the covered regions and
+retains uncovered regions in its global objective lower bound. A distant
+unconfirmed region can coexist with `optimal_within_tolerance`; it cannot be
+silently dropped to declare whole-window infeasibility. The returned numerical
+parameter and step are rechecked against the original global model.
+
+Exact volume laws apply on jointly certified inputs, but the current selection
+of sufficient separating certificates can change the covered region after a
+coordinate rotation. Coverage, resource-limited status, and the choice among
+equal-cost numerical edits are not promised to be equivariant. Simultaneous
+event exchanges, general geometric changes, arbitrary STEP decomposition and
+gradients of the selected design remain outside this contract. See the
+[continuation argument](../explanation/stratification_theory.md#discovering-adjacent-parameter-regions).
+
+```bash
+uv run --group benchmark python -m benchmarks.multi_contact.continuation \
+  --output /tmp/continuation.json
+```
+
+The comparison uses stepped and oblique geometry mechanisms, with separate
+unsupported-frontier controls. It supplies no event locations to the automatic
+method. Reports distinguish the first completed Common observation meeting the
+volume band, retrospective qualification against the independent design optimum,
+and fresh final Cut validation. The automatic query finishes before its first
+CAD observation; no internal candidate is assigned an earlier observation time.
+Preparation and all attempted operations are charged. These constructed tasks
+do not establish generalization or a runtime advantage.
+
+::: brepax.experimental.polyhedral_continuation
+    options:
+      members:
+        - PreparedPolyhedralContinuation
+        - prepare_polyhedral_continuation
+        - specialize_polyhedral_continuation
       show_source: false
 
 ### Selecting finite edits with a CAD budget

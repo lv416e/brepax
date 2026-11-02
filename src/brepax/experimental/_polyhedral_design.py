@@ -3,7 +3,7 @@
 from fractions import Fraction
 from math import comb
 
-from brepax.experimental._polyhedral_boundary import ExactEventBoundary, _Side
+from brepax.experimental._polyhedral_boundary import _Side
 from brepax.experimental._polyhedral_parameter import parameter_derivative_polynomials
 
 _Polynomial = dict[tuple[int, int], Fraction]
@@ -83,21 +83,19 @@ def _bernstein_bounds(polynomial: _Polynomial) -> tuple[Fraction, Fraction]:
 
 
 def interval_volume_bound(
-    boundary: ExactEventBoundary,
+    side: _Side,
     lower: Fraction,
     upper: Fraction,
     midpoint_maximum: Fraction | None,
 ) -> Fraction:
-    """Bound max V over one closed design interval on either side of zero.
+    """Bound max V over a design interval contained in one chart closure.
 
     Raw Bernstein bounds alone need not converge as only theta is subdivided.
     A physical partial-theta bound over every strip also bounds the Lipschitz
     constant of max_t V: the finite piecewise-polynomial path is continuous
-    across moving events, including the certified closure at theta=0.
+    across moving translation events. The caller must separately account for
+    parameter endpoints not certified by this chart or an adjoining boundary.
     """
-    if lower < 0 < upper:
-        raise ValueError("Design bound interval must not cross the supplied boundary")
-    side = boundary.left if upper <= 0 else boundary.right
     geometry = side.geometry
     maximum = Fraction(0)
     lipschitz = Fraction(0)

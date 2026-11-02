@@ -1,4 +1,4 @@
-"""Bounded design search across one supplied polyhedral event-order exchange."""
+"""Bounded design search over certified polyhedral parameter regions."""
 
 import math
 from dataclasses import dataclass
@@ -10,8 +10,16 @@ from typing import Literal
 import jax.numpy as jnp
 import numpy as np
 
+from brepax.experimental._polyhedral_boundary import _interval, _Side
+from brepax.experimental._polyhedral_continuation import (
+    ContinuationBoundary,
+    ContinuationChart,
+    ExactContinuation,
+)
 from brepax.experimental._polyhedral_design import interval_volume_bound
+from brepax.experimental._polyhedral_roots import value_bounds
 from brepax.experimental.polyhedral_boundary import PreparedPolyhedralEventBoundary
+from brepax.experimental.polyhedral_continuation import PreparedPolyhedralContinuation
 from brepax.experimental.polyhedral_targets import (
     TranslationTargetResult,
     TranslationVolumeRange,
@@ -100,7 +108,7 @@ def _target_steps(result: TranslationTargetResult) -> list[float]:
 
 
 def polyhedral_design_target(
-    prepared: PreparedPolyhedralEventBoundary,
+    prepared: PreparedPolyhedralEventBoundary | PreparedPolyhedralContinuation,
     target: _Scalar,
     *,
     parameter_bounds: tuple[_Scalar, _Scalar],
@@ -113,9 +121,11 @@ def polyhedral_design_target(
 ) -> DesignTargetResult:
     """Minimize design change while finding a target-volume translation action.
 
-    Search a finite closed parameter interval strictly inside ``prepared``'s
-    open certificate. The objective is ``abs(theta-initial_parameter)``; the
-    constraint is ``abs(V(step,theta)-target) <= volume_tolerance``. This volume
+    For a supplied event boundary, search a finite closed parameter interval
+    strictly inside its open certificate. For automatic continuation, search
+    inside its requested closed domain, retaining uncovered regions. The
+    objective is ``abs(theta-initial_parameter)``; the constraint is
+    ``abs(V(step,theta)-target) <= volume_tolerance``. This volume
     tolerance defines a feasible band, unlike the exact-existence semantics of
     ``polyhedral_translation_targets``. Both returned coordinates are binary64
     values, rechecked as exact rationals against the original band and domain.
@@ -123,16 +133,28 @@ def polyhedral_design_target(
     Parameters and step are dimensionless; target/tolerance have volume units.
     Scale both by s**3 when scaling geometry, displacements, and velocity by s.
     Exact coordinate-frame laws and represented-input limitations of the
-    prepared boundary apply. This host query is neither JAX-transformable nor
+    prepared model apply. This host query is neither JAX-transformable nor
     a derivative of target selection, and retains existing JAX x64/profile
     packing requirements. Failed numerical packing remains explicitly recorded.
 
-    ``parameter_tolerance`` bounds the reported objective gap; ``step_tolerance``
-    controls candidate-root refinement, not a separate feasibility constraint.
-    ``max_boxes`` caps examined design intervals; ``max_refinements`` caps each
-    existing root-isolation path. Fixed range tolerances can leave bound floors;
-    isolated feasible points, unavailable float actions, or exhausted budgets
+    ``parameter_tolerance`` is the allowed objective gap for an
+    ``optimal_within_tolerance`` result. ``step_tolerance`` controls candidate-root
+    refinement, not a separate feasibility constraint.
+    ``max_boxes`` caps examined design intervals and isolated points across
+    all charts; ``max_refinements`` caps each existing root-isolation path.
+    Initial candidate queries at domain/chart endpoints are additional work,
+    reported by ``point_queries``. Preparation has its own chart/attempt limits.
+    Fixed range tolerances can leave bound floors; isolated feasible points,
+    unavailable float actions, or exhausted budgets
     may remain unresolved. No finite-completeness guarantee is made.
+
+    Every uncovered region, including an isolated boundary point, contributes
+    its distance from the initial parameter to the global objective lower
+    bound. Incomplete coverage can still certify a gap if all uncovered regions
+    are sufficiently far away; it cannot establish global infeasibility.
+    ``remaining_intervals`` contains conservative closed envelopes of regions
+    not excluded, including uncovered ones. Exact coverage membership and stop
+    reasons remain on the prepared continuation, separately from this status.
 
     Example::
 
@@ -160,15 +182,9 @@ def polyhedral_design_target(
     for name, limit in (("max_boxes", max_boxes), ("max_refinements", max_refinements)):
         if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
             raise ValueError(f"{name} must be a positive integer")
-    outer_lo, outer_hi = prepared.parameter_interval
-    if (
-        lo > hi
-        or (outer_lo is not None and lo <= outer_lo)
-        or (outer_hi is not None and hi >= outer_hi)
-    ):
-        raise ValueError(
-            "Closed parameter bounds must lie strictly inside the boundary certificate"
-        )
+    geometry = _search_domain(prepared, lo, hi)
+    segments, uncovered, cuts = _partition(geometry, lo, hi)
+    pair_count = geometry.charts[0].side.geometry.pair_count if geometry.charts else 0
     band_lower = max(Fraction(0), q - volume_tol)
     paths: dict[Fraction, PreparedPolyhedralTranslation | None] = {}
     ranges: dict[Fraction, TranslationVolumeRange | None] = {}
@@ -182,11 +198,9 @@ def polyhedral_design_target(
     def path_at(theta: Fraction) -> PreparedPolyhedralTranslation | None:
         if theta not in paths:
             # Certificate errors are not numerical packing failures.
-            pieces = prepared._geometry.specialize(theta)
+            pieces = geometry.specialize(theta)
             try:
-                paths[theta] = _prepared_from_pieces(
-                    pieces, prepared._geometry.left.geometry.pair_count
-                )
+                paths[theta] = _prepared_from_pieces(pieces, pair_count)
             except (ValueError, OverflowError) as error:
                 paths[theta] = None
                 failures.append(DesignQueryFailure(theta, str(error)))
@@ -209,7 +223,7 @@ def polyhedral_design_target(
 
     def consider(theta: Fraction, steps: list[float]) -> bool:
         nonlocal witness
-        pieces = prepared._geometry.specialize(theta)
+        pieces = geometry.specialize(theta)
         found = False
         for step in sorted(set(steps)):
             if (
@@ -235,7 +249,11 @@ def polyhedral_design_target(
     def try_parameter(value: Fraction) -> None:
         for rounded in _float_neighbors(value):
             theta = Fraction(rounded)
-            if not lo <= theta <= hi or theta in attempted:
+            if (
+                not lo <= theta <= hi
+                or theta in attempted
+                or not _covered(geometry, theta)
+            ):
                 continue
             attempted.add(theta)
             if band_lower == 0:
@@ -281,32 +299,40 @@ def polyhedral_design_target(
                 )
                 consider(theta, _target_steps(interior))
 
-    cuts = sorted({lo, hi, *([Fraction(0)] if lo < 0 < hi else [])})
     try_parameter(min(hi, max(lo, initial)))
     for theta in cuts:
         try_parameter(theta)
-    queue: list[tuple[Fraction, Fraction, Fraction]] = []
-    for a, b in pairwise(cuts):
-        heappush(queue, (distance(a, b), a, b))
-    if lo == hi:
-        heappush(queue, (distance(lo, hi), lo, hi))
+    queue: list[tuple[Fraction, Fraction, Fraction, int]] = []
+    for index, region in enumerate(segments):
+        heappush(
+            queue,
+            (distance(region.lower, region.upper), region.lower, region.upper, index),
+        )
     examined = 0
     retained_points: list[tuple[Fraction, Fraction]] = []
     while queue and examined < max_boxes and band_lower > 0:
         if witness is not None and witness.objective - queue[0][0] <= design_tol:
             break
-        lower_objective, a, b = heappop(queue)
+        lower_objective, a, b, index = heappop(queue)
         examined += 1
         if witness is not None and lower_objective >= witness.objective:
             continue
         midpoint = (a + b) / 2
         attainable = range_at(midpoint)
-        upper_volume = interval_volume_bound(
-            prepared._geometry,
-            a,
-            b,
-            None if attainable is None else attainable.maximum[1],
-        )
+        side = segments[index].side
+        if side is None:
+            upper_volume = (
+                attainable.maximum[1]
+                if attainable is not None
+                else max(
+                    value_bounds(p.coefficients, p.lower, p.upper)[1]
+                    for p in geometry.specialize(midpoint)
+                )
+            )
+        else:
+            upper_volume = interval_volume_bound(
+                side, a, b, None if attainable is None else attainable.maximum[1]
+            )
         if upper_volume < band_lower:
             continue
         try_parameter(midpoint)
@@ -314,8 +340,10 @@ def polyhedral_design_target(
             retained_points.append((a, b))
             continue
         for left, right in ((a, midpoint), (midpoint, b)):
-            heappush(queue, (distance(left, right), left, right))
-    remaining = tuple(sorted((*retained_points, *((a, b) for _, a, b in queue))))
+            heappush(queue, (distance(left, right), left, right, index))
+    remaining = tuple(
+        sorted((*uncovered, *retained_points, *((a, b) for _, a, b, _ in queue)))
+    )
     upper_objective = None if witness is None else witness.objective
     lower_candidates = [distance(a, b) for a, b in remaining]
     if upper_objective is not None:
@@ -343,3 +371,101 @@ def polyhedral_design_target(
         len(set(paths) | attempted),
         tuple(failures),
     )
+
+
+@dataclass(frozen=True)
+class _DesignInterval:
+    lower: Fraction
+    upper: Fraction
+    side: _Side | None
+
+
+def _search_domain(
+    prepared: PreparedPolyhedralEventBoundary | PreparedPolyhedralContinuation,
+    lower: Fraction,
+    upper: Fraction,
+) -> ExactContinuation:
+    if isinstance(prepared, PreparedPolyhedralContinuation):
+        lo, hi = prepared.parameter_bounds
+        if lower > upper or lower < lo or upper > hi:
+            raise ValueError("Search bounds must lie inside the continuation domain")
+        return prepared._geometry
+    outer_lower, outer_upper = prepared.parameter_interval
+    if (
+        lower > upper
+        or (outer_lower is not None and lower <= outer_lower)
+        or (outer_upper is not None and upper >= outer_upper)
+    ):
+        raise ValueError(
+            "Closed parameter bounds must lie strictly inside the boundary certificate"
+        )
+    geometry = prepared._geometry
+    return ExactContinuation(
+        (lower, upper),
+        tuple(
+            ContinuationChart(side, _interval(side.guards))
+            for side in (geometry.left, geometry.right)
+        ),
+        (ContinuationBoundary(Fraction(0), geometry.collision, geometry.pieces),),
+        (),
+        (),
+    )
+
+
+def _chart_at(
+    geometry: ExactContinuation, parameter: Fraction
+) -> ContinuationChart | None:
+    return next(
+        (
+            chart
+            for chart in geometry.charts
+            if (chart.interval[0] is None or chart.interval[0] < parameter)
+            and (chart.interval[1] is None or parameter < chart.interval[1])
+        ),
+        None,
+    )
+
+
+def _covered(geometry: ExactContinuation, parameter: Fraction) -> bool:
+    return _chart_at(geometry, parameter) is not None or any(
+        point.parameter == parameter for point in geometry.boundaries
+    )
+
+
+def _partition(
+    geometry: ExactContinuation, lower: Fraction, upper: Fraction
+) -> tuple[
+    tuple[_DesignInterval, ...],
+    tuple[tuple[Fraction, Fraction], ...],
+    tuple[Fraction, ...],
+]:
+    cuts = sorted(
+        {lower, upper}
+        | {
+            endpoint
+            for chart in geometry.charts
+            for endpoint in chart.interval
+            if endpoint is not None and lower < endpoint < upper
+        }
+        | {
+            point.parameter
+            for point in geometry.boundaries
+            if lower < point.parameter < upper
+        }
+    )
+    known: list[_DesignInterval] = []
+    unknown: list[tuple[Fraction, Fraction]] = []
+    for lo, hi in pairwise(cuts):
+        chart = _chart_at(geometry, (lo + hi) / 2)
+        if chart is None:
+            unknown.append((lo, hi))
+        else:
+            known.append(_DesignInterval(lo, hi, chart.side))
+    # Open chart interiors do not include their endpoints. Each cut point
+    # requires its own certificate, even when neighboring intervals are known.
+    for parameter in cuts:
+        if _covered(geometry, parameter):
+            known.append(_DesignInterval(parameter, parameter, None))
+        else:
+            unknown.append((parameter, parameter))
+    return tuple(known), tuple(unknown), tuple(cuts)

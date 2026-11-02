@@ -247,6 +247,19 @@ def collection_pieces(
     """Sum all pairs only after disjoint-interior partitions have been checked."""
     fixed_planes = tuple(hull_planes(hull, (_ZERO,) * 3) for hull in fixed)
     moving_planes = tuple(hull_planes(hull, velocity) for hull in moving)
+    return collection_pieces_from_planes(fixed_planes, moving_planes, upper)
+
+
+def collection_pieces_from_planes(
+    fixed_planes: tuple[tuple[Plane, ...], ...],
+    moving_planes: tuple[tuple[Plane, ...], ...],
+    upper: Fraction,
+) -> tuple[ExactPiece, ...]:
+    """Build an exact fixed-profile oracle from already validated oriented planes.
+
+    Disjoint-interior partitions and positive-volume cells are caller
+    preconditions. Rational plane offsets need not be dyadic vertex coordinates.
+    """
     pairs = tuple(
         _pair_pieces(a + b, upper) for a, b in product(fixed_planes, moving_planes)
     )
