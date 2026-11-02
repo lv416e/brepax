@@ -72,9 +72,10 @@ STEP roundtrips, and independent CAD finite-difference references.
   `edit.holes`, `edit.rejected`, and any `face_ids` passed in refer to that
   unified shape, not the original input. Discover IDs by preparing once
   without `face_ids`, then select by preparing again with the same
-  `merge_same_domain` value and those IDs. `rebuild` reconstructs from the
-  unified working solid, so its result also uses that face partition. The
-  default, `False`, keeps the original input's face IDs and partition
+  `merge_same_domain` value and those IDs. `rebuild` starts from the unified
+  working solid, but its Boolean operations can change the face partition:
+  discover face IDs again from the rebuilt solid before selecting faces on it.
+  The default, `False`, keeps the original input's face IDs and partition
   unchanged.
 - Radii, center shifts, hole metadata, returned points and metrics use the input CAD's units.
   A fixed `CadFrame` normalizes host preparation and numerical evaluation. By

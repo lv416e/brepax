@@ -279,9 +279,10 @@ def prepare_hole_edit(
     ``merge_same_domain=True`` and no ``face_ids`` to read their ``face_id``
     from the result, then again with those IDs and the same
     ``merge_same_domain=True``; the unification is deterministic for a given
-    input shape, so the IDs line up. ``rebuild`` reconstructs from that same
-    unified working solid. Default is False: face IDs and geometry are
-    unaffected, matching prior behavior.
+    input shape, so the IDs line up. ``rebuild`` starts from that unified
+    working solid; its result can have a different face partition, so take
+    face IDs from the rebuilt solid itself. Default is False: face IDs and
+    geometry are unaffected.
 
     Radius bounds are [0.5*r0, r0 + 0.2*clearance]. Optional transverse center
     shifts share the growth budget: norm(shift) + max(radius-r0, 0) must not
