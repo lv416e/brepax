@@ -19,7 +19,7 @@ from OCP.BRepBuilderAPI import (
     BRepBuilderAPI_NurbsConvert,
 )
 from OCP.BRepCheck import BRepCheck_Analyzer
-from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism
+from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism, BRepPrimAPI_MakeSphere
 from OCP.Geom import Geom_BezierCurve
 from OCP.gp import gp_Pln, gp_Pnt, gp_Vec
 from OCP.IFSelect import IFSelect_RetDone
@@ -192,6 +192,96 @@ class TestTriangulateShape:
             ],
             rtol=1e-4,
         )
+
+    def test_periodic_bspline_sphere_volume_area(self) -> None:
+        """A NURBS-converted full sphere (IsUPeriodic) triangulates and matches it.
+
+        ``BRepPrimAPI_MakeSphere`` builds an analytic sphere;
+        ``BRepBuilderAPI_NurbsConvert`` rewrites its face as a rational
+        B-spline that is periodic in U (``Geom_BSplineSurface.
+        IsUPeriodic() == True``). That periodic pole/knot layout used to
+        make ``bspline_basis`` raise a broadcasting ``TypeError``
+        because its poles and knots do not satisfy the clamped
+        ``n_poles == sum(multiplicities) - degree - 1`` convention the
+        flat-knot evaluator assumes.
+        """
+        radius = 5.0
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeSphere(radius).Shape(), True
+        ).Shape()
+        assert BRepCheck_Analyzer(shape).IsValid()
+
+        exact_volume = 4.0 / 3.0 * math.pi * radius**3
+        exact_area = 4.0 * math.pi * radius**2
+        reference = compute_gprop_ground_truth(shape)
+
+        tris_coarse, params = triangulate_shape(shape, deflection=0.01)
+        assert len(params) == 1
+        assert "control_points" in params[0]
+        # Mesh closure is not asserted here: OCCT's own mesher places a
+        # fan of triangles at each geometric pole, and the general
+        # rational evaluator returns positions that agree with each
+        # other only to about 1e-10 (not bit-exactly) across the
+        # different u values feeding that fan, which is independent of
+        # this fix and of the volume/area claim checked below.
+        vol_coarse = float(divergence_volume(tris_coarse))
+        area_coarse = float(mesh_surface_area(tris_coarse))
+        # Same discretization tolerance as the other curved fixtures
+        # (test_curved_surface_volume) at the default deflection.
+        assert vol_coarse == pytest.approx(exact_volume, rel=1e-2)
+        assert area_coarse == pytest.approx(exact_area, rel=1e-2)
+        assert vol_coarse == pytest.approx(reference["volume"], rel=1e-2)
+        assert area_coarse == pytest.approx(reference["surface_area"], rel=1e-2)
+
+        tris_fine, _ = triangulate_shape(shape, deflection=0.001)
+        vol_fine = float(divergence_volume(tris_fine))
+        area_fine = float(mesh_surface_area(tris_fine))
+        assert abs(vol_fine - exact_volume) < abs(vol_coarse - exact_volume)
+        assert abs(area_fine - exact_area) < abs(area_coarse - exact_area)
+
+    def test_periodic_bspline_hemisphere_volume_area(self) -> None:
+        """A periodic BSpline cap plus a planar cap triangulates and matches the volume.
+
+        ``BRepPrimAPI_MakeSphere(radius, 0, pi/2)`` trims the sphere to
+        the upper hemisphere: the curved cap stays periodic in U (full
+        longitude) while the equatorial cut adds a second, planar face
+        (also a B-spline after conversion, but non-periodic and
+        degree 1), exercising a second surface signature in the same
+        triangulation batch.
+        """
+        radius = 5.0
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeSphere(radius, 0.0, math.pi / 2).Shape(), True
+        ).Shape()
+        assert BRepCheck_Analyzer(shape).IsValid()
+
+        exact_volume = 2.0 / 3.0 * math.pi * radius**3
+        exact_area = 3.0 * math.pi * radius**2
+        reference = compute_gprop_ground_truth(shape)
+
+        tris_coarse, params = triangulate_shape(shape, deflection=0.01)
+        assert len(params) == 2
+        # See test_periodic_bspline_sphere_volume_area: the pole on the
+        # curved cap keeps this mesh from being bit-exactly closed under
+        # decimal quantization, independent of this fix.
+        vol_coarse = float(divergence_volume(tris_coarse))
+        area_coarse = float(mesh_surface_area(tris_coarse))
+        assert vol_coarse == pytest.approx(exact_volume, rel=1e-2)
+        assert area_coarse == pytest.approx(exact_area, rel=1e-2)
+        # OCCT's own BRepGProp quadrature over the converted BSpline
+        # faces (one of which includes the collapsed pole) carries
+        # about 1% residual error on this shape, measured independently
+        # of this fix. The looser bound here confirms the mesh path
+        # agrees with OCCT's geometric engine to within what GProp
+        # itself resolves, not a tighter claim than GProp supports.
+        assert vol_coarse == pytest.approx(reference["volume"], rel=2e-2)
+        assert area_coarse == pytest.approx(reference["surface_area"], rel=2e-2)
+
+        tris_fine, _ = triangulate_shape(shape, deflection=0.001)
+        vol_fine = float(divergence_volume(tris_fine))
+        area_fine = float(mesh_surface_area(tris_fine))
+        assert abs(vol_fine - exact_volume) < abs(vol_coarse - exact_volume)
+        assert abs(area_fine - exact_area) < abs(area_coarse - exact_area)
 
     def test_deflection_affects_triangle_count(self) -> None:
         """Finer deflection produces more triangles."""

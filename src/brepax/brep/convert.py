@@ -198,6 +198,38 @@ def face_to_primitive(face: TopoDS_Face) -> Primitive | None:
     return None
 
 
+def _clamped_bspline_surface(bspl: Any) -> Any:
+    """Return a non-periodic (clamped) equivalent of a B-spline surface.
+
+    OCCT stores a periodic B-spline surface with a cyclic pole/knot
+    layout: the knot multiplicities do not satisfy the clamped
+    convention ``n_poles == sum(multiplicities) - degree - 1`` that
+    :func:`brepax.nurbs.evaluate.bspline_basis` requires, so a periodic
+    surface's poles and knots cannot be fed to the flat-knot evaluator
+    directly. ``Geom_BSplineSurface.SetUNotPeriodic``/
+    ``SetVNotPeriodic`` convert a surface to the exact equivalent
+    clamped representation (same control points up to a cyclic
+    relabeling, same geometry), so this is a lossless conversion rather
+    than an approximation. Operates on a copy; the input is left
+    unchanged.
+
+    Args:
+        bspl: An OCCT ``Geom_BSplineSurface`` handle.
+
+    Returns:
+        ``bspl`` unchanged if already non-periodic in both directions,
+        otherwise an independent clamped copy.
+    """
+    if not (bspl.IsUPeriodic() or bspl.IsVPeriodic()):
+        return bspl
+    clamped = bspl.Copy()
+    if clamped.IsUPeriodic():
+        clamped.SetUNotPeriodic()
+    if clamped.IsVPeriodic():
+        clamped.SetVNotPeriodic()
+    return clamped
+
+
 def _expand_knots(unique_knots: list[float], multiplicities: list[int]) -> jnp.ndarray:
     """Expand unique knots + multiplicities to repeated knot vector.
 
@@ -301,9 +333,12 @@ def _convert_bspline_face(
 
     Extracts control points, knot vectors, and degree from the OCCT
     Geom_BSplineSurface handle.  Supports both non-rational and
-    rational (weighted NURBS) surfaces.
+    rational (weighted NURBS) surfaces, and periodic surfaces (e.g. a
+    full sphere or cylinder), which are converted to an equivalent
+    clamped representation before extraction (see
+    :func:`_clamped_bspline_surface`).
     """
-    bspl = adaptor.BSpline()
+    bspl = _clamped_bspline_surface(adaptor.BSpline())
     is_rational = bspl.IsURational() or bspl.IsVRational()
 
     n_u = bspl.NbUPoles()
