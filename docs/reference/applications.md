@@ -58,11 +58,24 @@ STEP roundtrips, and independent CAD finite-difference references.
 
 - Input must contain one valid outward-oriented solid. Editable holes need a
   complete empty cylindrical bore, two perpendicular outward-facing planar
-  ends, and clearance from other boundaries. Blind, split, oblique, intersecting and near-boundary holes
-  are rejected. Unsupported inward cylinders appear in `edit.rejected`; an
-  explicit selection of an unsupported face raises `ValueError`. A counterbore
-  shoulder is not a valid end for its larger cylinder; the smaller bore through
-  the remaining slab can still qualify independently.
+  ends, and clearance from other boundaries. Blind, oblique, intersecting and
+  near-boundary holes are rejected. A cylindrical wall split into several
+  faces, such as a STEP exporter's two half-cylinder faces or a coplanar seam
+  splitting it axially, is rejected by default too; pass
+  `merge_same_domain=True` to unify same-domain faces/edges before
+  recognition and recover such holes. Unsupported inward cylinders appear in
+  `edit.rejected`; an explicit selection of an unsupported face raises
+  `ValueError`. A counterbore shoulder is not a valid end for its larger
+  cylinder; the smaller bore through the remaining slab can still qualify
+  independently.
+- `merge_same_domain=True` renumbers face IDs to the unified working solid:
+  `edit.holes`, `edit.rejected`, and any `face_ids` passed in refer to that
+  unified shape, not the original input. Discover IDs by preparing once
+  without `face_ids`, then select by preparing again with the same
+  `merge_same_domain` value and those IDs. `rebuild` reconstructs from the
+  unified working solid, so its result also uses that face partition. The
+  default, `False`, keeps the original input's face IDs and partition
+  unchanged.
 - Radii, center shifts, hole metadata, returned points and metrics use the input CAD's units.
   A fixed `CadFrame` normalizes host preparation and numerical evaluation. By
   default, the input bounding box is centered and its largest extent becomes
