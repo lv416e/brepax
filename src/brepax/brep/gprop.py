@@ -12,7 +12,7 @@ from typing import TypedDict
 import numpy as np
 from numpy.typing import NDArray
 
-from brepax._occt.backend import BRepGProp, GProp_GProps
+from brepax._occt.backend import BRepGProp, GProp_GProps, TopAbs_SOLID, TopExp_Explorer
 from brepax._occt.types import TopoDS_Shape
 
 
@@ -38,14 +38,21 @@ def compute_gprop_ground_truth(shape: TopoDS_Shape) -> GPropGroundTruth:
     error and serve as the anchor for validating BRepAX's differentiable
     metric outputs.
 
+    Only solids contribute, matching ``triangulate_shape``, which meshes the
+    faces of solids only. STEP files can carry free faces or shells beside the
+    solid, for example annotation geometry; integrating them would make the
+    reference disagree with every BRepAX path, by about 30% of volume on one
+    NIST test part.
+
     Args:
-        shape: A solid or compound. Non-solid shapes yield zero volume.
+        shape: A solid or compound. Shapes without solids yield zero volume
+            and area.
 
     Returns:
         Dict with:
 
         - ``volume``: scalar, shape volume.
-        - ``surface_area``: scalar, total surface area across all faces.
+        - ``surface_area``: scalar, total surface area of the solids' faces.
         - ``center_of_mass``: shape ``(3,)``, Cartesian coordinates.
         - ``moment_of_inertia``: shape ``(3, 3)``, about the center of mass.
 
@@ -58,10 +65,15 @@ def compute_gprop_ground_truth(shape: TopoDS_Shape) -> GPropGroundTruth:
         True
     """
     vol_props = GProp_GProps()
-    BRepGProp.VolumeProperties_s(shape, vol_props)
-
     surf_props = GProp_GProps()
-    BRepGProp.SurfaceProperties_s(shape, surf_props)
+    explorer = TopExp_Explorer(shape, TopAbs_SOLID)
+    while explorer.More():
+        solid_volume, solid_surface = GProp_GProps(), GProp_GProps()
+        BRepGProp.VolumeProperties_s(explorer.Current(), solid_volume)
+        BRepGProp.SurfaceProperties_s(explorer.Current(), solid_surface)
+        vol_props.Add(solid_volume)
+        surf_props.Add(solid_surface)
+        explorer.Next()
 
     com_pnt = vol_props.CentreOfMass()
     center_of_mass = np.array(
