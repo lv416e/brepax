@@ -1351,7 +1351,9 @@ def extract_bspline_trim_frame(
     # Evaluate the underlying B-spline at each polygon vertex.  Done
     # once at extraction time so the per-query composition does not
     # pay for re-evaluation of the trim polyline.
-    bspl = adaptor.BSpline()
+    from brepax.brep.convert import _clamped_bspline_surface
+
+    bspl = _clamped_bspline_surface(adaptor.BSpline())
     is_rational = bspl.IsURational() or bspl.IsVRational()
     n_u = bspl.NbUPoles()
     n_v = bspl.NbVPoles()

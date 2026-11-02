@@ -439,9 +439,10 @@ def _extract_face_geometric_params(adaptor: Any) -> tuple[str, dict[str, Any]] |
         }
 
     if stype == GeomAbs_BSplineSurface:
-        from brepax.brep.convert import _expand_knots
+        from brepax.brep.convert import _clamped_bspline_surface, _expand_knots
 
-        bspl = adaptor.BSpline()
+        # The flat-knot evaluator needs the clamped form of periodic surfaces.
+        bspl = _clamped_bspline_surface(adaptor.BSpline())
         n_u, n_v = bspl.NbUPoles(), bspl.NbVPoles()
         deg_u, deg_v = bspl.UDegree(), bspl.VDegree()
 

@@ -6,6 +6,8 @@ from pathlib import Path
 
 import jax.numpy as jnp
 import pytest
+from OCP.BRepBuilderAPI import BRepBuilderAPI_NurbsConvert
+from OCP.BRepPrimAPI import BRepPrimAPI_MakeSphere
 
 from brepax.brep.convert import faces_to_primitives
 from brepax.io.step import read_step
@@ -143,6 +145,36 @@ class TestFaceToPrimitive:
         dist = surf.sdf(jnp.array([0.5, 0.5, 1.0]))
         assert jnp.isfinite(dist)
         assert jnp.isclose(jnp.abs(dist), 1.0, rtol=0.05)
+
+    def test_periodic_bspline_face_converts_to_clamped_knots(self) -> None:
+        """A NurbsConvert-ed full sphere (IsUPeriodic) converts and its SDF matches it.
+
+        OCCT represents the converted face with a periodic U knot/pole
+        layout (``NbUPoles=6``, ``IsUPeriodic()=True``); conversion must
+        produce the clamped ``knots_u`` length ``n_u + degree_u + 1``
+        that :func:`brepax.nurbs.evaluate.bspline_basis` requires
+        instead of raising a broadcasting ``TypeError``.
+        """
+        radius = 5.0
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeSphere(radius).Shape(), True
+        ).Shape()
+        prims = faces_to_primitives(shape)
+        assert len(prims) == 1
+        surf = prims[0]
+        assert isinstance(surf, BSplineSurface)
+        n_u = surf.control_points.shape[0]
+        n_v = surf.control_points.shape[1]
+        assert surf.knots_u.shape == (n_u + surf.degree_u + 1,)
+        assert surf.knots_v.shape == (n_v + surf.degree_v + 1,)
+
+        # Independent oracle: closest-point SDF to an exact sphere of
+        # this radius, at the center and along an outward ray.
+        assert float(surf.sdf(jnp.zeros(3))) == pytest.approx(-radius, abs=1e-6)
+        outside = jnp.array([radius + 3.0, 0.0, 0.0])
+        assert float(surf.sdf(outside)) == pytest.approx(3.0, abs=1e-6)
+        on_surface = jnp.array([radius, 0.0, 0.0])
+        assert float(surf.sdf(on_surface)) == pytest.approx(0.0, abs=1e-6)
 
     def test_bspline_trim_polygon_extracted(self) -> None:
         """BSpline faces from NIST CTC-05 have trim polygons."""
