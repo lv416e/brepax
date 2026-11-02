@@ -275,3 +275,25 @@ def collection_pieces_from_planes(
                 coefficients[k] += value
         result.append(ExactPiece(lo, hi, cast(Polynomial, tuple(coefficients))))
     return tuple(result)
+
+
+def coalesce_identical_pieces(pieces: tuple[ExactPiece, ...]) -> tuple[ExactPiece, ...]:
+    """Merge adjacent pieces whose total exact polynomial is identical.
+
+    A knot between two pieces can be a genuine combinatorial change for one
+    contributing cell-pair plane arrangement while leaving the pair-summed
+    total volume exactly unchanged across it, for example an internal face
+    shared by two same-body cells. Such a knot is not an event of the
+    reported total volume, so merging its two pieces into one wider chamber
+    removes it without approximating or discarding any neighboring knot whose
+    piece has a genuinely distinct polynomial, including a tied value and
+    slope with a different curvature. Coefficient tuples are compared as
+    exact ``Fraction`` four-tuples, never rounded floats.
+    """
+    merged: list[ExactPiece] = []
+    for piece in pieces:
+        if merged and merged[-1].coefficients == piece.coefficients:
+            merged[-1] = ExactPiece(merged[-1].lower, piece.upper, piece.coefficients)
+        else:
+            merged.append(piece)
+    return tuple(merged)

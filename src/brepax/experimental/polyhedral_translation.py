@@ -30,6 +30,7 @@ from brepax.experimental._polyhedral_contact import (
 from brepax.experimental._polyhedral_translation import (
     ExactPiece,
     Vector,
+    coalesce_identical_pieces,
     collection_pieces,
 )
 
@@ -70,7 +71,8 @@ class PreparedPolyhedralTranslation:
 
     This certifies only the supplied vertex-hull model. It does not establish
     correspondence to separately supplied CAD or identify every knot as a
-    physical contact event: redundant combinatorial knots can remain.
+    physical contact event. Knots between pieces with an exactly identical
+    total polynomial are coalesced; other combinatorial knots can remain.
     """
 
     profile: PolyhedralTranslationProfile
@@ -167,16 +169,18 @@ def prepare_polyhedral_translation(
     Vertices, velocity components and ``max_step`` accept ``Fraction``,
     ``int`` or a decimal/rational ``str`` such as ``"1.2"``, parsed without
     binary64 rounding; a plain ``float`` keeps its binary64 value. Binary64
-    rounding of decimal dimensions can split events that coincide by design
-    into distinct exact times too close to pack, which then reject. Exact input
-    removes that cause only; genuinely distinct unresolvable events still raise.
+    rounding of decimal dimensions can split a knot that coincides by design
+    into two exact times too close to pack. Adjacent pieces with an exactly
+    identical total polynomial are coalesced, which removes such a split when
+    the total volume does not change across it; otherwise exact input is needed.
 
     Preparation enumerates exact hull facets and triple-plane intersections;
     it is intended for small cells, not large meshes. No volume measurements
     are fitted. No new contacts are omitted within the prepared interval.
     Rational event times and one-sided limits remain in the host record.
     Numerically unresolvable intervals or overflowing/underflowing coefficients
-    raise ``ValueError`` instead of merging events or snapping geometry.
+    raise ``ValueError`` instead of merging two knots with distinct total
+    polynomials or snapping geometry.
 
     Exact global rigid coordinate changes preserve volume; scaling geometry
     and velocity by s scales volume and step derivatives by s**3. Independently
@@ -198,8 +202,9 @@ def prepare_polyhedral_translation(
         # Edge contact has zero initial slope but positive finite overlap.
         volume = polyhedral_translation_volume(prepared.profile, 0.25)  # 0.0625
 
-    Exact-decimal example, resolving a design coincidence that binary64
-    vertices would place at two barely separated events::
+    Exact-decimal example, placing a design coincidence at one exact knot
+    instead of relying on coalescing a redundant sliver between two knots
+    that binary64 vertices would place a few ULP apart::
 
         from fractions import Fraction
         from itertools import product
@@ -260,7 +265,16 @@ def prepare_polyhedral_translation(
 def _prepared_from_pieces(
     pieces: tuple[ExactPiece, ...], pair_count: int
 ) -> PreparedPolyhedralTranslation:
-    """Pack an already validated exact path, retaining its host polynomial model."""
+    """Pack an already validated exact path, retaining its host polynomial model.
+
+    Adjacent pieces whose total polynomial is exactly identical are coalesced
+    first: such a shared knot is combinatorial for an individual cell-pair
+    contribution but not an event of the reported total volume. This never
+    merges two pieces with a genuinely distinct polynomial, so a knot where
+    the total volume itself has a distinct event still packs separately or
+    still rejects an unresolvable float64 interval between two such events.
+    """
+    pieces = coalesce_identical_pieces(pieces)
     try:
         profile = _pack(pieces)
     except (OverflowError, FloatingPointError) as error:
