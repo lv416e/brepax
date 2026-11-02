@@ -42,11 +42,14 @@ relative area error with no signal that anything was wrong.
 
 ## Decision
 
-Add `triangulate_shape_watertight`, an explicit opt-in alternative to
-`triangulate_shape` that leaves the latter's output, including its exact
-floating-point values, unchanged. It:
+Add `extract_watertight_topology` (host-side OCCT meshing, edge-topology
+welding, and manifold validation) and `evaluate_watertight_mesh` (a pure JAX
+function of explicit per-face parameters), plus `triangulate_shape_watertight`
+as a convenience composition of the two. All are explicit opt-in additions;
+`triangulate_shape`'s output, including its exact floating-point values, is
+unchanged.
 
-- Identifies shared vertices from OCCT edge topology, not a distance
+- Shared vertices are identified from OCCT edge topology, not a distance
   tolerance: a union-find over `(face, local node)` pairs, matched through
   each edge's own `Poly_PolygonOnTriangulation` node correspondence and its
   intrinsic curve parameter (not vertex position). Walking each face's own
@@ -56,52 +59,75 @@ floating-point values, unchanged. It:
   degenerate edge (pole, apex) collapses every node any of its occurrences
   references into one vertex, further unioned across degenerate edges that
   share a topological vertex.
-- Evaluates every incident face's own JAX-native surface parameters at its
-  own node, then averages the incident evaluations for each shared vertex, so
-  `jax.grad` distributes symmetrically to every incident face's parameters
-  instead of favoring whichever face a representative-picking rule happened
-  to choose.
-- Reports the largest gap between two faces' independent evaluations at a
-  shared vertex (`WatertightMesh.max_gap`) and accepts an optional
-  `tolerance` that raises when exceeded, so a genuine evaluator disagreement
-  is surfaced and can be rejected against the shape's own CAD tolerance
-  instead of being silently absorbed into an averaged position.
+- `evaluate_watertight_mesh(topology, params_list)` evaluates every incident
+  face's own surface parameters at its own nodes, then averages in two
+  levels: first each face's own nodes at a given vertex, then those per-face
+  means across the vertex's distinct incident faces. The second level
+  matters whenever a face touches a vertex through more than one of its own
+  nodes, e.g. at the point where a periodic face's own seam meets a
+  neighboring face: a flat mean over nodes would weight that vertex 2/3
+  toward the seamed face and 1/3 toward its neighbor; this keeps it an equal
+  half each, so `jax.grad` distributes symmetrically per incident *face*
+  rather than per node. Separating topology (host, static) from this
+  evaluation (pure JAX) lets a caller differentiate, `jit`, or `vmap` a
+  mesh metric with respect to specific per-face surface parameters (e.g.
+  one face's B-spline control points) without repeating the OCCT work,
+  analogous to the existing `extract_mesh_topology`/`evaluate_mesh` split
+  for the non-welded mesh.
+- `WatertightMesh.max_gap` reports an upper bound on the largest disagreement
+  between two faces' independent evaluations at a shared vertex (twice the
+  largest distance from any incident face's own mean to the vertex's final
+  mean; exact by the triangle inequality). `triangulate_shape_watertight`'s
+  optional `tolerance` raises when this bound is exceeded, so a genuine
+  evaluator disagreement is surfaced and can be rejected against the shape's
+  own CAD tolerance instead of being silently absorbed into an averaged
+  position.
+- Validation checks both that every edge is shared by exactly two
+  consistently oriented triangles, and that every vertex's incident triangles
+  form one closed fan (a vertex-link check): the edge check alone accepts two
+  otherwise-disjoint fans -- e.g. two tetrahedra -- pinched together at one
+  shared vertex with no shared edge between them, since every edge inside
+  each fan is still paired exactly twice.
 - Returns an indexed `(vertices, faces)` pair (a `WatertightMesh`), not a
   `(n, 3, 3)` triangle-corner array: the index level is exactly what welding
   establishes, and `vertices[faces]` reproduces the existing triangle-corner
   layout for `divergence_volume` and the other mesh metrics.
 
-`triangulate_shape` and `triangulate_shape_watertight` share their OCCT
-host-side extraction and batched JAX evaluation (both already existed as one
-combined function; the shared parts are now two private helpers), so the
-default path's numerical contract is unaffected; this is verified bit-for-bit
-against the prior implementation for every `.step` fixture tracked in this
-repository, and locked in as a regression test.
+`triangulate_shape` and the watertight path share their OCCT host-side
+extraction and batched JAX evaluation (both already existed as one combined
+function; the shared parts are now two private helpers). Eleven of the
+twelve `.step` fixtures tracked in this repository produce bit-identical
+`triangulate_shape` output before and after this refactor (checked once,
+manually); the twelfth, `nurbs_revol.step`, raises `NotImplementedError` in
+both versions (an unrelated, pre-existing unsupported-surface limitation).
+Four representative fixtures are locked into a standing SHA-256 regression
+test.
 
-Investigating the prototype's FTC-07/STC-07/STC-10 discrepancy found it is
-not the representative-picking defect it first appeared to be, and not a
-parametrization-mismatch bug introduced by that prototype. Both the
-unchanged `triangulate_shape` and the new `triangulate_shape_watertight`
-reuse the same `_snap_mesh_parameters_to_knot_domain` function, whose
-ulp-based overshoot tolerance is occasionally too tight (observed roughly
-9-10 ulps on these specific B-spline faces, against an 8-ulp allowance),
-leaving a handful of mesh boundary nodes a few ulps outside their face's
-clamped knot domain. Evaluating a clamped B-spline basis there returns the
-degenerate all-basis-functions-vanish fallback the function's own docstring
-already describes, collapsing those nodes to the origin. This defect already
-exists on `main`, independent of this change: `triangulate_shape` has 403 of
-92,058 triangle corners collapsed to the origin on FTC-07 alone, contributing
-part of its existing ~0.3-1% baseline error. Welding does not introduce this
+Investigating the prototype's FTC-07/STC-07/STC-10 discrepancy (a prior,
+unmerged spike that picked one of the two incident faces' evaluations as
+each shared vertex's representative, rather than averaging) found it is not
+a parametrization-mismatch bug that prototype introduced. Both the unchanged
+`triangulate_shape` and the new watertight path reuse the same
+`_snap_mesh_parameters_to_knot_domain` function, whose ulp-based overshoot
+tolerance is occasionally too tight (observed roughly 9-10 ulps on these
+specific B-spline faces, against an 8-ulp allowance), leaving a handful of
+mesh boundary nodes a few ulps outside their face's clamped knot domain.
+Evaluating a clamped B-spline basis there returns the degenerate
+all-basis-functions-vanish fallback the function's own docstring already
+describes, collapsing those nodes to the origin. This defect already exists
+on `main`, independent of this change: `triangulate_shape` has 403 of 92,058
+triangle corners collapsed to the origin on FTC-07 alone, contributing part
+of its existing ~0.3-1% baseline error. Welding does not introduce this
 defect, but it does spread each defective node's influence from one face's
 own triangles to the correctly evaluated neighboring face sharing that edge,
 which is why the welded relative error is larger (up to several percent
 volume, tens of percent area) than the unwelded baseline on exactly these
-three fixtures. `max_gap` reports this gap directly (hundreds of working
+three fixtures. `max_gap` reports this directly (tens to hundreds of working
 units, far past any plausible CAD tolerance), so passing the shape's own
 tolerance rejects these three meshes instead of silently returning them.
 Fixing the evaluator's ulp threshold itself is a separate, pre-existing
 numerical defect in a shared function used by both triangulation modes, out
-of this decision's scope.
+of this decision's scope (tracked separately).
 
 `prepare_hole_edit`'s `triangulate_shape` + `closed_mesh` weld is a clean
 drop-in replacement for `triangulate_shape_watertight` (verified against all
@@ -109,10 +135,13 @@ drop-in replacement for `triangulate_shape_watertight` (verified against all
 by this decision: `closed_mesh`'s position-based weld keeps whichever
 duplicate point it meets first, while watertight welding averages, so
 swapping it changes `prepare_hole_edit`'s computed vertex positions (and
-therefore its downstream volumes and gradients) by sub-tolerance amounts on
-every fixture, not just the 8 that previously failed to close. That is an
-intentional numerical change to an experimental public contract with its own
-tests and should be a separate, deliberately scoped change.
+therefore its downstream volumes and gradients) on every fixture, not just
+the 8 that previously failed to close. On well-behaved fixtures that shift
+is sub-tolerance; on the three evaluator-defective fixtures above it is not
+(the same tens-to-hundreds-of-working-units gap described above). That mix
+of a usually-small but occasionally large numerical change to an
+experimental public contract with its own tests should be a separate,
+deliberately scoped change.
 
 ## Consequences
 
@@ -121,18 +150,20 @@ Easier:
 - 38 of the 39 local NIST, FreeCAD and misc solids close under
   `triangulate_shape_watertight` (the 39th, `nurbs_saddle.step`, is a single
   open B-spline patch with a genuine free boundary, not a solid).
-- A caller differentiating a mesh metric with respect to a per-face surface
-  parameter (e.g. B-spline control points) gets a shape derivative that is
+- A caller can differentiate, `jit`, or `vmap` a mesh metric with respect to
+  specific per-face surface parameters (e.g. one face's B-spline control
+  points) through `evaluate_watertight_mesh`, with a shape derivative that is
   symmetric across a shared boundary, matching the planned use this ADR's
   context describes for future per-face parameter edits.
 - An evaluator disagreement at a shared vertex is a reportable, rejectable
   number instead of a silent, one-sided pick.
+- A pinched (non-manifold) vertex is rejected, not just a mismatched edge.
 
 Harder:
 
-- Two function entry points now extract and batch-evaluate per-face data
+- Three function entry points now extract and batch-evaluate per-face data
   (via shared private helpers); a future change to that extraction must keep
-  both call sites' contracts in mind.
+  all three call sites' contracts in mind.
 - `triangulate_shape_watertight` raises instead of returning a best-effort
   mesh when OCCT edge topology cannot resolve a shared vertex (a free
   boundary, a non-manifold edge, or an edge discretization with no stored

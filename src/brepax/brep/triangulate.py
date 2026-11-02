@@ -11,8 +11,12 @@ face's parameters independently, so a vertex on a shared edge gets two
 numerically close but distinct copies: watertight as a surface
 covering, but not at the index level. ``triangulate_shape_watertight``
 additionally welds those copies into one vertex per physical point,
-identified from OCCT edge topology rather than a distance tolerance.
-See its docstring and ADR-0024 for the design rationale.
+identified from OCCT edge topology rather than a distance tolerance;
+``extract_watertight_topology`` and ``evaluate_watertight_mesh`` split
+that into frozen host-side topology and a pure JAX re-evaluation
+function, for differentiating with respect to specific per-face
+surface parameters without repeating the OCCT work. See their
+docstrings and ADR-0024 for the design rationale.
 """
 
 from __future__ import annotations
@@ -1049,12 +1053,44 @@ def _weld_shared_vertices(
     return group_of.astype(np.int64), n_vertices
 
 
+def _pair_welded_vertices(
+    face_records: list[dict[str, Any]], group_of: np.ndarray, n_vertices: int
+) -> tuple[np.ndarray, np.ndarray, int]:
+    """Group flattened (face, local node) indices by (welded vertex, face).
+
+    :func:`evaluate_watertight_mesh` averages each face's own nodes within
+    one of these pairs first, then averages those per-face means across a
+    vertex's distinct incident faces. Without this intermediate grouping, a
+    face that touches a shared vertex through more than one of its own
+    nodes -- for example both sides of a periodic face's own seam, right
+    where that seam meets a neighboring face -- would be counted once per
+    node instead of once per face, silently biasing the average toward
+    whichever face happens to supply more nodes there.
+
+    Returns:
+        ``(pair_of, pair_vertex, n_pairs)`` where ``pair_of[i]`` is the
+        pair index for flattened index ``i``, and ``pair_vertex[p]`` is
+        the welded vertex index that pair ``p`` belongs to.
+    """
+    n_faces = len(face_records)
+    if n_faces == 0:
+        return np.zeros(0, dtype=np.int64), np.zeros(0, dtype=np.int64), 0
+    face_of = np.repeat(np.arange(n_faces), [r["n_points"] for r in face_records])
+    keys = group_of.astype(np.int64) * n_faces + face_of
+    unique_keys, pair_of = np.unique(keys, return_inverse=True)
+    pair_vertex = (unique_keys // n_faces).astype(np.int64)
+    return pair_of.astype(np.int64), pair_vertex, len(unique_keys)
+
+
 def _check_manifold_closed(faces: np.ndarray) -> None:
     """Verify every undirected edge is shared by exactly two consistently
     oriented triangles.
 
     Operates purely on (already-welded) vertex indices, so it checks the
     union-find connectivity result itself rather than vertex positions.
+    This alone does not rule out two otherwise-disjoint fans that merely
+    touch at one shared vertex with no shared edge; see
+    :func:`_check_vertex_links_manifold` for that case.
     """
     if faces.shape[0] == 0:
         return
@@ -1076,9 +1112,65 @@ def _check_manifold_closed(faces: np.ndarray) -> None:
         )
 
 
+def _check_vertex_links_manifold(faces: np.ndarray) -> None:
+    """Verify every vertex's incident triangles form a single closed fan.
+
+    The edge-pairing check in :func:`_check_manifold_closed` accepts two
+    otherwise-disjoint fans (e.g. two tetrahedra) that are pinched together
+    at one shared vertex with no shared edge between them -- every edge is
+    still paired exactly twice, just not across the two fans. For every
+    vertex, its "link" (the opposite edge of each incident triangle) must
+    instead form exactly one simple cycle over that vertex's distinct
+    neighbors: every neighbor has degree exactly two in that link graph,
+    and the link graph is connected (one cycle, not several disjoint ones).
+
+    Raises:
+        ValueError: Some vertex's incident triangles do not form a single
+            closed fan.
+    """
+    if faces.shape[0] == 0:
+        return
+    corner = np.concatenate([faces[:, 0], faces[:, 1], faces[:, 2]])
+    far_a = np.concatenate([faces[:, 1], faces[:, 2], faces[:, 0]])
+    far_b = np.concatenate([faces[:, 2], faces[:, 0], faces[:, 1]])
+
+    order = np.argsort(corner, kind="stable")
+    corner, far_a, far_b = corner[order], far_a[order], far_b[order]
+    _, start, counts = np.unique(corner, return_index=True, return_counts=True)
+
+    msg = (
+        "Watertight mesh has a non-manifold vertex: its incident triangles "
+        "do not form a single closed fan"
+    )
+    for start_idx, count in zip(start, counts, strict=True):
+        a = far_a[start_idx : start_idx + count]
+        b = far_b[start_idx : start_idx + count]
+        neighbors, local = np.unique(np.concatenate([a, b]), return_inverse=True)
+        n = len(neighbors)
+        local_a, local_b = local[:count], local[count:]
+        degree = np.bincount(local_a, minlength=n) + np.bincount(local_b, minlength=n)
+        if np.any(degree != 2):
+            raise ValueError(msg)
+
+        parent = list(range(n))
+
+        def find(x: int, parent: list[int] = parent) -> int:
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        for ia, ib in zip(local_a, local_b, strict=True):
+            ra, rb = find(int(ia)), find(int(ib))
+            if ra != rb:
+                parent[max(ra, rb)] = min(ra, rb)
+        if len({find(i) for i in range(n)}) != 1:
+            raise ValueError(msg)
+
+
 @dataclass(frozen=True)
 class WatertightMesh:
-    """Welded, consistently oriented mesh for :func:`triangulate_shape_watertight`.
+    """Welded, consistently oriented mesh from :func:`evaluate_watertight_mesh`.
 
     ``vertices[faces]`` reproduces the ``(n, 3, 3)`` triangle-corner layout
     :func:`triangulate_shape` returns, so it can be passed directly to
@@ -1088,24 +1180,278 @@ class WatertightMesh:
 
     vertices: jnp.ndarray
     """Welded vertex positions, shape ``(n_vertices, 3)``. Each row is the
-    mean of every incident face's own independent surface evaluation at
-    that shared vertex, so ``jax.grad`` distributes symmetrically to every
-    incident face's parameters."""
+    mean, over every incident face, of that face's own mean of its (one or
+    more) nodes at this vertex -- see :func:`evaluate_watertight_mesh` --
+    so ``jax.grad`` distributes symmetrically across incident faces,
+    weighted by face, not by node."""
 
     faces: jnp.ndarray
     """Triangle connectivity into ``vertices``, shape ``(n_triangles, 3)``,
     ``int32``."""
 
     params_list: list[dict[str, Any]]
-    """Per-face parameter dicts, in traversal order; same contents as
-    :func:`triangulate_shape`'s second return value."""
+    """Per-face parameter dicts, in traversal order, each with
+    ``surface_type`` and ``n_triangles`` merged in like
+    :func:`triangulate_shape`'s second return value. ``n_triangles`` can
+    differ from :func:`triangulate_shape`'s count for the same face: a
+    pole or apex touched by a full revolution can leave OCCT's own mesh
+    with a zero-area triangle spanning two now-welded copies of that
+    point, which :func:`extract_watertight_topology` drops (see its
+    source) because it already contributed exactly zero area and volume."""
 
     max_gap: jnp.ndarray
-    """Scalar upper bound (twice the largest incident-evaluation distance
-    from its vertex's mean) on the distance between any two faces'
-    independent evaluations at a shared vertex. Large values indicate
-    faces whose surface reconstructions disagree at a shared boundary;
-    see the ``tolerance`` argument of :func:`triangulate_shape_watertight`."""
+    """An upper bound on the largest disagreement between two faces'
+    independent evaluations at a shared vertex: twice the largest distance
+    from any incident face's own mean position (see
+    :func:`evaluate_watertight_mesh`) to that vertex's final, across-faces
+    mean. By the triangle inequality this bounds the true largest pairwise
+    gap between any two incident faces' mean evaluations. A large value
+    indicates faces whose surface reconstructions disagree at a shared
+    boundary; see the ``tolerance`` argument of
+    :func:`triangulate_shape_watertight`."""
+
+
+@dataclass(frozen=True)
+class WatertightTopology:
+    """Frozen host-side topology feeding :func:`evaluate_watertight_mesh`.
+
+    Produced once per shape by :func:`extract_watertight_topology` (OCCT
+    meshing, edge-topology welding, and manifold validation -- all outside
+    ``jit``/``vmap``/differentiation), then reused for repeated
+    differentiable re-evaluation with different per-face surface
+    parameters, analogous to :func:`extract_mesh_topology` and
+    :func:`evaluate_mesh` for the non-welded mesh.
+    """
+
+    face_records: list[dict[str, Any]]
+    """Per-face host data: ``surface_type``, ``us``, ``vs``, ``n_points``
+    (no ``params``; :func:`evaluate_watertight_mesh` takes those
+    separately so they can be differentiated)."""
+
+    pair_of: np.ndarray
+    """Flattened (face, local node) index -> (welded vertex, face) pair index."""
+
+    pair_vertex: np.ndarray
+    """(welded vertex, face) pair index -> welded vertex index."""
+
+    n_vertices: int
+    n_pairs: int
+
+    faces: jnp.ndarray
+    """Triangle connectivity into the welded vertices, ``(n_triangles, 3)``,
+    ``int32``; already filtered to drop the zero-area triangles described
+    in ``WatertightMesh.params_list``."""
+
+    params_list: list[dict[str, Any]]
+    """Default per-face surface parameters extracted from OCCT (no
+    ``surface_type``/``n_triangles``), in ``face_records`` order. Pass to
+    :func:`evaluate_watertight_mesh`, or a modified copy of it to
+    differentiate with respect to specific per-face parameters."""
+
+    n_triangles_per_face: list[int]
+    """Post-filtering triangle count for each face, in ``face_records``
+    order; merged into ``WatertightMesh.params_list`` as ``n_triangles``."""
+
+
+def extract_watertight_topology(
+    shape: TopoDS_Shape, *, deflection: float = _DEFAULT_DEFLECTION
+) -> WatertightTopology:
+    """Host-side extraction and validation for a welded watertight mesh.
+
+    Meshes ``shape``, identifies shared vertices from OCCT edge topology
+    (see :func:`_weld_shared_vertices`), and validates that the welded
+    result is a closed, manifold, consistently oriented mesh whose every
+    vertex's incident triangles form a single fan (see
+    :func:`_check_manifold_closed` and :func:`_check_vertex_links_manifold`).
+    All of this runs once, on the host, outside any JAX transformation;
+    :func:`evaluate_watertight_mesh` does the repeated, differentiable part.
+
+    Args:
+        shape: An OCCT topological shape.
+        deflection: Mesh deflection tolerance for OCCT tessellation.
+
+    Returns:
+        A :class:`WatertightTopology`.
+
+    Raises:
+        NotImplementedError: An evaluated face has an unsupported surface type.
+        ValueError: A face has no triangulation, or the welded result is
+            not a closed, manifold, consistently oriented mesh.
+
+    Examples:
+        >>> topology = extract_watertight_topology(shape)
+        >>> mesh = evaluate_watertight_mesh(topology, topology.params_list)
+        >>> vol = divergence_volume(mesh.vertices[mesh.faces])
+    """
+    face_records = _extract_face_records(shape, deflection)
+    if not face_records:
+        return WatertightTopology(
+            face_records=[],
+            pair_of=np.zeros(0, dtype=np.int64),
+            pair_vertex=np.zeros(0, dtype=np.int64),
+            n_vertices=0,
+            n_pairs=0,
+            faces=jnp.zeros((0, 3), dtype=jnp.int32),
+            params_list=[],
+            n_triangles_per_face=[],
+        )
+
+    group_of, n_vertices = _weld_shared_vertices(shape, face_records)
+    pair_of, pair_vertex, n_pairs = _pair_welded_vertices(
+        face_records, group_of, n_vertices
+    )
+
+    offsets = np.cumsum([0] + [r["n_points"] for r in face_records], dtype=np.int64)
+    per_face_faces: list[np.ndarray] = []
+    n_triangles_per_face: list[int] = []
+    for i, rec in enumerate(face_records):
+        local_group = group_of[offsets[i] : offsets[i] + rec["n_points"]]
+        face_tris = local_group[rec["conn"]]
+        # A full-revolution pole/apex can leave OCCT's own mesh with a
+        # zero-area triangle spanning both of the degenerate edge's node
+        # copies (e.g. a seam-closing triangle at a sphere pole); welding
+        # those copies to one vertex turns it into a repeated-corner row.
+        # It already contributed exactly zero area/volume before welding,
+        # so dropping it changes nothing but the bookkeeping.
+        degenerate = (
+            (face_tris[:, 0] == face_tris[:, 1])
+            | (face_tris[:, 1] == face_tris[:, 2])
+            | (face_tris[:, 0] == face_tris[:, 2])
+        )
+        if np.any(degenerate):
+            face_tris = face_tris[~degenerate]
+        per_face_faces.append(face_tris)
+        n_triangles_per_face.append(int(face_tris.shape[0]))
+    global_faces = np.concatenate(per_face_faces, axis=0)
+    _check_manifold_closed(global_faces)
+    _check_vertex_links_manifold(global_faces)
+
+    light_face_records = [
+        {
+            "surface_type": rec["surface_type"],
+            "us": rec["us"],
+            "vs": rec["vs"],
+            "n_points": rec["n_points"],
+        }
+        for rec in face_records
+    ]
+    params_list = [rec["params"] for rec in face_records]
+
+    return WatertightTopology(
+        face_records=light_face_records,
+        pair_of=pair_of,
+        pair_vertex=pair_vertex,
+        n_vertices=n_vertices,
+        n_pairs=n_pairs,
+        faces=jnp.asarray(global_faces, dtype=jnp.int32),
+        params_list=params_list,
+        n_triangles_per_face=n_triangles_per_face,
+    )
+
+
+def evaluate_watertight_mesh(
+    topology: WatertightTopology, params_list: list[dict[str, Any]]
+) -> WatertightMesh:
+    """Re-evaluate a welded mesh's vertices from explicit per-face parameters.
+
+    For each face, evaluates its own surface function at its stored UV
+    coordinates using ``params_list`` (JAX-native, so ``jax.grad`` flows
+    from the result through these parameters). A shared vertex's position
+    is a two-level mean: first the mean of each incident face's own node
+    evaluations at that vertex (collapsing, for example, both sides of a
+    periodic face's own seam to one value per face), then the mean of
+    those per-face means across the vertex's distinct incident faces. The
+    second level is what keeps the result -- and its gradient -- weighted
+    equally per incident *face* regardless of how many of that face's own
+    nodes happen to coincide there.
+
+    This is a pure function of ``params_list`` with ``topology`` held
+    static, so it supports ``jax.jit``, ``jax.vmap``, and differentiation
+    the same way :func:`evaluate_mesh` does for the non-welded mesh.
+
+    Args:
+        topology: Frozen topology from :func:`extract_watertight_topology`.
+        params_list: One parameter dict per face, in ``topology.face_records``
+            order; typically ``topology.params_list`` or a modified copy
+            of it (e.g. with one face's control points perturbed).
+
+    Returns:
+        A :class:`WatertightMesh`.
+
+    Examples:
+        >>> topology = extract_watertight_topology(shape)
+        >>> def volume_of(radius, face_index):
+        ...     params = [dict(p) for p in topology.params_list]
+        ...     params[face_index] = {**params[face_index], "radius": radius}
+        ...     mesh = evaluate_watertight_mesh(topology, params)
+        ...     return divergence_volume(mesh.vertices[mesh.faces])
+        >>> grad = jax.grad(volume_of)(jnp.array(5.0), 0)
+    """
+    if topology.n_vertices == 0:
+        return WatertightMesh(
+            vertices=jnp.zeros((0, 3)),
+            faces=jnp.zeros((0, 3), dtype=jnp.int32),
+            params_list=[],
+            max_gap=jnp.zeros(()),
+        )
+
+    face_records = [
+        {**rec, "params": params}
+        for rec, params in zip(topology.face_records, params_list, strict=True)
+    ]
+    positions_per_face = _evaluate_positions_per_face(face_records)
+    all_positions = jnp.concatenate(positions_per_face, axis=0)
+
+    pair_of = jnp.asarray(topology.pair_of)
+    pair_vertex = jnp.asarray(topology.pair_vertex)
+    pair_counts = np.bincount(topology.pair_of, minlength=topology.n_pairs).astype(
+        all_positions.dtype
+    )
+    vertex_counts = np.bincount(
+        topology.pair_vertex, minlength=topology.n_vertices
+    ).astype(all_positions.dtype)
+
+    # First level: each face's own mean at this vertex (collapses a face's
+    # own seam-duplicated nodes here to one value per face).
+    pair_sum = (
+        jnp.zeros((topology.n_pairs, 3), dtype=all_positions.dtype)
+        .at[pair_of]
+        .add(all_positions)
+    )
+    pair_mean = pair_sum / pair_counts[:, None]
+
+    # Second level: mean of those per-face means across distinct incident
+    # faces, weighted equally per face regardless of node multiplicity.
+    vertex_sum = (
+        jnp.zeros((topology.n_vertices, 3), dtype=all_positions.dtype)
+        .at[pair_vertex]
+        .add(pair_mean)
+    )
+    vertices = vertex_sum / vertex_counts[:, None]
+
+    deviation = jnp.linalg.norm(pair_mean - vertices[pair_vertex], axis=-1)
+    max_gap = 2.0 * jnp.max(deviation) if deviation.shape[0] else jnp.zeros(())
+
+    enriched_params = [
+        {
+            "surface_type": rec["surface_type"],
+            "n_triangles": n_triangles,
+            **params,
+        }
+        for rec, n_triangles, params in zip(
+            topology.face_records,
+            topology.n_triangles_per_face,
+            params_list,
+            strict=True,
+        )
+    ]
+
+    return WatertightMesh(
+        vertices=vertices,
+        faces=topology.faces,
+        params_list=enriched_params,
+        max_gap=max_gap,
+    )
 
 
 def triangulate_shape_watertight(
@@ -1118,22 +1464,28 @@ def triangulate_shape_watertight(
 
     Unlike :func:`triangulate_shape`, which gives each triangle corner an
     independent evaluation from its own face (so a shared edge gets two
-    numerically close but distinct copies), this evaluates every face's
-    contribution to a shared vertex and averages them, producing one
+    numerically close but distinct copies), this welds shared vertices
+    identified from OCCT's own per-edge mesh discretization (topology and
+    the edge's own curve parameter, not a vertex distance tolerance) and
+    averages every incident face's own evaluation there, producing one
     vertex per physical point with gradients that flow symmetrically to
-    every incident face's parameters. Shared vertices are identified from
-    OCCT's own per-edge mesh discretization (topology and the edge's own
-    curve parameter), not from a vertex distance tolerance; degenerate
-    edges (poles, apices) and a periodic face's seam are handled
-    explicitly (see :func:`_weld_shared_vertices`).
+    every incident face's parameters. Degenerate edges (poles, apices) and
+    a periodic face's seam are handled explicitly (see
+    :func:`_weld_shared_vertices`).
+
+    A convenience composition of :func:`extract_watertight_topology` (host
+    extraction and validation) and :func:`evaluate_watertight_mesh`
+    (differentiable re-evaluation). Call those directly to re-evaluate the
+    same topology under ``jax.jit``, ``jax.vmap``, or ``jax.grad`` against
+    specific per-face parameters without repeating the OCCT work.
 
     Args:
         shape: An OCCT topological shape.
         deflection: Mesh deflection tolerance for OCCT tessellation.
-        tolerance: If given, raise when the largest gap between two
-            faces' independent evaluations at a shared vertex (see
-            ``WatertightMesh.max_gap``) exceeds it. Pass the shape's own
-            CAD tolerance (e.g. :func:`brepax.experimental.applications.
+        tolerance: If given, raise when ``WatertightMesh.max_gap`` (an
+            upper bound on the largest gap between two faces' independent
+            evaluations at a shared vertex) exceeds it. Pass the shape's
+            own CAD tolerance (e.g. :func:`brepax.experimental.applications.
             _hole_geometry.shape_tolerance`) to reject faces whose
             reconstructions disagree by more than the model already
             tolerates. ``None`` (default) never raises on the gap; the
@@ -1158,76 +1510,14 @@ def triangulate_shape_watertight(
         ...     lambda v: divergence_volume(v[mesh.faces])
         ... )(mesh.vertices)
     """
-    face_records = _extract_face_records(shape, deflection)
-    if not face_records:
-        return WatertightMesh(
-            vertices=jnp.zeros((0, 3)),
-            faces=jnp.zeros((0, 3), dtype=jnp.int32),
-            params_list=[],
-            max_gap=jnp.zeros(()),
-        )
-
-    positions_per_face = _evaluate_positions_per_face(face_records)
-    all_positions = jnp.concatenate(positions_per_face, axis=0)
-
-    group_of, n_vertices = _weld_shared_vertices(shape, face_records)
-    group_of_j = jnp.asarray(group_of)
-
-    counts = np.bincount(group_of, minlength=n_vertices).astype(all_positions.dtype)
-    summed = (
-        jnp.zeros((n_vertices, 3), dtype=all_positions.dtype)
-        .at[group_of_j]
-        .add(all_positions)
-    )
-    vertices = summed / counts[:, None]
-
-    deviation = jnp.linalg.norm(all_positions - vertices[group_of_j], axis=-1)
-    max_gap = 2.0 * jnp.max(deviation) if deviation.shape[0] else jnp.zeros(())
-    if tolerance is not None and float(max_gap) > tolerance:
+    topology = extract_watertight_topology(shape, deflection=deflection)
+    mesh = evaluate_watertight_mesh(topology, topology.params_list)
+    if tolerance is not None and float(mesh.max_gap) > tolerance:
         raise ValueError(
-            f"Largest shared-vertex evaluation gap {float(max_gap):.6g} exceeds "
-            f"tolerance {tolerance:.6g}"
+            f"Upper bound on the largest shared-vertex evaluation gap "
+            f"{float(mesh.max_gap):.6g} exceeds tolerance {tolerance:.6g}"
         )
-
-    offsets = np.cumsum([0] + [r["n_points"] for r in face_records], dtype=np.int64)
-    per_face_faces: list[np.ndarray] = []
-    per_face_counts: list[int] = []
-    for i, rec in enumerate(face_records):
-        local_group = group_of[offsets[i] : offsets[i] + rec["n_points"]]
-        face_tris = local_group[rec["conn"]]
-        # A full-revolution pole/apex can leave OCCT's own mesh with a
-        # zero-area triangle spanning both of the degenerate edge's node
-        # copies (e.g. a seam-closing triangle at a sphere pole); welding
-        # those copies to one vertex turns it into a repeated-corner row.
-        # It already contributed exactly zero area/volume before welding,
-        # so dropping it changes nothing but the bookkeeping.
-        degenerate = (
-            (face_tris[:, 0] == face_tris[:, 1])
-            | (face_tris[:, 1] == face_tris[:, 2])
-            | (face_tris[:, 0] == face_tris[:, 2])
-        )
-        if np.any(degenerate):
-            face_tris = face_tris[~degenerate]
-        per_face_faces.append(face_tris)
-        per_face_counts.append(int(face_tris.shape[0]))
-    global_faces = np.concatenate(per_face_faces, axis=0)
-    _check_manifold_closed(global_faces)
-
-    all_params = [
-        {
-            "surface_type": rec["surface_type"],
-            "n_triangles": n_triangles,
-            **rec["params"],
-        }
-        for rec, n_triangles in zip(face_records, per_face_counts, strict=True)
-    ]
-
-    return WatertightMesh(
-        vertices=vertices,
-        faces=jnp.asarray(global_faces, dtype=jnp.int32),
-        params_list=all_params,
-        max_gap=max_gap,
-    )
+    return mesh
 
 
 def divergence_volume(triangles: jnp.ndarray) -> jnp.ndarray:
@@ -1715,9 +2005,12 @@ def evaluate_mesh(
 
 __all__ = [
     "WatertightMesh",
+    "WatertightTopology",
     "divergence_volume",
     "evaluate_mesh",
+    "evaluate_watertight_mesh",
     "extract_mesh_topology",
+    "extract_watertight_topology",
     "mesh_center_of_mass",
     "mesh_inertia_tensor",
     "mesh_surface_area",

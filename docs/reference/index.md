@@ -35,14 +35,21 @@ parameters independently, so a vertex on an edge shared by two faces gets two
 numerically close but generally distinct copies; the mesh is not literally
 watertight at the index level. `triangulate_shape_watertight` is an opt-in
 mode that instead welds shared vertices identified from OCCT's own per-edge
-mesh discretization (not a distance tolerance), averages every incident
-face's evaluation at each shared vertex, and returns an indexed
+mesh discretization (not a distance tolerance) and returns an indexed
 `WatertightMesh` whose `vertices[faces]` is a true index-level watertight
-mesh. Averaging keeps `jax.grad` flowing symmetrically to every incident
-face's parameters. It reports the largest gap between incident faces'
-independent evaluations at a shared vertex as `max_gap`, and an optional
-`tolerance` argument rejects a mesh whose evaluations disagree by more than
-that bound instead of silently welding through the disagreement.
+mesh. A shared vertex's position is a two-level mean -- each incident face's
+own nodes there, then those per-face means across the vertex's distinct
+incident faces -- so `jax.grad` distributes symmetrically per incident face
+even when one face (e.g. at a periodic face's own seam) contributes more
+than one of its own nodes to that vertex. `extract_watertight_topology` and
+`evaluate_watertight_mesh` split the host-side OCCT extraction and
+validation from this averaging, a pure JAX function of explicit per-face
+parameters, so a caller can differentiate, `jit`, or `vmap` with respect to
+specific per-face surface parameters without repeating the OCCT work.
+`WatertightMesh.max_gap` reports an upper bound on the largest disagreement
+between two faces' independent evaluations at a shared vertex, and an
+optional `tolerance` argument rejects a mesh whose evaluations disagree by
+more than that bound instead of silently welding through the disagreement.
 
 | Function | Numerical contract |
 |----------|--------------------|
@@ -100,7 +107,10 @@ the remaining distinction between surface, face, and solid derivatives.
       members:
         - triangulate_shape
         - triangulate_shape_watertight
+        - extract_watertight_topology
+        - evaluate_watertight_mesh
         - WatertightMesh
+        - WatertightTopology
         - extract_mesh_topology
         - evaluate_mesh
         - divergence_volume

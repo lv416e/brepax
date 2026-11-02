@@ -37,15 +37,16 @@ from benchmarks.abc_evaluation import evaluate_step as evaluation
 from brepax._occt.backend import BRepPrimAPI_MakeBox
 from brepax.brep.gprop import compute_gprop_ground_truth
 from brepax.brep.triangulate import (
-    _DEFAULT_DEFLECTION,
+    WatertightTopology,
+    _check_manifold_closed,
+    _check_vertex_links_manifold,
     _eval_sphere,
-    _evaluate_positions_per_face,
     _extract_ax3,
-    _extract_face_records,
-    _weld_shared_vertices,
     divergence_volume,
     evaluate_mesh,
+    evaluate_watertight_mesh,
     extract_mesh_topology,
+    extract_watertight_topology,
     mesh_center_of_mass,
     mesh_inertia_tensor,
     mesh_surface_area,
@@ -81,6 +82,22 @@ def _assert_index_mesh_closed_manifold(
     signs = np.where(directed_edges[:, 0] < directed_edges[:, 1], 1, -1)
     assert np.all(np.bincount(edge_ids, weights=signs) == 0)
     assert int(np.max(faces_np)) == np.asarray(vertices).shape[0] - 1
+
+
+def _pair_face_of(topology: WatertightTopology) -> np.ndarray:
+    """Which face owns each (vertex, face) pair in ``topology``.
+
+    Test-only convenience: recovers the face index for each pair from its
+    member nodes' position in ``face_records``, so gradient tests can
+    target a specific face by name instead of by a hard-coded index.
+    """
+    n_faces = len(topology.face_records)
+    node_face = np.repeat(
+        np.arange(n_faces), [r["n_points"] for r in topology.face_records]
+    )
+    pair_face = np.zeros(topology.n_pairs, dtype=np.int64)
+    pair_face[topology.pair_of] = node_face
+    return pair_face
 
 
 def _assert_closed_mesh(triangles: jnp.ndarray) -> None:
@@ -1027,9 +1044,17 @@ class TestTriangulateShapeWatertight:
         assert float(mesh.max_gap) == 0.0
 
     def test_tolerance_argument_gates_on_reported_gap(self) -> None:
-        """``tolerance`` raises exactly when the reported ``max_gap`` exceeds it."""
+        """``tolerance`` raises exactly when the reported ``max_gap`` exceeds it.
+
+        Uses the hemisphere fixture (a curved pole cap and a planar cap,
+        two genuinely different faces meeting at the equator) rather than
+        the full sphere: at a pole touched by only one face, the two-level
+        mean in :func:`evaluate_watertight_mesh` reports an exact zero gap
+        (there is only one incident face to average across), so it cannot
+        exercise this argument.
+        """
         shape = BRepBuilderAPI_NurbsConvert(
-            BRepPrimAPI_MakeSphere(5.0).Shape(), True
+            BRepPrimAPI_MakeSphere(5.0, 0.0, math.pi / 2).Shape(), True
         ).Shape()
         mesh = triangulate_shape_watertight(shape, deflection=0.01)
         assert float(mesh.max_gap) > 0.0
@@ -1043,72 +1068,174 @@ class TestTriangulateShapeWatertight:
                 shape, deflection=0.01, tolerance=float(mesh.max_gap) / 2.0
             )
 
-    def test_gradient_averages_symmetrically_across_incident_faces(self) -> None:
-        """A shared vertex's gradient splits evenly between its two faces.
+    def test_gradient_through_production_evaluator_is_symmetric(self) -> None:
+        """``evaluate_watertight_mesh`` (the production averaging) splits a
+        shared vertex's gradient evenly between its two incident faces.
 
         A cylinder's lateral face and one planar cap share their circular
         boundary two-to-one (unlike a box corner, which is a three-face
-        junction). Perturbs one face's own position parameter at a time
-        (``center`` for the cylinder, ``origin`` for the cap plane) along
-        an arbitrary fixed direction, independent of that face's true
-        normal, and differentiates the resulting *welded* vertex position
-        with respect to each perturbation. Since the welded position is the
-        mean of exactly two incident evaluations here, moving only one
-        face's parameter must move the shared vertex by exactly half the
-        naive (single-face) displacement -- and moving both faces by the
-        same amount must recover the full displacement. Checked both as an
-        exact linear identity and against finite differences.
+        junction) and each contribute exactly one node there, so this is
+        the simple case of the two-level mean. Perturbs one face's own
+        ``control_points`` at a time (the shape is NURBS-converted so both
+        faces expose that parameter) through :func:`extract_watertight_topology`
+        and :func:`evaluate_watertight_mesh` -- the actual production
+        welding, not a hand-rolled mean -- and checks that moving only one
+        face's parameter moves the shared vertex by exactly half the
+        naive (single-face) displacement, under both ``jax.grad`` and
+        ``jax.jit``, and against finite differences.
         """
-        position_key = {"plane": "origin", "cylinder": "center"}
-        shape = BRepPrimAPI_MakeCylinder(2.0, 5.0).Shape()
-        face_records = _extract_face_records(shape, _DEFAULT_DEFLECTION)
-        group_of, n_vertices = _weld_shared_vertices(shape, face_records)
-        offsets = np.cumsum([0] + [r["n_points"] for r in face_records], dtype=np.int64)
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeCylinder(2.0, 5.0).Shape(), True
+        ).Shape()
+        topology = extract_watertight_topology(shape, deflection=0.01)
 
-        shared_vertex = next(
-            v for v in range(n_vertices) if np.count_nonzero(group_of == v) == 2
+        pair_counts = np.bincount(topology.pair_of, minlength=topology.n_pairs)
+        pair_face = _pair_face_of(topology)
+
+        # A vertex with exactly two incident faces, each contributing one node.
+        vertex_ids, vertex_pair_counts = np.unique(
+            topology.pair_vertex, return_counts=True
         )
-        member_indices = np.nonzero(group_of == shared_vertex)[0]
-        face_a, face_b = (
-            int(np.searchsorted(offsets, idx, side="right") - 1)
-            for idx in member_indices
+        ordinary_vertex = next(
+            int(v)
+            for v, n_incident in zip(vertex_ids, vertex_pair_counts, strict=True)
+            if n_incident == 2
+            and all(
+                pair_counts[p] == 1 for p in np.nonzero(topology.pair_vertex == v)[0]
+            )
         )
+        pairs_at_vertex = np.nonzero(topology.pair_vertex == ordinary_vertex)[0]
+        face_a, face_b = (int(pair_face[p]) for p in pairs_at_vertex)
         assert face_a != face_b
-        key_a = position_key[face_records[face_a]["surface_type"]]
-        key_b = position_key[face_records[face_b]["surface_type"]]
 
         direction = jnp.array([1.0, 0.0, 0.0])
-        mask = jnp.asarray(group_of == shared_vertex)
 
-        def welded_vertex(delta_a: jnp.ndarray, delta_b: jnp.ndarray) -> jnp.ndarray:
-            patched = []
-            for i, rec in enumerate(face_records):
-                params = rec["params"]
-                if i == face_a:
-                    params = {**params, key_a: params[key_a] + delta_a * direction}
-                if i == face_b:
-                    params = {**params, key_b: params[key_b] + delta_b * direction}
-                patched.append({**rec, "params": params})
-            positions = jnp.concatenate(_evaluate_positions_per_face(patched), axis=0)
-            return jnp.mean(positions[mask], axis=0)
+        def vertex_of(delta_a: jnp.ndarray, delta_b: jnp.ndarray) -> jnp.ndarray:
+            params = list(topology.params_list)
+            params[face_a] = {
+                **params[face_a],
+                "control_points": params[face_a]["control_points"]
+                + delta_a * direction,
+            }
+            params[face_b] = {
+                **params[face_b],
+                "control_points": params[face_b]["control_points"]
+                + delta_b * direction,
+            }
+            mesh = evaluate_watertight_mesh(topology, params)
+            return mesh.vertices[ordinary_vertex]
 
-        jac_a, jac_b = jax.jacrev(welded_vertex, argnums=(0, 1))(
+        jac_a, jac_b = jax.jit(jax.jacrev(vertex_of, argnums=(0, 1)))(
             jnp.array(0.0), jnp.array(0.0)
         )
         np.testing.assert_allclose(jac_a, 0.5 * direction, atol=1e-12)
         np.testing.assert_allclose(jac_b, 0.5 * direction, atol=1e-12)
 
         for step in (1e-2, 1e-3, 1e-4):
-            forward = welded_vertex(jnp.array(step), jnp.array(0.0))
-            backward = welded_vertex(jnp.array(-step), jnp.array(0.0))
+            forward = vertex_of(jnp.array(step), jnp.array(0.0))
+            backward = vertex_of(jnp.array(-step), jnp.array(0.0))
             fd_a = (forward - backward) / (2 * step)
-            np.testing.assert_allclose(fd_a, jac_a, rtol=1e-8, atol=1e-10)
-
-            forward = welded_vertex(jnp.array(0.0), jnp.array(step))
-            backward = welded_vertex(jnp.array(0.0), jnp.array(-step))
-            fd_b = (forward - backward) / (2 * step)
-            np.testing.assert_allclose(fd_b, jac_b, rtol=1e-8, atol=1e-10)
+            np.testing.assert_allclose(fd_a, jac_a, rtol=1e-6, atol=1e-9)
 
         # Moving both faces together recovers the full (unwelded) displacement.
-        both = jax.jacrev(lambda d: welded_vertex(d, d))(jnp.array(0.0))
+        both = jax.jacrev(lambda d: vertex_of(d, d))(jnp.array(0.0))
         np.testing.assert_allclose(both, direction, atol=1e-12)
+
+    def test_seam_endpoint_weighted_by_face_not_by_node(self) -> None:
+        """A face that touches a shared vertex through two of its own nodes
+        (both sides of its own periodic seam) still counts as one face.
+
+        ``BRepBuilderAPI_NurbsConvert`` makes the cylinder's lateral face
+        periodic in U with no degenerate edge, so its own self-seam meets
+        the planar cap's boundary at one welded vertex where the lateral
+        face contributes *two* nodes (one per side of its seam) and the
+        cap contributes *one*. A flat mean over nodes would weight that
+        vertex 2/3 lateral, 1/3 cap; :func:`evaluate_watertight_mesh`'s
+        two-level mean (per face, then across faces) must instead split
+        it exactly half and half, checked through production code, not a
+        hand-picked two-node group.
+        """
+        shape = BRepBuilderAPI_NurbsConvert(
+            BRepPrimAPI_MakeCylinder(2.0, 5.0).Shape(), True
+        ).Shape()
+        topology = extract_watertight_topology(shape, deflection=0.01)
+
+        pair_counts = np.bincount(topology.pair_of, minlength=topology.n_pairs)
+        pair_face = _pair_face_of(topology)
+
+        # A seam-endpoint vertex: exactly two incident faces, one of which
+        # (the periodic lateral face) supplies more than one of its own
+        # nodes there.
+        vertex_ids, vertex_pair_counts = np.unique(
+            topology.pair_vertex, return_counts=True
+        )
+        seam_vertex = next(
+            int(v)
+            for v, n_incident in zip(vertex_ids, vertex_pair_counts, strict=True)
+            if n_incident == 2
+            and any(
+                pair_counts[p] > 1 for p in np.nonzero(topology.pair_vertex == v)[0]
+            )
+        )
+        pairs_at_vertex = np.nonzero(topology.pair_vertex == seam_vertex)[0]
+        multi_node_pair = next(p for p in pairs_at_vertex if pair_counts[p] > 1)
+        lateral_face = int(pair_face[multi_node_pair])
+        cap_face = int(next(p for p in pairs_at_vertex if p != multi_node_pair))
+        cap_face = int(pair_face[cap_face])
+        assert lateral_face != cap_face
+
+        direction = jnp.array([1.0, 0.0, 0.0])
+
+        def vertex_of(
+            delta_lateral: jnp.ndarray, delta_cap: jnp.ndarray
+        ) -> jnp.ndarray:
+            params = list(topology.params_list)
+            params[lateral_face] = {
+                **params[lateral_face],
+                "control_points": params[lateral_face]["control_points"]
+                + delta_lateral * direction,
+            }
+            params[cap_face] = {
+                **params[cap_face],
+                "control_points": params[cap_face]["control_points"]
+                + delta_cap * direction,
+            }
+            mesh = evaluate_watertight_mesh(topology, params)
+            return mesh.vertices[seam_vertex]
+
+        jac_lateral, jac_cap = jax.jacrev(vertex_of, argnums=(0, 1))(
+            jnp.array(0.0), jnp.array(0.0)
+        )
+        np.testing.assert_allclose(jac_lateral, 0.5 * direction, atol=1e-12)
+        np.testing.assert_allclose(jac_cap, 0.5 * direction, atol=1e-12)
+
+        for step in (1e-2, 1e-3, 1e-4):
+            forward = vertex_of(jnp.array(step), jnp.array(0.0))
+            backward = vertex_of(jnp.array(-step), jnp.array(0.0))
+            fd_lateral = (forward - backward) / (2 * step)
+            np.testing.assert_allclose(fd_lateral, jac_lateral, rtol=1e-6, atol=1e-9)
+
+    def test_two_tetrahedra_sharing_one_vertex_is_rejected(self) -> None:
+        """Two fans pinched at one shared vertex pass edge-pairing alone.
+
+        Each tetrahedron's own six edges are already paired exactly twice
+        with consistent orientation within itself, so
+        ``_check_manifold_closed`` (edge count and orientation only) finds
+        nothing wrong even though the combined mesh is not a manifold at
+        the shared vertex: its link is two disjoint triangles, not one.
+        ``_check_vertex_links_manifold`` must reject it. This constructs
+        the index arrays directly (not via OCCT) and checks the two
+        private functions as black boxes, rather than reimplementing
+        their link-cycle criterion in the test.
+        """
+        tetra_a = np.array([[1, 2, 3], [0, 3, 2], [0, 1, 3], [0, 2, 1]])
+        tetra_b = np.array([[4, 5, 6], [0, 6, 5], [0, 4, 6], [0, 5, 4]])
+        pinched = np.concatenate([tetra_a, tetra_b], axis=0)
+
+        _check_manifold_closed(pinched)  # does not raise: every edge is fine
+        with pytest.raises(ValueError, match="non-manifold vertex"):
+            _check_vertex_links_manifold(pinched)
+
+        # An ordinary single tetrahedron is rejected by neither check.
+        _check_manifold_closed(tetra_a)
+        _check_vertex_links_manifold(tetra_a)
