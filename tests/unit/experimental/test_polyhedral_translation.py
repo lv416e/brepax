@@ -21,6 +21,11 @@ def _box(
     return np.array(list(product(*(zip(lower, upper, strict=True)))), dtype=np.float64)
 
 
+def _exact_box(lower: tuple, upper: tuple) -> list[tuple]:
+    """A cell as a nested Python sequence, accepting exact/decimal coordinates."""
+    return [tuple(c) for c in product(*(zip(lower, upper, strict=True)))]
+
+
 @pytest.mark.parametrize("codimension", [1, 2, 3])
 def test_contact_order_and_exit_events(codimension: int) -> None:
     box = _box((0, 0, 0), (1, 1, 1))
@@ -253,3 +258,112 @@ def test_unrepresentable_volume_scale_is_rejected(scale: float) -> None:
             (-scale, 0.0, 0.0),
             max_step=1.0,
         )
+
+
+def _stacked_decimal_scenario() -> tuple[list, list, tuple, str]:
+    """Two stacked fixed cells plus a cutter, matching a real decimal CAD design.
+
+    The cutter height (2.0-1.2=0.8) equals the upper cell's height (1.0-0.2=0.8)
+    by design, so a binary64 vertex round trip can place the two coincident
+    events ~1e-16 apart (``Fraction(1.2) - Fraction(0.2) - 1 == -5.55e-17``),
+    which is exactly the measured spurious-rejection mechanism this covers.
+    """
+    fixed = [
+        _exact_box((0, 0, 0), (1, 1, "0.2")),
+        _exact_box((0, 0, "0.2"), (1, 1, "1.0")),
+    ]
+    cutter = _exact_box(("0.3", "0.3", "1.2"), ("0.7", "0.7", "2.0"))
+    return fixed, [cutter], (0, 0, Fraction(-1)), "1.5"
+
+
+def _stacked_decimal_oracle(step: float) -> float:
+    """Independent closed-form overlap volume, built from the raw interval law.
+
+    The fixed stack is one contiguous [0, 1.0] block in z; the cutter has a
+    constant 0.4 x 0.4 cross-section, so overlap volume is the cross-section
+    area times the 1-D overlap of [1.2 - step, 2.0 - step] with [0, 1.0].
+    """
+    lo = max(1.2 - step, 0.0)
+    hi = min(2.0 - step, 1.0)
+    return 0.4 * 0.4 * max(0.0, hi - lo)
+
+
+def test_exact_decimal_case_passes_and_matches_independent_oracle() -> None:
+    fixed, moving, velocity, max_step = _stacked_decimal_scenario()
+    prepared = prepare_polyhedral_translation(
+        fixed, moving, velocity, max_step=max_step
+    )
+    # With exact rational vertices the two coincident events merge into one
+    # knot at 1.0, unlike the thresholds a binary64 vertex round trip would
+    # separate; this is the dyadic-free exact expectation for this design.
+    assert prepared.exact_knots == (
+        Fraction(0),
+        Fraction(1, 5),
+        Fraction(1),
+        Fraction(6, 5),
+        Fraction(3, 2),
+    )
+    for step in (0.0, 0.1, 0.5, 1.0, 1.1, 1.3, 1.5):
+        np.testing.assert_allclose(
+            float(polyhedral_translation_volume(prepared.profile, step)),
+            _stacked_decimal_oracle(step),
+            atol=1e-13,
+        )
+
+
+def test_exact_decimal_case_float_input_still_rejects() -> None:
+    # Plain float64 vertices keep their binary64 rounding, so this design still
+    # splits its coincident events and rejects; exact input is opt-in.
+    fixed = [_box((0, 0, 0), (1, 1, 0.2)), _box((0, 0, 0.2), (1, 1, 1.0))]
+    cutter = _box((0.3, 0.3, 1.2), (0.7, 0.7, 2.0))
+    with pytest.raises(ValueError, match="resolvable float64 chamber"):
+        prepare_polyhedral_translation(fixed, [cutter], (0.0, 0.0, -1.0), max_step=1.5)
+
+
+def _scale_cell(cell: list[tuple], factor: int) -> list[tuple]:
+    return [tuple(factor * Fraction(c) for c in point) for point in cell]
+
+
+def _exact_volume_at(prepared, step: Fraction) -> Fraction:
+    for piece in prepared._exact_pieces:
+        if piece.lower <= step <= piece.upper:
+            return piece.value(step)
+    raise AssertionError("step outside the exact prepared path")
+
+
+def test_exact_rational_scale_invariance_is_bit_exact_in_the_host_model() -> None:
+    offset = Fraction(11, 10)
+    fixed_cell = _exact_box((Fraction(0),) * 3, (Fraction(1),) * 3)
+    moving_cell = _exact_box(
+        (offset, Fraction(0), Fraction(0)), (offset + 1, Fraction(1), Fraction(1))
+    )
+    velocity = (Fraction(-1), Fraction(0), Fraction(0))
+    max_step = Fraction(3)
+    original = prepare_polyhedral_translation(
+        [fixed_cell], [moving_cell], velocity, max_step=max_step
+    )
+    factor = 10
+    scaled = prepare_polyhedral_translation(
+        [_scale_cell(fixed_cell, factor)],
+        [_scale_cell(moving_cell, factor)],
+        tuple(factor * v for v in velocity),
+        max_step=max_step,  # the dimensionless step axis is not rescaled
+    )
+    assert scaled.exact_knots == original.exact_knots
+    for step in (Fraction(1, 2), offset, Fraction(2)):
+        original_volume = _exact_volume_at(original, step)
+        scaled_volume = _exact_volume_at(scaled, step)
+        assert scaled_volume == factor**3 * original_volume
+
+
+def test_integer_coordinates_above_binary64_precision_stay_exact() -> None:
+    # 2**53 + 1 has no binary64 value; float conversion would flatten the cell.
+    base = 2**53
+    fixed = _exact_box((base, 0, 0), (base + 1, 1, 1))
+    moving = _exact_box((base, 0, 2), (base + 1, 1, 3))
+    max_step = 2**53 + 1
+    prepared = prepare_polyhedral_translation(
+        [fixed], [moving], (0, 0, -1), max_step=max_step
+    )
+    assert prepared.exact_knots[-1] == max_step
+    assert _exact_volume_at(prepared, Fraction(3, 2)) == Fraction(1, 2)

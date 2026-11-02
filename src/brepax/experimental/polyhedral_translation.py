@@ -1,8 +1,9 @@
 """Finite translation-volume profiles for explicit convex-cell bodies.
 
-Host preparation uses exact rational geometry of represented binary64 vertices.
-The numerical profile supports JAX step queries. This is neither an importer
-nor a general Boolean JVP: cells and velocity remain fixed after preparation.
+Host preparation uses exact rational geometry of represented vertices, taken
+from either binary64 coordinates or exact rational/decimal-string input. The
+numerical profile supports JAX step queries. This is neither an importer nor
+a general Boolean JVP: cells and velocity remain fixed after preparation.
 """
 
 from collections.abc import Sequence
@@ -17,7 +18,15 @@ import numpy as np
 from jaxtyping import Array, Bool, Float
 from numpy.typing import ArrayLike
 
-from brepax.experimental._polyhedral_contact import hull_relation, vertex_hull
+from brepax.experimental._polyhedral_contact import (
+    ExactScalar,
+    VertexHull,
+    exact_scalar,
+    exact_vertex_hull,
+    has_exact_marker,
+    hull_relation,
+    vertex_hull,
+)
 from brepax.experimental._polyhedral_translation import (
     ExactPiece,
     Vector,
@@ -129,21 +138,38 @@ def _pack(pieces: tuple[ExactPiece, ...]) -> PolyhedralTranslationProfile:
     )
 
 
+_ExactCell = Sequence[Sequence[ExactScalar | float]]
+
+
+def _cell_hull(cell: ArrayLike | _ExactCell) -> VertexHull:
+    if has_exact_marker(cell):
+        return exact_vertex_hull(cast(_ExactCell, cell))
+    return vertex_hull(np.asarray(cell, dtype=np.float64))
+
+
 def prepare_polyhedral_translation(
-    fixed_cells: Sequence[ArrayLike],
-    moving_cells: Sequence[ArrayLike],
-    velocity: ArrayLike | Sequence[float | int],
+    fixed_cells: Sequence[ArrayLike | _ExactCell],
+    moving_cells: Sequence[ArrayLike | _ExactCell],
+    velocity: ArrayLike | Sequence[float | int | ExactScalar],
     *,
-    max_step: float,
+    max_step: float | ExactScalar,
 ) -> PreparedPolyhedralTranslation:
     """Prepare exact finite overlap along ``moving + step * velocity``.
 
-    Each nonempty body is a list of bounded convex cells, each supplied as
-    finite float64 vertices of shape ``(N, 3)``. Every hull must have positive
-    volume; same-body interiors and initial cross-body interiors must be
-    disjoint. Face, edge, point contact and positive gaps are retained.
-    ``max_step`` is finite and positive. Step is dimensionless; vertices and
-    velocity share a length unit, and output has its cube as the volume unit.
+    Each nonempty body is a list of bounded convex cells. A cell is a float64
+    array of shape ``(N, 3)`` or a nested sequence of exact coordinates. Every
+    hull must have positive volume; same-body interiors and initial cross-body
+    interiors must be disjoint. Face, edge, point contact and positive gaps are
+    retained. ``max_step`` is finite and positive. Step is dimensionless;
+    vertices and velocity share a length unit, and output has its cube as the
+    volume unit.
+
+    Vertices, velocity components and ``max_step`` accept ``Fraction``,
+    ``int`` or a decimal/rational ``str`` such as ``"1.2"``, parsed without
+    binary64 rounding; a plain ``float`` keeps its binary64 value. Binary64
+    rounding of decimal dimensions can split events that coincide by design
+    into distinct exact times too close to pack, which then reject. Exact input
+    removes that cause only; genuinely distinct unresolvable events still raise.
 
     Preparation enumerates exact hull facets and triple-plane intersections;
     it is intended for small cells, not large meshes. No volume measurements
@@ -171,19 +197,53 @@ def prepare_polyhedral_translation(
         )
         # Edge contact has zero initial slope but positive finite overlap.
         volume = polyhedral_translation_volume(prepared.profile, 0.25)  # 0.0625
+
+    Exact-decimal example, resolving a design coincidence that binary64
+    vertices would place at two barely separated events::
+
+        from fractions import Fraction
+        from itertools import product
+
+        def box(lo, hi):
+            return [tuple(c) for c in product(*zip(lo, hi))]
+
+        fixed = [
+            box((0, 0, 0), (1, 1, "0.2")),
+            box((0, 0, "0.2"), (1, 1, "1.0")),
+        ]
+        cutter = box(("0.3", "0.3", "1.2"), ("0.7", "0.7", "2.0"))
+        prepared = prepare_polyhedral_translation(
+            fixed, [cutter], (0, 0, Fraction(-1)), max_step="1.5"
+        )
     """
     if jnp.asarray(0.0).dtype != np.dtype("float64"):
         raise ValueError("Polyhedral translation requires JAX x64")
-    step = float(max_step)
-    vector = np.asarray(velocity, dtype=np.float64)
-    if not np.isfinite(step) or step <= 0:
-        raise ValueError("Expected finite positive max_step")
-    if vector.shape != (3,) or not np.isfinite(vector).all():
-        raise ValueError("Expected finite velocity with shape (3,)")
+    if not isinstance(max_step, bool) and isinstance(max_step, (Fraction, int, str)):
+        step_fraction = exact_scalar(max_step, "max_step")
+        if step_fraction <= 0:
+            raise ValueError("Expected finite positive max_step")
+    else:
+        step = float(max_step)
+        if not np.isfinite(step) or step <= 0:
+            raise ValueError("Expected finite positive max_step")
+        step_fraction = Fraction(step)
+    if has_exact_marker(velocity):
+        components = tuple(cast("Sequence[ExactScalar | float]", velocity))
+        if len(components) != 3:
+            raise ValueError("Expected finite velocity with shape (3,)")
+        exact_velocity = cast(
+            Vector,
+            tuple(exact_scalar(v, "velocity component") for v in components),
+        )
+    else:
+        vector = np.asarray(velocity, dtype=np.float64)
+        if vector.shape != (3,) or not np.isfinite(vector).all():
+            raise ValueError("Expected finite velocity with shape (3,)")
+        exact_velocity = cast(Vector, tuple(Fraction(float(v)) for v in vector))
     if not fixed_cells or not moving_cells:
         raise ValueError("Both bodies require at least one convex cell")
-    fixed = tuple(vertex_hull(np.asarray(v, dtype=np.float64)) for v in fixed_cells)
-    moving = tuple(vertex_hull(np.asarray(v, dtype=np.float64)) for v in moving_cells)
+    fixed = tuple(_cell_hull(v) for v in fixed_cells)
+    moving = tuple(_cell_hull(v) for v in moving_cells)
     for name, body in (("fixed", fixed), ("moving", moving)):
         for i, j in combinations(range(len(body)), 2):
             if hull_relation(body[i], body[j]).relation == "overlap":
@@ -193,8 +253,7 @@ def prepare_polyhedral_translation(
     for i, j in product(range(len(fixed)), range(len(moving))):
         if hull_relation(fixed[i], moving[j]).relation == "overlap":
             raise ValueError(f"Initial fixed/moving cells {i} and {j} overlap")
-    exact_velocity = cast(Vector, tuple(Fraction(float(v)) for v in vector))
-    pieces = collection_pieces(fixed, moving, exact_velocity, Fraction(step))
+    pieces = collection_pieces(fixed, moving, exact_velocity, step_fraction)
     return _prepared_from_pieces(pieces, len(fixed) * len(moving))
 
 
