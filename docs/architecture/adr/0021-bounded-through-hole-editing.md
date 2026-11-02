@@ -30,7 +30,15 @@ and a traced local orientation check reject unsupported edits. Mesh derivatives
 remain derivatives of this frozen discretization. Independent OCCT rebuilding
 fills the selected original cylinders and cuts their replacements, with checks
 against isolated-hole volume, area and first-moment changes. The moment check
-detects misplaced holes that volume and area cannot distinguish.
+detects misplaced holes that volume and area cannot distinguish. Whole-solid
+OCCT properties can shift by about 1e-7 relative when a Boolean rebuilds a
+face bounded by B-spline edges, without changing that geometry. If those
+checks fail, the removed and added difference regions decide instead: their
+net volume and first moment must match the edit, and each region must lie
+beside an old or new bore. Because recognition accepts end planes within the
+CAD tolerance of the cylinder extent, this comparison allows one
+tolerance-thick slice of the changed cross-section at each end; it resolves
+misplaced bores at a few tolerances, not below.
 Unify connected same-domain faces and edges after the Boolean operations so
 fill seams do not divide the moved hole's end planes and prevent re-editing.
 This preserves unselected geometry, not the original partition into faces.

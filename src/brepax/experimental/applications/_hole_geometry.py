@@ -210,12 +210,8 @@ def _recognize(
     return ThroughHole(index, radius, tuple(base), tuple(axis), height, clearance)
 
 
-def recognize_holes(
-    shape: TopoDS_Shape,
-) -> tuple[tuple[ThroughHole, ...], tuple[RejectedHole, ...], float]:
-    face_map = TopTools_IndexedMapOfShape()
-    TopExp.MapShapes_s(shape, TopAbs_FACE, face_map)
-    faces = [TopoDS.Face_s(face_map.FindKey(i + 1)) for i in range(face_map.Extent())]
+def shape_tolerance(shape: TopoDS_Shape) -> float:
+    """Largest face, edge or vertex tolerance, floored at 1e-6 working units."""
     tolerance = 1e-6
     for kind, cast in (
         (TopAbs_FACE, TopoDS.Face_s),
@@ -228,6 +224,16 @@ def recognize_holes(
             tolerance = max(
                 tolerance, float(BRep_Tool.Tolerance_s(cast(items.FindKey(i))))
             )
+    return tolerance
+
+
+def recognize_holes(
+    shape: TopoDS_Shape,
+) -> tuple[tuple[ThroughHole, ...], tuple[RejectedHole, ...], float]:
+    face_map = TopTools_IndexedMapOfShape()
+    TopExp.MapShapes_s(shape, TopAbs_FACE, face_map)
+    faces = [TopoDS.Face_s(face_map.FindKey(i + 1)) for i in range(face_map.Extent())]
+    tolerance = shape_tolerance(shape)
     graph = build_adjacency_graph(shape)
     holes, rejected = [], []
     for index, face in enumerate(faces):
@@ -283,33 +289,148 @@ def rebuild_holes(
             builder.SimplifyResult()
             changed = builder.Shape()
     require_solid(changed)
+    if _global_edit_error(shape, changed, holes, radii, shifts) is not None:
+        # Whole-solid properties are the cheaper check; they can fail through
+        # measurement drift alone, so the local regions decide in that case.
+        error = _local_edit_error(shape, changed, holes, radii, shifts)
+        if error is not None:
+            raise RuntimeError(error)
+    return changed
+
+
+def _edit_terms(
+    holes: tuple[ThroughHole, ...],
+    radii: NDArray[np.float64],
+    shifts: NDArray[np.float64],
+) -> tuple[float, NDArray[np.float64]]:
+    """Removed volume and its first moment for an isolated-hole edit."""
     old = np.array([hole.radius for hole in holes])
     height = np.array([hole.height for hole in holes])
-    squared = radii**2 - old**2
+    centers = (
+        np.array([hole.base for hole in holes])
+        + height[:, None] * np.array([hole.axis for hole in holes]) / 2
+    )
+    removed = float(np.pi * np.sum((radii**2 - old**2) * height))
+    moment = np.pi * np.sum(
+        height[:, None]
+        * (radii[:, None] ** 2 * (centers + shifts) - old[:, None] ** 2 * centers),
+        axis=0,
+    )
+    return removed, moment
+
+
+def _global_edit_error(
+    shape: TopoDS_Shape,
+    changed: TopoDS_Shape,
+    holes: tuple[ThroughHole, ...],
+    radii: NDArray[np.float64],
+    shifts: NDArray[np.float64],
+) -> str | None:
+    """Compare whole-solid mass properties with the isolated-hole edit law."""
+    old = np.array([hole.radius for hole in holes])
+    height = np.array([hole.height for hole in holes])
+    removed, removed_moment = _edit_terms(holes, radii, shifts)
     expected = cad_measures(shape) + np.array(
         [
-            -np.pi * np.sum(squared * height),
-            np.sum(-2 * np.pi * squared + 2 * np.pi * height * (radii - old)),
+            -removed,
+            np.sum(
+                -2 * np.pi * (radii**2 - old**2) + 2 * np.pi * height * (radii - old)
+            ),
         ]
     )
     if not np.allclose(cad_measures(changed), expected, rtol=1e-7, atol=1e-9):
-        raise RuntimeError("Rebuilt CAD does not match the isolated-hole edit")
+        return "Rebuilt CAD does not match the isolated-hole edit"
     # V/A cannot detect misplaced cylinders. Check first moments independently
     # in the normalized frame, including simultaneous radius/position changes.
     source, result = GProp_GProps(), GProp_GProps()
     BRepGProp.VolumeProperties_s(shape, source)
     BRepGProp.VolumeProperties_s(changed, result)
-    centers = (
-        np.array([hole.base for hole in holes])
-        + height[:, None] * np.array([hole.axis for hole in holes]) / 2
-    )
-    moment = source.Mass() * _point(source.CentreOfMass()) + np.pi * np.sum(
-        height[:, None]
-        * (old[:, None] ** 2 * centers - radii[:, None] ** 2 * (centers + shifts)),
-        axis=0,
-    )
+    moment = source.Mass() * _point(source.CentreOfMass()) - removed_moment
     if not np.allclose(
         _point(result.CentreOfMass()), moment / expected[0], rtol=1e-7, atol=1e-8
     ):
-        raise RuntimeError("Rebuilt CAD center does not match the isolated-hole edit")
-    return changed
+        return "Rebuilt CAD center does not match the isolated-hole edit"
+    return None
+
+
+def _local_edit_error(
+    shape: TopoDS_Shape,
+    changed: TopoDS_Shape,
+    holes: tuple[ThroughHole, ...],
+    radii: NDArray[np.float64],
+    shifts: NDArray[np.float64],
+) -> str | None:
+    """Check the edit through the material it actually removed and added.
+
+    Whole-solid properties can drift by about 1e-7 relative when a Boolean
+    rebuilds a face bounded by B-spline edges far from the hole, although the
+    geometry is unchanged there. Both difference regions are bounded only by
+    the hole cylinders and their end planes, so their properties are measured
+    without that drift. Recognition accepts end planes within the CAD
+    tolerance of the cylinder extent, so each end may add or remove a slice
+    of that thickness over the changed cross-section; the comparison allows
+    exactly that and roundoff. Each region must also stay beside a bore.
+    """
+    regions = []
+    for minuend, subtrahend in ((shape, changed), (changed, shape)):
+        builder = BRepAlgoAPI_Cut(
+            BRepBuilderAPI_Copy(minuend, True, False).Shape(),
+            BRepBuilderAPI_Copy(subtrahend, True, False).Shape(),
+        )
+        if not builder.IsDone():
+            return "OCCT could not isolate the rebuilt hole regions"
+        regions.append(builder.Shape())
+    props = []
+    for region in regions:
+        measured = GProp_GProps()
+        BRepGProp.VolumeProperties_s(region, measured)
+        props.append(
+            (measured.Mass(), measured.Mass() * _point(measured.CentreOfMass()))
+        )
+    expected, expected_moment = _edit_terms(holes, radii, shifts)
+    volume = props[0][0] - props[1][0]
+    moment = props[0][1] - props[1][1]
+    tolerance = shape_tolerance(shape)
+    volume_bound = moment_bound = 0.0
+    for hole, radius, offset in zip(holes, radii, shifts, strict=True):
+        larger = max(radius, hole.radius)
+        # Bound on the area between the old and new bore cross-sections.
+        changed_area = np.pi * abs(radius**2 - hole.radius**2) + 4 * larger * float(
+            np.linalg.norm(offset)
+        )
+        center = np.asarray(hole.base) + hole.height * np.asarray(hole.axis) / 2
+        reach = float(np.linalg.norm(center)) + hole.height / 2 + larger
+        slices = 2 * tolerance * changed_area
+        roundoff = 1e-12 * np.pi * larger**2 * hole.height
+        volume_bound += slices + roundoff
+        moment_bound += (slices + roundoff) * reach
+    if abs(volume - expected) > volume_bound or np.any(
+        np.abs(moment - expected_moment) > moment_bound
+    ):
+        return "Rebuilt hole regions do not match the isolated-hole edit"
+    bores = []
+    for hole, radius, offset in zip(holes, radii, shifts, strict=True):
+        for size, center in ((hole.radius, np.zeros(3)), (radius, offset)):
+            box = Bnd_Box()
+            tool = BRepPrimAPI_MakeCylinder(
+                gp_Ax2(gp_Pnt(*(np.asarray(hole.base) + center)), gp_Dir(*hole.axis)),
+                float(size),
+                hole.height,
+            ).Shape()
+            BRepBndLib.Add_s(tool, box)
+            box.Enlarge(10 * tolerance)
+            bores.append(box)
+    for region in regions:
+        explorer = TopExp_Explorer(region, TopAbs_SOLID)
+        while explorer.More():
+            box = Bnd_Box()
+            BRepBndLib.Add_s(explorer.Current(), box)
+            corners = np.asarray(box.Get()).reshape(2, 3)
+            if not any(
+                np.all(corners[0] >= np.asarray(b.Get())[:3])
+                and np.all(corners[1] <= np.asarray(b.Get())[3:])
+                for b in bores
+            ):
+                return "Rebuilt CAD changed material away from the edited holes"
+            explorer.Next()
+    return None
