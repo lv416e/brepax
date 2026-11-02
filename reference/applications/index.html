@@ -4604,11 +4604,25 @@ STEP roundtrips, and independent CAD finite-difference references.</p>
 <ul>
 <li>Input must contain one valid outward-oriented solid. Editable holes need a
   complete empty cylindrical bore, two perpendicular outward-facing planar
-  ends, and clearance from other boundaries. Blind, split, oblique, intersecting and near-boundary holes
-  are rejected. Unsupported inward cylinders appear in <code>edit.rejected</code>; an
-  explicit selection of an unsupported face raises <code>ValueError</code>. A counterbore
-  shoulder is not a valid end for its larger cylinder; the smaller bore through
-  the remaining slab can still qualify independently.</li>
+  ends, and clearance from other boundaries. Blind, oblique, intersecting and
+  near-boundary holes are rejected. A cylindrical wall split into several
+  faces, such as a STEP exporter's two half-cylinder faces or a coplanar seam
+  splitting it axially, is rejected by default too; pass
+  <code>merge_same_domain=True</code> to unify same-domain faces/edges before
+  recognition and recover such holes. Unsupported inward cylinders appear in
+  <code>edit.rejected</code>; an explicit selection of an unsupported face raises
+  <code>ValueError</code>. A counterbore shoulder is not a valid end for its larger
+  cylinder; the smaller bore through the remaining slab can still qualify
+  independently.</li>
+<li><code>merge_same_domain=True</code> renumbers face IDs to the unified working solid:
+  <code>edit.holes</code>, <code>edit.rejected</code>, and any <code>face_ids</code> passed in refer to that
+  unified shape, not the original input. Discover IDs by preparing once
+  without <code>face_ids</code>, then select by preparing again with the same
+  <code>merge_same_domain</code> value and those IDs. <code>rebuild</code> starts from the unified
+  working solid, but its Boolean operations can change the face partition:
+  discover face IDs again from the rebuilt solid before selecting faces on it.
+  The default, <code>False</code>, keeps the original input's face IDs and partition
+  unchanged.</li>
 <li>Radii, center shifts, hole metadata, returned points and metrics use the input CAD's units.
   A fixed <code>CadFrame</code> normalizes host preparation and numerical evaluation. By
   default, the input bounding box is centered and its largest extent becomes
@@ -5072,7 +5086,7 @@ after Boolean rebuilding or STEP serialization.</p>
 
 
 <h3 id="brepax.experimental.applications.hole_edit.prepare_hole_edit" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">prepare_hole_edit</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">face_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">deflection</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">prepare_hole_edit</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">face_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">deflection</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">merge_same_domain</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 <a href="#brepax.experimental.applications.hole_edit.prepare_hole_edit" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -5082,14 +5096,32 @@ after Boolean rebuilding or STEP serialization.</p>
         <p>Prepare bounded edits of full cylindrical through-holes in one solid.</p>
 <p>Accepts a B-Rep returned by <code>read_step</code>; does not assume a stock primitive
 or a construction history. Each selected inward cylinder must be complete,
-with two perpendicular planar ends and sufficient clearance. Blind, split,
-oblique, intersecting and near-boundary holes are unsupported. Rejected
-inward cylinders are reported; an explicit selection of one raises.</p>
+with two perpendicular planar ends and sufficient clearance. Blind,
+oblique, intersecting and near-boundary holes are unsupported. A
+cylindrical wall split into several faces, e.g. a STEP exporter's two
+half-cylinder faces or a coplanar seam splitting it axially, is also
+unsupported by default; see <code>merge_same_domain</code>. Rejected inward
+cylinders are reported; an explicit selection of one raises.</p>
 <p><code>frame</code> maps input units to working coordinates; by default the bounding
 box is centered and its largest extent becomes 40 working units. It is
 frozen during editing. <code>deflection</code> is an absolute WORKING-unit meshing
 tolerance, finite and positive. Preparation requires JAX x64; it never
 changes the global JAX precision setting. Input CAD is copied.</p>
+<p><code>merge_same_domain</code> unifies coincident same-domain faces and edges of
+the working solid with OCCT <code>ShapeUpgrade_UnifySameDomain</code> before
+recognition, so a cylindrical wall split as described above can still be
+recognized as one complete hole. It also merges any other same-domain
+faces/edges in the solid, so the input's face partition is not preserved:
+when True, every returned <code>face_id</code> (selected, rejected, or passed in
+<code>face_ids</code>) refers to the <em>unified</em> working solid, not the original
+input. To select specific holes, call <code>prepare_hole_edit</code> once with
+<code>merge_same_domain=True</code> and no <code>face_ids</code> to read their <code>face_id</code>
+from the result, then again with those IDs and the same
+<code>merge_same_domain=True</code>; the unification is deterministic for a given
+input shape, so the IDs line up. <code>rebuild</code> starts from that unified
+working solid; its result can have a different face partition, so take
+face IDs from the rebuilt solid itself. Default is False: face IDs and
+geometry are unaffected.</p>
 <p>Radius bounds are [0.5<em>r0, r0 + 0.2</em>clearance]. Optional transverse center
 shifts share the growth budget: norm(shift) + max(radius-r0, 0) must not
 exceed 0.2*clearance. Moving cylinder samples and
@@ -5100,7 +5132,9 @@ usable interval further; callers must check <code>model.is_valid</code>.</p>
 <p>Raises ValueError for invalid CAD, unsupported selections, no supported
 holes, or a mesh that cannot be welded into a closed oriented surface.
 Unsupported surface evaluators raise NotImplementedError. OCCT extraction
-failures propagate. Meshing accuracy is not certified by preparation.</p>
+failures propagate. When <code>merge_same_domain</code> is True, a failed or
+geometry-changing unification also raises ValueError or RuntimeError.
+Meshing accuracy is not certified by preparation.</p>
 
 
 <details class="example" open>
