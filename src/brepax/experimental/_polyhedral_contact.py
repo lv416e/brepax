@@ -58,11 +58,14 @@ def exact_scalar(value: ExactScalar | float, name: str) -> Fraction:
 
 
 def has_exact_marker(value: object) -> bool:
-    """True when ``value`` nests a ``Fraction`` or ``str``, requesting exact intake.
+    """True when ``value`` nests a ``Fraction``, Python ``int`` or ``str``.
 
-    A NumPy array never matches: it always uses the existing binary64 path.
+    Python integers are exact, and binary64 cannot hold every integer above
+    2**53. A ``bool`` or a NumPy array never matches; arrays use binary64.
     """
-    if isinstance(value, (Fraction, str)):
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (Fraction, int, str)):
         return True
     if isinstance(value, (list, tuple)):
         return any(has_exact_marker(item) for item in value)

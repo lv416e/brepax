@@ -354,3 +354,16 @@ def test_exact_rational_scale_invariance_is_bit_exact_in_the_host_model() -> Non
         original_volume = _exact_volume_at(original, step)
         scaled_volume = _exact_volume_at(scaled, step)
         assert scaled_volume == factor**3 * original_volume
+
+
+def test_integer_coordinates_above_binary64_precision_stay_exact() -> None:
+    # 2**53 + 1 has no binary64 value; float conversion would flatten the cell.
+    base = 2**53
+    fixed = _exact_box((base, 0, 0), (base + 1, 1, 1))
+    moving = _exact_box((base, 0, 2), (base + 1, 1, 3))
+    max_step = 2**53 + 1
+    prepared = prepare_polyhedral_translation(
+        [fixed], [moving], (0, 0, -1), max_step=max_step
+    )
+    assert prepared.exact_knots[-1] == max_step
+    assert _exact_volume_at(prepared, Fraction(3, 2)) == Fraction(1, 2)

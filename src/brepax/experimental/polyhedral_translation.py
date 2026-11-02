@@ -218,7 +218,7 @@ def prepare_polyhedral_translation(
     """
     if jnp.asarray(0.0).dtype != np.dtype("float64"):
         raise ValueError("Polyhedral translation requires JAX x64")
-    if isinstance(max_step, (Fraction, str)):
+    if not isinstance(max_step, bool) and isinstance(max_step, (Fraction, int, str)):
         step_fraction = exact_scalar(max_step, "max_step")
         if step_fraction <= 0:
             raise ValueError("Expected finite positive max_step")
