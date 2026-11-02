@@ -1,14 +1,16 @@
 """Exact separation predicates for small represented vertex hulls.
 
-These predicates concern the convex hull of supplied binary64 coordinates,
-not the original CAD surfaces or their tolerances. Integer arithmetic avoids
+These predicates concern the convex hull of supplied coordinates -- binary64
+(:func:`vertex_hull`) or exact rational/decimal-string (:func:`exact_vertex_hull`)
+-- not the original CAD surfaces or their tolerances. Integer arithmetic avoids
 discarding a nearly parallel separating axis or rounding a gap to contact.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from itertools import combinations, product
-from math import gcd
+from math import gcd, lcm
 from typing import Literal
 
 import numpy as np
@@ -19,6 +21,52 @@ _Point2 = tuple[Fraction, Fraction]
 _Relation = Literal[
     "separated", "face_contact", "edge_contact", "point_contact", "overlap"
 ]
+
+ExactScalar = Fraction | int | str
+"""One exactly represented real coordinate.
+
+``Fraction`` and ``int`` carry their value exactly. A ``str`` is parsed as an
+exact decimal or rational literal through :class:`fractions.Fraction`, for
+example ``"1.2"`` or ``"6/5"``; it is never rounded through binary64. A plain
+``float`` mixed into otherwise-exact input keeps its usual binary64 rounding,
+matching :func:`vertex_hull`.
+"""
+
+
+def exact_scalar(value: ExactScalar | float, name: str) -> Fraction:
+    """Parse one coordinate exactly, except for an explicit ``float`` value."""
+    if isinstance(value, bool):
+        raise ValueError(f"Expected a numeric {name}, not bool")
+    if isinstance(value, Fraction):
+        return value
+    if isinstance(value, int):
+        return Fraction(value)
+    if isinstance(value, str):
+        try:
+            return Fraction(value)
+        except (ValueError, ZeroDivisionError) as error:
+            raise ValueError(
+                f"Expected an exact decimal or rational {name}, got {value!r}"
+            ) from error
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = float("nan")
+    if not np.isfinite(number):
+        raise ValueError(f"Expected a finite real {name}")
+    return Fraction(number)
+
+
+def has_exact_marker(value: object) -> bool:
+    """True when ``value`` nests a ``Fraction`` or ``str``, requesting exact intake.
+
+    A NumPy array never matches: it always uses the existing binary64 path.
+    """
+    if isinstance(value, (Fraction, str)):
+        return True
+    if isinstance(value, (list, tuple)):
+        return any(has_exact_marker(item) for item in value)
+    return False
 
 
 def _subtract(first: _Vector, second: _Vector) -> _Vector:
@@ -171,22 +219,16 @@ def _touch_dimension(first: list[_Vector], second: list[_Vector], axis: _Vector)
     return min(len(intersection) - 1, 2)
 
 
-def vertex_hull(points: NDArray[np.float64]) -> VertexHull:
-    """Construct the needed hull axes by exact supporting-plane enumeration.
+def _hull_from_ratios(ratios: list[list[tuple[int, int]]]) -> VertexHull:
+    """Build a hull from per-coordinate exact ``(numerator, denominator)`` pairs.
 
-    The bounded CAD intake supplies small convex cells. Enumerating vertex
-    triples is deliberately simple and costs O(n**4); this is not a general
-    large-mesh hull implementation. Redundant collinear vertices are harmless.
+    ``lcm`` (not the largest denominator) gives the correct common scale for
+    arbitrary rational denominators; it specializes to the largest power-of-two
+    denominator used by :func:`vertex_hull`, so that caller is unaffected.
     """
-    if points.ndim != 2 or points.shape[1] != 3 or not np.isfinite(points).all():
-        raise ValueError("Expected finite vertex coordinates with shape (N, 3)")
-    ratios = [
-        [float(value).as_integer_ratio() for value in point]
-        for point in np.unique(points, axis=0)
-    ]
     if len(ratios) < 4:
         raise ValueError("A represented solid needs at least four vertices")
-    denominator = max(den for point in ratios for _, den in point)
+    denominator = lcm(*(den for point in ratios for _, den in point))
     vertices = tuple(
         (
             point[0][0] * (denominator // point[0][1]),
@@ -235,9 +277,53 @@ def vertex_hull(points: NDArray[np.float64]) -> VertexHull:
     )
 
 
+def vertex_hull(points: NDArray[np.float64]) -> VertexHull:
+    """Construct the needed hull axes by exact supporting-plane enumeration.
+
+    The bounded CAD intake supplies small convex cells. Enumerating vertex
+    triples is deliberately simple and costs O(n**4); this is not a general
+    large-mesh hull implementation. Redundant collinear vertices are harmless.
+    """
+    if points.ndim != 2 or points.shape[1] != 3 or not np.isfinite(points).all():
+        raise ValueError("Expected finite vertex coordinates with shape (N, 3)")
+    ratios = [
+        [float(value).as_integer_ratio() for value in point]
+        for point in np.unique(points, axis=0)
+    ]
+    return _hull_from_ratios(ratios)
+
+
+def exact_vertex_hull(points: Sequence[Sequence[ExactScalar | float]]) -> VertexHull:
+    """Construct a hull from exactly represented (or decimal-string) vertices.
+
+    Each coordinate is a :class:`fractions.Fraction`, an ``int``, or a decimal
+    or rational ``str`` such as ``"1.2"`` or ``"6/5"``, parsed without binary64
+    rounding. A plain ``float`` coordinate mixed into otherwise-exact input
+    keeps its usual binary64 rounding, matching :func:`vertex_hull`. This does
+    not accept a NumPy array; convert float64 geometry with :func:`vertex_hull`.
+    """
+    rows = []
+    for point in points:
+        coordinates = tuple(point)
+        if len(coordinates) != 3:
+            raise ValueError("Expected finite vertex coordinates with shape (N, 3)")
+        rows.append(
+            tuple(exact_scalar(value, "vertex coordinate") for value in coordinates)
+        )
+    ratios = [
+        [value.as_integer_ratio() for value in point] for point in sorted(set(rows))
+    ]
+    return _hull_from_ratios(ratios)
+
+
 def hull_relation(first: VertexHull, second: VertexHull) -> HullRelation:
-    """Classify two represented hulls using the complete exact SAT axis set."""
-    denominator = max(first.denominator, second.denominator)
+    """Classify two represented hulls using the complete exact SAT axis set.
+
+    Denominators are reconciled by ``lcm``: exact rational intake can carry
+    non-power-of-two denominators, where the larger denominator is not a
+    common multiple. For binary64 inputs the two choices coincide.
+    """
+    denominator = lcm(first.denominator, second.denominator)
     first_factor, second_factor = (
         denominator // first.denominator,
         denominator // second.denominator,

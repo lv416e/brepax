@@ -425,6 +425,13 @@ and the bodies must have no initial interior overlap. Preparation computes
 rational event times and cubic coefficients from the represented geometry;
 the JAX evaluator uses floating coefficients. It does not fit CAD samples.
 
+Vertices, velocity components and `max_step` also accept `fractions.Fraction`,
+`int`, or a decimal or rational `str` such as `"1.2"`, parsed without binary64
+rounding. Rounded decimal dimensions can split events that coincide by design
+into exact times too close to pack, which raises "no resolvable float64
+chamber"; exact input removes that cause without relaxing the rejection of
+genuinely distinct events.
+
 ```python
 from itertools import product
 
