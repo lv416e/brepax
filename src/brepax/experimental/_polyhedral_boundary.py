@@ -105,10 +105,12 @@ def _interval(
     return lower, upper
 
 
-def _closure_profile(side: _Side) -> tuple[ExactPiece, ...]:
+def _closure_profile(
+    side: _Side, parameter: Fraction = _ZERO
+) -> tuple[ExactPiece, ...]:
     # Call only after certifying guard provenance at the tied reference.
     unguarded = replace(side.geometry, guards=())
-    pieces = unguarded.specialize((-side.center,))
+    pieces = unguarded.specialize((parameter - side.center,))
     result: list[ExactPiece] = []
     for piece in pieces:
         if piece.lower > piece.upper:

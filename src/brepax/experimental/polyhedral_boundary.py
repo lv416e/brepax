@@ -9,6 +9,7 @@ from typing import cast
 import jax.numpy as jnp
 import numpy as np
 from jaxtyping import ArrayLike
+from numpy.typing import NDArray
 
 from brepax.experimental._polyhedral_boundary import (
     ExactEventBoundary,
@@ -27,6 +28,7 @@ from brepax.experimental.polyhedral_translation import (
 )
 
 _Scalar = float | int | Fraction
+_CellArrays = tuple[NDArray[np.float64], NDArray[np.float64]]
 
 
 def _rational(value: _Scalar, name: str) -> Fraction:
@@ -43,6 +45,39 @@ def _rational(value: _Scalar, name: str) -> Fraction:
     except (TypeError, ValueError, OverflowError):
         pass
     raise ValueError(f"Expected a finite real {name}")
+
+
+def _validated_velocity(velocity: ArrayLike | Sequence[float | int]) -> Vector:
+    if np.iscomplexobj(velocity):
+        raise ValueError("Expected finite real velocity with shape (3,)")
+    vector = np.asarray(velocity, dtype=np.float64)
+    if vector.shape != (3,) or not np.isfinite(vector).all():
+        raise ValueError("Expected finite real velocity with shape (3,)")
+    return cast(Vector, tuple(Fraction(float(v)) for v in vector))
+
+
+def _validated_body(body: Sequence[AffinePolyhedralCell]) -> tuple[_CellArrays, ...]:
+    if not body:
+        raise ValueError("Both bodies require at least one convex cell")
+    result = []
+    for cell in body:
+        if np.iscomplexobj(cell.vertices) or np.iscomplexobj(
+            cell.parameter_displacements
+        ):
+            raise ValueError("Expected real affine cell coordinates")
+        vertices = np.asarray(cell.vertices, dtype=np.float64)
+        displacements = np.asarray(cell.parameter_displacements, dtype=np.float64)
+        if (
+            vertices.ndim != 2
+            or vertices.shape[1] != 3
+            or vertices.shape[0] < 4
+            or displacements.shape != (1, *vertices.shape)
+            or not np.isfinite(vertices).all()
+            or not np.isfinite(displacements).all()
+        ):
+            raise ValueError("Expected finite vertices (N,3) and displacements (1,N,3)")
+        result.append((vertices, displacements))
+    return tuple(result)
 
 
 @dataclass(frozen=True)
@@ -141,13 +176,7 @@ def prepare_polyhedral_event_boundary(
         assert response.left_parameter_derivative == 1
         assert response.right_parameter_derivative == 0
     """
-    if not fixed_cells or not moving_cells:
-        raise ValueError("Both bodies require at least one convex cell")
-    if np.iscomplexobj(velocity):
-        raise ValueError("Expected finite real velocity with shape (3,)")
-    vector = np.asarray(velocity, dtype=np.float64)
-    if vector.shape != (3,) or not np.isfinite(vector).all():
-        raise ValueError("Expected finite real velocity with shape (3,)")
+    vector = _validated_velocity(velocity)
     maximum, radius = (
         _rational(max_step, "max_step"),
         _rational(parameter_radius, "parameter_radius"),
@@ -158,30 +187,13 @@ def prepare_polyhedral_event_boundary(
     records: set[ParameterGuard] = set()
     bodies = []
     for body in (fixed_cells, moving_cells):
-        cells = []
-        for cell in body:
-            if np.iscomplexobj(cell.vertices) or np.iscomplexobj(
-                cell.parameter_displacements
-            ):
-                raise ValueError("Expected real affine cell coordinates")
-            vertices = np.asarray(cell.vertices, dtype=np.float64)
-            displacements = np.asarray(cell.parameter_displacements, dtype=np.float64)
-            if (
-                vertices.ndim != 2
-                or vertices.shape[1] != 3
-                or displacements.shape != (1, *vertices.shape)
-                or not np.isfinite(vertices).all()
-                or not np.isfinite(displacements).all()
-            ):
-                raise ValueError(
-                    "Expected finite vertices (N,3) and displacements (1,N,3)"
-                )
-            cells.append(_cell(vertices, displacements, guards, records))
-        bodies.append(tuple(cells))
+        bodies.append(
+            tuple(_cell(v, d, guards, records) for v, d in _validated_body(body))
+        )
     geometry = prepare_boundary(
         bodies[0],
         bodies[1],
-        cast(Vector, tuple(Fraction(float(v)) for v in vector)),
+        vector,
         maximum,
         records,
         radius,

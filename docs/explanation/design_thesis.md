@@ -17,6 +17,7 @@ confusing a numerical surrogate with the intended CAD objective.
 | Experimental polyhedral translation | Event-delimited, piecewise-cubic overlap volume, target positions and volume-range enclosures along one prescribed translation | Explicit represented convex cells; host preparation fixes geometry and direction; no rotation or arbitrary STEP certification |
 | Experimental design sensitivity | Volume and event-position sensitivities for affine vertex families, plus local target-position sensitivity | Fixed facet normals and translation velocity; one or two design controls in a conservative parameter region; first derivatives only inside numerically resolved open event intervals |
 | Experimental event boundary | Exact host values and one-sided responses across one supplied event-order exchange | One design parameter, fixed normals and velocity, one isolated pair of events; no JAX boundary gradient or automatic boundary discovery |
+| Experimental design search and continuation | Discover isolated event-order exchanges from a regular design and search a bounded dimension/position domain with a checked edit and objective gap | Explicit one-parameter fixed-normal families; unsupported frontiers and exhausted budgets remain unconfirmed; no source-CAD or selection-gradient guarantee |
 
 The [stratification explanation](stratification_theory.md) defines the
 current contract and contact regularity. Exact primitive-volume derivatives
@@ -58,6 +59,13 @@ local inverse-sensitivity contract.
 A separate [host boundary evaluator](stratification_theory.md#a-supplied-event-order-exchange)
 handles one prescribed exchange with adjacent exact polynomials and explicit
 one-sided responses; it does not extend that local inverse formula.
+
+Automatic continuation can discover those isolated exchanges from a regular
+design and connect their certified regions to bounded design search. It retains
+unknown regions in the global optimality assessment. This removes manual
+boundary placement within the restricted family; it does not establish a
+complete stratification. Even a geometrically valid family can outlive a chosen
+sufficient certificate, and certificate coverage need not be frame invariant.
 
 Practical selection must distinguish a wrong ranking of the supplied finite
 actions from a candidate set that cannot reach the target. A few actual CAD
