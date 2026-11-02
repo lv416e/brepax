@@ -427,10 +427,11 @@ the JAX evaluator uses floating coefficients. It does not fit CAD samples.
 
 Vertices, velocity components and `max_step` also accept `fractions.Fraction`,
 `int`, or a decimal or rational `str` such as `"1.2"`, parsed without binary64
-rounding. Rounded decimal dimensions can split events that coincide by design
-into exact times too close to pack, which raises "no resolvable float64
-chamber"; exact input removes that cause without relaxing the rejection of
-genuinely distinct events.
+rounding. Rounded decimal dimensions can split a knot that coincides by design
+into two exact times a few ULP apart. Adjacent pieces with an exactly identical
+total polynomial are coalesced before packing, so such a split disappears when
+the total volume does not change across it; distinct events that cannot be
+packed still raise "no resolvable float64 chamber".
 
 ```python
 from itertools import product
@@ -463,11 +464,14 @@ geometry and direction differentiation are outside the contract.
 The profile's floating thresholds round rational event times upward for
 binary64 query classification. A threshold need not equal the exact event:
 `path.events` retains its rational time and exact left/right slope limits.
-Distinct events without a resolvable floating interval and overflowing or
-underflowing coefficients are rejected. Out-of-range queries, and slope requests from a
-side outside the prepared interval, return NaN. Preparation is intended for
-small convex cells and can be expensive. It does not support rotation or
-certify that a separate CAD model matches the represented hulls.
+`path.events` and `path.exact_knots` omit coalesced knots. A remaining knot
+can still be combinatorial for one cell pair when the total volume also changes
+there. Distinct events without a resolvable
+floating interval and overflowing or underflowing coefficients are rejected.
+Out-of-range queries, and slope requests from a side outside the prepared
+interval, return NaN. Preparation is intended for small convex cells and can
+be expensive. It does not support rotation or certify that a separate CAD
+model matches the represented hulls.
 
 ```bash
 uv run --group benchmark python -m benchmarks.multi_contact.translation \

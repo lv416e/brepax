@@ -311,13 +311,47 @@ def test_exact_decimal_case_passes_and_matches_independent_oracle() -> None:
         )
 
 
-def test_exact_decimal_case_float_input_still_rejects() -> None:
-    # Plain float64 vertices keep their binary64 rounding, so this design still
-    # splits its coincident events and rejects; exact input is opt-in.
+def test_exact_decimal_case_float_input_coalesces_redundant_knot() -> None:
+    # Plain float64 vertices keep their binary64 rounding, so the design
+    # coincidence still splits into two knots ~5.55e-17 apart instead of
+    # merging at exactly 1.0. The sliver between them shares its exact total
+    # polynomial with its left neighbor (both read "cutter bottom minus stack
+    # top", independent of which fixed sub-cell the cutter bottom currently
+    # faces), so coalescing removes that knot before packing and preparation
+    # now succeeds, instead of rejecting an unresolvable float64 chamber.
     fixed = [_box((0, 0, 0), (1, 1, 0.2)), _box((0, 0, 0.2), (1, 1, 1.0))]
     cutter = _box((0.3, 0.3, 1.2), (0.7, 0.7, 2.0))
+    prepared = prepare_polyhedral_translation(
+        fixed, [cutter], (0.0, 0.0, -1.0), max_step=1.5
+    )
+    onset = Fraction(1.2) - Fraction(1.0)
+    exit_ = Fraction(1.2)
+    assert prepared.exact_knots == (
+        Fraction(0),
+        onset,
+        Fraction(1),
+        exit_,
+        Fraction(3, 2),
+    )
+    for step in (0.0, 0.1, 0.5, 1.0, 1.1, 1.3, 1.5):
+        np.testing.assert_allclose(
+            float(polyhedral_translation_volume(prepared.profile, step)),
+            _stacked_decimal_oracle(step),
+            atol=1e-13,
+        )
+
+
+def test_redundant_same_body_split_does_not_hide_a_genuine_thin_event() -> None:
+    # Splitting the fixed box along the translation axis introduces two knots
+    # at the internal face (at the split itself and 2**-55 later, when the
+    # thin moving box has fully crossed it) that share one constant total
+    # polynomial with the region between them; coalescing merges all three
+    # into one piece. The genuinely thin leading/trailing-edge transits
+    # inherited from the undivided box remain distinct knots and still reject.
+    fixed = [_box((0, 0, 0), (0.5, 1, 1)), _box((0.5, 0, 0), (1, 1, 1))]
+    moving = _box((-(2.0**-55), 0, 0), (0, 1, 1))
     with pytest.raises(ValueError, match="resolvable float64 chamber"):
-        prepare_polyhedral_translation(fixed, [cutter], (0.0, 0.0, -1.0), max_step=1.5)
+        prepare_polyhedral_translation(fixed, [moving], (1, 0, 0), max_step=2.0)
 
 
 def _scale_cell(cell: list[tuple], factor: int) -> list[tuple]:
@@ -367,3 +401,28 @@ def test_integer_coordinates_above_binary64_precision_stay_exact() -> None:
     )
     assert prepared.exact_knots[-1] == max_step
     assert _exact_volume_at(prepared, Fraction(3, 2)) == Fraction(1, 2)
+
+
+@pytest.mark.parametrize("n", [2, 3])
+def test_grid_decomposition_matches_single_cell_cube_total_polynomial(n: int) -> None:
+    # Splitting the unit cube into an n**3 grid introduces one redundant knot
+    # per internal face the cutter's vertex paths cross, none of which change
+    # the pair-summed total volume. After coalescing, the resulting exact
+    # pieces must match the whole cube bit for bit, including knot positions:
+    # a non-dyadic cutter keeps grid faces from landing on cutter facet ties.
+    cutter = _box((0.3, 0.3, 1.2), (0.7, 0.8, 2.0))
+    velocity = (0.05, 0.02, -1.0)
+    whole = prepare_polyhedral_translation(
+        [_box((0, 0, 0), (1, 1, 1))], [cutter], velocity, max_step=1.5
+    )
+    edges = np.linspace(0.0, 1.0, n + 1)
+    cells = [
+        _box((edges[i], edges[j], edges[k]), (edges[i + 1], edges[j + 1], edges[k + 1]))
+        for i, j, k in product(range(n), repeat=3)
+    ]
+    grid = prepare_polyhedral_translation(cells, [cutter], velocity, max_step=1.5)
+    assert grid.pair_count == n**3
+    assert grid.exact_knots == whole.exact_knots
+    assert [p.coefficients for p in grid._exact_pieces] == [
+        p.coefficients for p in whole._exact_pieces
+    ]
