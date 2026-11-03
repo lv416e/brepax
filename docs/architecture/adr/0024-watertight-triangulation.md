@@ -116,10 +116,11 @@ twelve `.step` fixtures tracked in this repository produce bit-identical
 `triangulate_shape` output before and after this refactor (checked once,
 manually); the twelfth, `nurbs_revol.step`, raises `NotImplementedError` in
 both versions (an unrelated, pre-existing unsupported-surface limitation).
-Four representative fixtures are locked into a standing regression test
-on a position-weighted checksum with a relative `1e-10` tolerance; a byte
-hash is not portable because curved surfaces go through platform
-`sin`/`cos`, whose last bits differ between libm implementations.
+A standing test checks that `triangulate_shape` reproduces OCCT's own
+mesh triangle for triangle (located node coordinates, face orientation
+applied) on four representative fixtures. A recorded hash is not a
+portable reference, because OCCT's mesh itself differs between platforms:
+`sample_sphere` has 2996 triangles on macOS and 3000 on Linux.
 
 Investigating the prototype's FTC-07/STC-07/STC-10 discrepancy (a prior,
 unmerged spike that picked one of the two incident faces' evaluations as

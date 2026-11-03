@@ -402,40 +402,73 @@ class TestTriangulateShape:
         assert extract_mesh_topology(compound) == []
 
     @pytest.mark.parametrize(
-        ("fixture", "n_triangles", "weighted_sum", "sum_of_squares"),
-        [
-            ("sample_box", 12, 46760.0, 25200.0),
-            ("sample_sphere", 2996, 26431.736867288804, 80892.0),
-            ("l_bracket", 28, 122470.0, 69000.0),
-            ("nurbs_box", 12, 19544.0, 3600.0),
-        ],
+        "fixture", ["sample_box", "sample_sphere", "l_bracket", "nurbs_box"]
     )
-    def test_default_output_is_unchanged(
-        self,
-        fixture: str,
-        n_triangles: int,
-        weighted_sum: float,
-        sum_of_squares: float,
-    ) -> None:
-        """Adding watertight triangulation must not change the default path.
+    def test_default_output_matches_occt_mesh(self, fixture: str) -> None:
+        """The default path reproduces OCCT's own mesh, triangle for triangle.
 
-        The reference values were captured from this function after the
-        refactor that made :func:`triangulate_shape` and
-        :func:`triangulate_shape_watertight` share host-extraction helpers;
-        see ADR-0024 for the one-time byte comparison against the previous
-        implementation. A position-weighted sum detects reordered or moved
-        vertices. The comparison allows a relative ``1e-10`` because curved
-        surfaces go through platform ``sin``/``cos``, whose last bits differ
-        between libm implementations, so a byte hash only holds on the
-        platform that recorded it.
+        :func:`triangulate_shape` re-evaluates OCCT's mesh nodes through
+        BRepAX's surface formulas, so every output triangle must coincide
+        with one OCCT mesh triangle (located node coordinates, face
+        orientation applied) up to evaluation round-off. OCCT's mesh itself
+        differs between platforms (``sample_sphere`` has 2996 triangles on
+        macOS and 3000 on Linux), so a recorded hash or checksum is not a
+        portable reference; OCCT's mesh on the same run is.
         """
+        from brepax._occt.backend import (
+            BRep_Tool,
+            TopAbs_FACE,
+            TopAbs_FORWARD,
+            TopExp_Explorer,
+            TopLoc_Location,
+            TopoDS,
+        )
+
         shape = read_step(FIXTURES / f"{fixture}.step")
-        tris, _ = triangulate_shape(shape)
-        coords = np.asarray(tris, dtype=np.float64).reshape(-1)
-        weights = (np.arange(coords.size) % 97 + 1).astype(np.float64)
-        assert tris.shape == (n_triangles, 3, 3)
-        assert float(coords @ weights) == pytest.approx(weighted_sum, rel=1e-10)
-        assert float(coords @ coords) == pytest.approx(sum_of_squares, rel=1e-10)
+        tris = np.asarray(triangulate_shape(shape)[0], dtype=np.float64)
+
+        reference = []
+        explorer = TopExp_Explorer(shape, TopAbs_FACE)
+        while explorer.More():
+            face = TopoDS.Face_s(explorer.Current())
+            loc = TopLoc_Location()
+            poly = BRep_Tool.Triangulation_s(face, loc)
+            transform = loc.Transformation()
+            nodes = np.array(
+                [
+                    [c.X(), c.Y(), c.Z()]
+                    for c in (
+                        poly.Node(i).Transformed(transform)
+                        for i in range(1, poly.NbNodes() + 1)
+                    )
+                ]
+            )
+            for i in range(1, poly.NbTriangles() + 1):
+                a, b, c = poly.Triangle(i).Get()
+                if face.Orientation() != TopAbs_FORWARD:
+                    b, c = c, b
+                reference.append(nodes[[a - 1, b - 1, c - 1]])
+            explorer.Next()
+        reference_tris = np.asarray(reference)
+
+        assert tris.shape == reference_tris.shape
+        scale = float(np.ptp(reference_tris.reshape(-1, 3), axis=0).max())
+        centroid_gap = np.linalg.norm(
+            tris.mean(axis=1)[:, None, :] - reference_tris.mean(axis=1)[None, :, :],
+            axis=-1,
+        )
+        match = centroid_gap.argmin(axis=1)
+        assert np.unique(match).size == match.size
+        matched = reference_tris[match]
+        # Same orientation: some cyclic rotation of each OCCT triangle
+        # coincides with the output triangle vertex by vertex.
+        gaps = np.stack(
+            [
+                np.abs(tris - np.roll(matched, shift, axis=1)).max(axis=(1, 2))
+                for shift in range(3)
+            ]
+        ).min(axis=0)
+        assert gaps.max() <= 1e-9 * scale
 
 
 class TestMeshMetrics:
