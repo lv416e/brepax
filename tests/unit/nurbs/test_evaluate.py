@@ -206,6 +206,40 @@ class TestBsplineBasisDomainExtension:
             occt = np.array([oracle.X(), oracle.Y(), oracle.Z()])
             np.testing.assert_allclose(np.asarray(point), occt, atol=1e-9, rtol=1e-9)
 
+    @pytest.mark.parametrize(
+        "knots,degree",
+        [
+            ([0.0, 1.0, 2.0, 3.0, 4.0], 1),
+            ([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0], 2),
+            ([0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 1.0], 3),
+        ],
+    )
+    def test_matches_scipy_extrapolation_for_unclamped_knots(
+        self, knots: list[float], degree: int
+    ) -> None:
+        """Outside the domain, each basis function continues its end piece.
+
+        ``scipy.interpolate.BSpline`` with ``extrapolate=True`` evaluates
+        past ``[t[k], t[n]]`` with the first or last polynomial piece; with
+        unclamped knots the spans outside the domain have nonzero width,
+        which is the case that must not activate a second span.
+        """
+        from scipy.interpolate import BSpline
+
+        n_basis = len(knots) - degree - 1
+        lo, hi = knots[degree], knots[n_basis]
+        width = hi - lo
+        samples = [lo - 0.4 * width, lo - 1e-3, lo, hi, hi + 1e-3, hi + 0.4 * width]
+        for t in samples:
+            actual = bspline_basis(
+                jnp.array(t), jnp.array(knots), degree=degree, n_basis=n_basis
+            )
+            expected = [
+                BSpline(knots, np.eye(n_basis)[i], degree, extrapolate=True)(t)
+                for i in range(n_basis)
+            ]
+            np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
+
     def test_jit_vmap_grad_work_outside_domain(self) -> None:
         """Out-of-domain evaluation stays ``jit``-, ``vmap``-, ``grad``-compatible."""
         _surface, control_points, knots_u, knots_v = _build_bspline_surface(

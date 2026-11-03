@@ -54,13 +54,16 @@ def bspline_basis(
     left = knots[:n_spans]
     right = knots[1 : n_spans + 1]
     basis = jnp.where((left <= t) & (t < right), 1.0, 0.0)
-    # Extended endpoints: the first and last non-degenerate spans are
-    # pinned open past the domain so the recurrence below continues
-    # each end's polynomial piece instead of vanishing (first span) or
-    # stopping (last span) outside [knots[degree], knots[-degree - 1]].
-    basis = basis.at[degree].set(jnp.where(t <= knots[degree], 1.0, basis[degree]))
-    basis = basis.at[n_basis - 1].set(
-        jnp.where(t >= knots[n_basis], 1.0, basis[n_basis - 1])
+    # Extended endpoints: at and past each end of the domain
+    # [knots[degree], knots[n_basis]], only that end's span is active, so
+    # the recurrence below continues its polynomial piece instead of
+    # vanishing (first span) or stopping (last span). Replacing the whole
+    # indicator matters for unclamped knot vectors, whose spans outside
+    # the domain have nonzero width and would otherwise also be active.
+    span = jnp.arange(n_spans)
+    basis = jnp.where(t <= knots[degree], jnp.where(span == degree, 1.0, 0.0), basis)
+    basis = jnp.where(
+        t >= knots[n_basis], jnp.where(span == n_basis - 1, 1.0, 0.0), basis
     )
 
     for d in range(1, degree + 1):
