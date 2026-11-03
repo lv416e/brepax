@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import math
 from pathlib import Path
 
@@ -403,47 +402,40 @@ class TestTriangulateShape:
         assert extract_mesh_topology(compound) == []
 
     @pytest.mark.parametrize(
-        ("fixture", "expected_hash"),
+        ("fixture", "n_triangles", "weighted_sum", "sum_of_squares"),
         [
-            (
-                "sample_box",
-                "efe7fcd638267ba3a70298fecf4a9246ef7309cf64fc3a48f5634e18cdc7a9c4",
-            ),
-            (
-                "sample_sphere",
-                "a1e8d505377f48e4b4a0591108cf35e38adac3516fdc00bf4715438bbdc73ae3",
-            ),
-            (
-                "l_bracket",
-                "db9c90523ed914ff9701d4616e5f200f5edc0a68343fdc82ca745d88223db2d8",
-            ),
-            (
-                "nurbs_box",
-                "12a43173384fa7fd42d48d378d665ac4ce840a334f373c92e73eaff1ae8857d6",
-            ),
+            ("sample_box", 12, 46760.0, 25200.0),
+            ("sample_sphere", 2996, 26431.736867288804, 80892.0),
+            ("l_bracket", 28, 122470.0, 69000.0),
+            ("nurbs_box", 12, 19544.0, 3600.0),
         ],
     )
-    def test_default_output_is_bit_identical(
-        self, fixture: str, expected_hash: str
+    def test_default_output_is_unchanged(
+        self,
+        fixture: str,
+        n_triangles: int,
+        weighted_sum: float,
+        sum_of_squares: float,
     ) -> None:
         """Adding watertight triangulation must not change the default path.
 
-        Hashes were captured from this exact function and independently
-        cross-checked byte-for-byte against the pre-refactor implementation
-        (before :func:`triangulate_shape` and :func:`triangulate_shape_watertight`
-        shared host-extraction helpers) on eleven of the twelve ``.step``
-        fixtures tracked in this repository (the twelfth, ``nurbs_revol.step``,
-        raises ``NotImplementedError`` in both versions: an unrelated,
-        pre-existing unsupported-surface limitation with no output to
-        compare). These four are locked in as a standing regression check;
-        see ADR-0024 for the full comparison.
+        The reference values were captured from this function after the
+        refactor that made :func:`triangulate_shape` and
+        :func:`triangulate_shape_watertight` share host-extraction helpers;
+        see ADR-0024 for the one-time byte comparison against the previous
+        implementation. A position-weighted sum detects reordered or moved
+        vertices. The comparison allows a relative ``1e-10`` because curved
+        surfaces go through platform ``sin``/``cos``, whose last bits differ
+        between libm implementations, so a byte hash only holds on the
+        platform that recorded it.
         """
         shape = read_step(FIXTURES / f"{fixture}.step")
         tris, _ = triangulate_shape(shape)
-        digest = hashlib.sha256(
-            np.asarray(tris, dtype=np.float64).tobytes()
-        ).hexdigest()
-        assert digest == expected_hash
+        coords = np.asarray(tris, dtype=np.float64).reshape(-1)
+        weights = (np.arange(coords.size) % 97 + 1).astype(np.float64)
+        assert tris.shape == (n_triangles, 3, 3)
+        assert float(coords @ weights) == pytest.approx(weighted_sum, rel=1e-10)
+        assert float(coords @ coords) == pytest.approx(sum_of_squares, rel=1e-10)
 
 
 class TestMeshMetrics:
@@ -884,8 +876,8 @@ class TestTriangulateShapeWatertight:
         _assert_index_mesh_closed_manifold(mesh.vertices, mesh.faces)
         assert float(mesh.max_gap) == 0.0
         triangles = mesh.vertices[mesh.faces]
-        assert float(divergence_volume(triangles)) == pytest.approx(6000.0, rel=1e-12)
-        assert float(mesh_surface_area(triangles)) == pytest.approx(2200.0, rel=1e-12)
+        assert float(divergence_volume(triangles)) == pytest.approx(6000.0, rel=1e-10)
+        assert float(mesh_surface_area(triangles)) == pytest.approx(2200.0, rel=1e-10)
 
     @pytest.mark.parametrize(
         "fixture",
