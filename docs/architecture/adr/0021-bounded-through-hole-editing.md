@@ -44,9 +44,15 @@ fill seams do not divide the moved hole's end planes and prevent re-editing.
 This preserves unselected geometry, not the original partition into faces.
 
 This capability does not infer general modeling history, edit Boolean topology,
-or support blind holes, split cylindrical walls, oblique ends or interacting
-features. Face identifiers belong only to the prepared input. Feature identity
-tracking after reconstruction is not part of this decision.
+or support blind holes, oblique ends or interacting features. A cylindrical
+wall that a STEP exporter split into several faces, such as two half-cylinder
+faces or an axial seam, is rejected by default for the same reason a genuinely
+incomplete cylinder is. An opt-in preparation step unifies same-domain
+faces/edges of the working solid first, with a volume/area check against the
+shape's own CAD tolerance, so such splits can be recognized as one complete
+hole; it does not relax any other rejection. Face identifiers belong only to
+the prepared input, which is the unified working solid when that step runs.
+Feature identity tracking after reconstruction is not part of this decision.
 
 ## Consequences
 

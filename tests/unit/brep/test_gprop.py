@@ -7,6 +7,11 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from OCP.BRep import BRep_Builder
+from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
+from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
+from OCP.gp import gp_Ax3, gp_Dir, gp_Pln, gp_Pnt
+from OCP.TopoDS import TopoDS_Compound
 
 from brepax.brep.gprop import compute_gprop_ground_truth
 from brepax.io import read_step
@@ -113,3 +118,30 @@ class TestReturnShape:
     def test_scalar_types(self, box_gt) -> None:
         assert isinstance(box_gt["volume"], float)
         assert isinstance(box_gt["surface_area"], float)
+
+
+def test_free_face_beside_solid_is_excluded() -> None:
+    # STEP files can carry a free face next to the solid (e.g. annotation
+    # geometry). The reference must describe the solid only.
+    box = BRepPrimAPI_MakeBox(10.0, 20.0, 30.0).Shape()
+    plane = gp_Pln(gp_Ax3(gp_Pnt(0.0, -5.0, 0.0), gp_Dir(0.0, 1.0, 0.0)))
+    free_face = BRepBuilderAPI_MakeFace(plane, 0.0, 30.0, 0.0, 40.0).Face()
+    compound = TopoDS_Compound()
+    builder = BRep_Builder()
+    builder.MakeCompound(compound)
+    builder.Add(compound, box)
+    builder.Add(compound, free_face)
+
+    gt = compute_gprop_ground_truth(compound)
+    assert gt["volume"] == pytest.approx(10 * 20 * 30, rel=1e-12)
+    assert gt["surface_area"] == pytest.approx(
+        2 * (10 * 20 + 20 * 30 + 10 * 30), rel=1e-12
+    )
+    np.testing.assert_allclose(gt["center_of_mass"], [5.0, 10.0, 15.0], rtol=1e-12)
+
+
+def test_shape_without_solid_has_zero_volume() -> None:
+    shape = read_step(FIXTURES / "nurbs_saddle.step")
+    gt = compute_gprop_ground_truth(shape)
+    assert gt["volume"] == 0.0
+    assert gt["surface_area"] == 0.0

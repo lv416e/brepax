@@ -27,6 +27,7 @@ from brepax.experimental.applications._hole_geometry import (
     normalize_shape,
     rebuild_holes,
     recognize_holes,
+    unify_same_domain,
 )
 from brepax.experimental.applications._hole_mesh import closed_mesh, displacement_fields
 from brepax.experimental.applications.cad_frame import CadFrame
@@ -248,20 +249,40 @@ def prepare_hole_edit(
     *,
     frame: CadFrame | None = None,
     deflection: float = 0.001,
+    merge_same_domain: bool = False,
 ) -> PreparedHoleEdit:
     """Prepare bounded edits of full cylindrical through-holes in one solid.
 
     Accepts a B-Rep returned by ``read_step``; does not assume a stock primitive
     or a construction history. Each selected inward cylinder must be complete,
-    with two perpendicular planar ends and sufficient clearance. Blind, split,
-    oblique, intersecting and near-boundary holes are unsupported. Rejected
-    inward cylinders are reported; an explicit selection of one raises.
+    with two perpendicular planar ends and sufficient clearance. Blind,
+    oblique, intersecting and near-boundary holes are unsupported. A
+    cylindrical wall split into several faces, e.g. a STEP exporter's two
+    half-cylinder faces or a coplanar seam splitting it axially, is also
+    unsupported by default; see ``merge_same_domain``. Rejected inward
+    cylinders are reported; an explicit selection of one raises.
 
     ``frame`` maps input units to working coordinates; by default the bounding
     box is centered and its largest extent becomes 40 working units. It is
     frozen during editing. ``deflection`` is an absolute WORKING-unit meshing
     tolerance, finite and positive. Preparation requires JAX x64; it never
     changes the global JAX precision setting. Input CAD is copied.
+
+    ``merge_same_domain`` unifies coincident same-domain faces and edges of
+    the working solid with OCCT ``ShapeUpgrade_UnifySameDomain`` before
+    recognition, so a cylindrical wall split as described above can still be
+    recognized as one complete hole. It also merges any other same-domain
+    faces/edges in the solid, so the input's face partition is not preserved:
+    when True, every returned ``face_id`` (selected, rejected, or passed in
+    ``face_ids``) refers to the *unified* working solid, not the original
+    input. To select specific holes, call ``prepare_hole_edit`` once with
+    ``merge_same_domain=True`` and no ``face_ids`` to read their ``face_id``
+    from the result, then again with those IDs and the same
+    ``merge_same_domain=True``; the unification is deterministic for a given
+    input shape, so the IDs line up. ``rebuild`` starts from that unified
+    working solid; its result can have a different face partition, so take
+    face IDs from the rebuilt solid itself. Default is False: face IDs and
+    geometry are unaffected.
 
     Radius bounds are [0.5*r0, r0 + 0.2*clearance]. Optional transverse center
     shifts share the growth budget: norm(shift) + max(radius-r0, 0) must not
@@ -274,7 +295,9 @@ def prepare_hole_edit(
     Raises ValueError for invalid CAD, unsupported selections, no supported
     holes, or a mesh that cannot be welded into a closed oriented surface.
     Unsupported surface evaluators raise NotImplementedError. OCCT extraction
-    failures propagate. Meshing accuracy is not certified by preparation.
+    failures propagate. When ``merge_same_domain`` is True, a failed or
+    geometry-changing unification also raises ValueError or RuntimeError.
+    Meshing accuracy is not certified by preparation.
 
     Example:
         >>> import jax
@@ -295,6 +318,8 @@ def prepare_hole_edit(
     if not np.isfinite(deflection) or deflection <= 0:
         raise ValueError("deflection must be finite and positive in working units")
     working, frame = normalize_shape(shape, frame)
+    if merge_same_domain:
+        working = unify_same_domain(working)
     found, rejected, tolerance = recognize_holes(working)
     if face_ids is None:
         selected = found
