@@ -304,7 +304,9 @@ def prepare_hole_edit(
     usable interval further; callers must check ``model.is_valid``.
 
     Raises ValueError for invalid CAD, unsupported selections, no supported
-    holes, or a mesh that cannot be welded into a closed oriented surface.
+    holes, a mesh that cannot be welded into a closed oriented surface, or
+    incident faces whose mesh nodes disagree by more than twice the shape's
+    CAD tolerance (``WatertightMesh.max_gap``).
     Unsupported surface evaluators raise NotImplementedError. OCCT extraction
     failures propagate. When ``merge_same_domain`` is True, a failed or
     geometry-changing unification also raises ValueError or RuntimeError.
@@ -346,7 +348,11 @@ def prepare_hole_edit(
         selected = tuple(by_id[i] for i in ids)
     if not selected:
         raise ValueError(f"No supported through-holes selected; rejected={rejected}")
-    mesh = triangulate_shape_watertight(working, deflection=deflection)
+    # Two faces sharing an edge each lie within the CAD tolerance of it, so
+    # their mesh nodes there may disagree by up to twice that tolerance.
+    mesh = triangulate_shape_watertight(
+        working, deflection=deflection, tolerance=2 * tolerance
+    )
     vertices = np.asarray(mesh.vertices)
     faces = np.asarray(mesh.faces)
     holes = tuple(external_hole(hole, frame) for hole in selected)
