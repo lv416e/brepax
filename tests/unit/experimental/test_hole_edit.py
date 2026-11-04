@@ -816,3 +816,21 @@ def test_rebuild_accepts_many_edited_step_holes():
     removed = np.pi * np.sum((radii**2 - model.reference_radii**2) * heights)
     before = cad_metrics(source)[0][0]
     assert cad_metrics(rebuilt)[0][0] == pytest.approx(before - removed, rel=1e-6)
+
+
+def test_rebuild_fallback_rejects_change_between_edited_bores():
+    shape, *_ = stock()
+    working, _ = normalize_shape(shape, CadFrame(1.0, (0.0, 0.0, 0.0)))
+    holes, _, _ = recognize_holes(working)
+    radii = np.array([hole.radius + 0.1 for hole in holes])
+    shifts = np.zeros((len(holes), 3))
+    rebuilt = rebuild_holes(working, holes, radii, shifts)
+    assert _local_edit_error(working, rebuilt, holes, radii, shifts) is None
+    # Between the bores at x=10 and x=28, inside the box spanning both but
+    # outside the box of either one; 0.008 exceeds 1e-7 of the volume.
+    notched = BRepAlgoAPI_Cut(
+        rebuilt, BRepPrimAPI_MakeBox(gp_Pnt(18.9, 11.9, 5.8), 0.2, 0.2, 0.2).Shape()
+    ).Shape()
+    assert _local_edit_error(working, notched, holes, radii, shifts) == (
+        "Rebuilt CAD changed material away from the edited holes"
+    )

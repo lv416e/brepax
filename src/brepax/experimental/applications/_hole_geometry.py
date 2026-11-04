@@ -456,7 +456,7 @@ def _local_edit_error(
     over the changed cross-section. Outside the envelope, volume and first
     moment may change by 1e-7 relative, the bound the global check also uses.
     A larger outside change passes only if every region of the difference
-    between the two solids lies within the envelope's bounding box: a Boolean
+    between the two solids lies within the box of one old or new bore: a Boolean
     on a part with a large CAD tolerance can move faces within that tolerance,
     which changes measured properties without leaving a difference region.
     Each solid is intersected with the envelope separately: OCCT can return
@@ -506,20 +506,34 @@ def _local_edit_error(
         return None
     # A Boolean may also move faces within the CAD tolerance, which changes
     # measured properties without leaving a difference region.
-    return _difference_away_from_envelope(shape, changed, envelope, tolerance)
+    return _difference_away_from_bores(shape, changed, holes, radii, shifts, tolerance)
 
 
-def _difference_away_from_envelope(
+def _difference_away_from_bores(
     shape: TopoDS_Shape,
     changed: TopoDS_Shape,
-    envelope: TopoDS_Shape,
+    holes: tuple[ThroughHole, ...],
+    radii: NDArray[np.float64],
+    shifts: NDArray[np.float64],
     tolerance: float,
 ) -> str | None:
-    """Reject a difference region that does not lie within the envelope box."""
-    box = Bnd_Box()
-    BRepBndLib.Add_s(envelope, box)
-    box.Enlarge(10 * tolerance)
-    lower, upper = np.asarray(box.Get()).reshape(2, 3)
+    """Reject a difference region that does not lie beside one edited bore.
+
+    Each region must fit in the box of a single old or new bore: the box of
+    several bores together would also cover the material between them.
+    """
+    bores = []
+    for hole, radius, offset in zip(holes, radii, shifts, strict=True):
+        for size, center in ((hole.radius, np.zeros(3)), (radius, offset)):
+            box = Bnd_Box()
+            tool = BRepPrimAPI_MakeCylinder(
+                gp_Ax2(gp_Pnt(*(np.asarray(hole.base) + center)), gp_Dir(*hole.axis)),
+                float(size),
+                hole.height,
+            ).Shape()
+            BRepBndLib.Add_s(tool, box)
+            box.Enlarge(10 * tolerance)
+            bores.append(np.asarray(box.Get()).reshape(2, 3))
     for minuend, subtrahend in ((shape, changed), (changed, shape)):
         builder = BRepAlgoAPI_Cut(
             BRepBuilderAPI_Copy(minuend, True, False).Shape(),
@@ -532,7 +546,10 @@ def _difference_away_from_envelope(
             region = Bnd_Box()
             BRepBndLib.Add_s(explorer.Current(), region)
             corners = np.asarray(region.Get()).reshape(2, 3)
-            if np.any(corners[0] < lower) or np.any(corners[1] > upper):
+            if not any(
+                np.all(corners[0] >= bore[0]) and np.all(corners[1] <= bore[1])
+                for bore in bores
+            ):
                 return "Rebuilt CAD changed material away from the edited holes"
             explorer.Next()
     return None
