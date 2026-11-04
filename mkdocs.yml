@@ -107,4 +107,5 @@ nav:
           - "ADR-0020: Marschner B-spline CSG Scope": architecture/adr/0020-marschner-bspline-csg-scope.md
           - "ADR-0021: Bounded Through-hole Editing": architecture/adr/0021-bounded-through-hole-editing.md
           - "ADR-0022: Contact Volume Experiment": architecture/adr/0022-contact-volume-experiment.md
+          - "ADR-0023: Validated Dimension Handles": architecture/adr/0023-validated-dimension-handles.md
           - "ADR-0024: Watertight Triangulation": architecture/adr/0024-watertight-triangulation.md
