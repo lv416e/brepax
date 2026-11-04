@@ -33,14 +33,20 @@ remain derivatives of this frozen discretization. Independent OCCT rebuilding
 fills the selected original cylinders and cuts their replacements, with checks
 against isolated-hole volume, area and first-moment changes. The moment check
 detects misplaced holes that volume and area cannot distinguish. Whole-solid
-OCCT properties can shift by about 1e-7 relative when a Boolean rebuilds a
-face bounded by B-spline edges, without changing that geometry. If those
-checks fail, the removed and added difference regions decide instead: their
-net volume and first moment must match the edit, and each region must lie
-beside an old or new bore. Because recognition accepts end planes within the
-CAD tolerance of the cylinder extent, this comparison allows one
-tolerance-thick slice of the changed cross-section at each end; it resolves
-misplaced bores at a few tolerances, not below.
+OCCT properties can shift when a Boolean rebuilds faces far from the edited
+holes: by about 1e-7 relative under OCCT's default integration rule, and by
+up to about 1e-8 relative in geometry on the NIST parts measured. If those
+checks fail, a coaxial envelope around each old and new bore decides
+instead. Each solid is intersected with the envelope separately, and volumes
+and moments are integrated adaptively to 1e-9 relative. Inside the envelope,
+the change in volume and first moment must match the edit. Because
+recognition accepts end planes within the CAD tolerance of the cylinder
+extent, this comparison allows one tolerance-thick slice of the changed
+cross-section at each end; it resolves misplaced bores at a few tolerances,
+not below. Outside the envelope, volume and first moment may change only by
+1e-7 relative. The two solids are never subtracted from each other: on NIST
+CTC-05, OCCT returned a "removed" region larger than the whole solid for two
+nearly coincident solids.
 Unify connected same-domain faces and edges after the Boolean operations so
 fill seams do not divide the moved hole's end planes and prevent re-editing.
 This preserves unselected geometry, not the original partition into faces.

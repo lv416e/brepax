@@ -401,6 +401,42 @@ def _global_edit_error(
     return None
 
 
+def _volume_and_moment(shape: TopoDS_Shape) -> tuple[float, NDArray[np.float64]]:
+    """Volume and first moment by adaptive integration to 1e-9 relative.
+
+    The default fixed-order rule misintegrates rebuilt B-spline faces by
+    about 1e-7 relative, which would hide or fake small material changes.
+    """
+    measured = GProp_GProps()
+    BRepGProp.VolumeProperties_s(shape, measured, 1e-9)
+    return measured.Mass(), measured.Mass() * _point(measured.CentreOfMass())
+
+
+def _hole_envelope(
+    holes: tuple[ThroughHole, ...],
+    radii: NDArray[np.float64],
+    shifts: NDArray[np.float64],
+    margin: float,
+) -> TopoDS_Shape | None:
+    """Union of coaxial cylinders containing each old and new bore."""
+    envelope = None
+    for hole, radius, offset in zip(holes, radii, shifts, strict=True):
+        axis = np.asarray(hole.axis)
+        cylinder = BRepPrimAPI_MakeCylinder(
+            gp_Ax2(gp_Pnt(*(np.asarray(hole.base) - margin * axis)), gp_Dir(*axis)),
+            max(hole.radius, radius + float(np.linalg.norm(offset))) + margin,
+            hole.height + 2 * margin,
+        ).Shape()
+        if envelope is None:
+            envelope = cylinder
+            continue
+        builder = BRepAlgoAPI_Fuse(envelope, cylinder)
+        if not builder.IsDone():
+            return None
+        envelope = builder.Shape()
+    return envelope
+
+
 def _local_edit_error(
     shape: TopoDS_Shape,
     changed: TopoDS_Shape,
@@ -408,37 +444,36 @@ def _local_edit_error(
     radii: NDArray[np.float64],
     shifts: NDArray[np.float64],
 ) -> str | None:
-    """Check the edit through the material it actually removed and added.
+    """Check the edit inside an envelope around the edited bores.
 
-    Whole-solid properties can drift by about 1e-7 relative when a Boolean
-    rebuilds a face bounded by B-spline edges far from the hole, although the
-    geometry is unchanged there. Both difference regions are bounded only by
-    the hole cylinders and their end planes, so their properties are measured
-    without that drift. Recognition accepts end planes within the CAD
-    tolerance of the cylinder extent, so each end may add or remove a slice
-    of that thickness over the changed cross-section; the comparison allows
-    exactly that and roundoff. Each region must also stay beside a bore.
+    Whole-solid properties can drift when a Boolean rebuilds faces far from
+    the hole: by about 1e-7 relative under OCCT's default integration rule,
+    and by up to about 1e-8 relative in geometry on the NIST parts measured,
+    although nothing is edited there. Inside a coaxial envelope around each old and
+    new bore, the edit must match the isolated-hole law up to the CAD
+    tolerance: recognition accepts end planes within that tolerance of the
+    cylinder extent, so each end may add or remove a slice of that thickness
+    over the changed cross-section. Outside the envelope, material may change
+    only by 1e-7 of the solid volume (and first moment), the relative bound
+    the global check also uses.
+    Each solid is intersected with the envelope separately; the two solids
+    are never subtracted from each other, since OCCT can return a wrong
+    region for two nearly coincident solids.
     """
-    regions = []
-    for minuend, subtrahend in ((shape, changed), (changed, shape)):
-        builder = BRepAlgoAPI_Cut(
-            BRepBuilderAPI_Copy(minuend, True, False).Shape(),
-            BRepBuilderAPI_Copy(subtrahend, True, False).Shape(),
+    tolerance = shape_tolerance(shape)
+    envelope = _hole_envelope(holes, radii, shifts, 10 * tolerance)
+    if envelope is None:
+        return "OCCT could not build the edited hole envelope"
+    inside = []
+    for solid in (shape, changed):
+        builder = BRepAlgoAPI_Common(
+            BRepBuilderAPI_Copy(solid, True, False).Shape(), envelope
         )
         if not builder.IsDone():
-            return "OCCT could not isolate the rebuilt hole regions"
-        regions.append(builder.Shape())
-    props = []
-    for region in regions:
-        measured = GProp_GProps()
-        BRepGProp.VolumeProperties_s(region, measured)
-        props.append(
-            (measured.Mass(), measured.Mass() * _point(measured.CentreOfMass()))
-        )
+            return "OCCT could not isolate the edited hole envelope"
+        inside.append(_volume_and_moment(builder.Shape()))
+    total = [_volume_and_moment(solid) for solid in (shape, changed)]
     expected, expected_moment = _edit_terms(holes, radii, shifts)
-    volume = props[0][0] - props[1][0]
-    moment = props[0][1] - props[1][1]
-    tolerance = shape_tolerance(shape)
     volume_bound = moment_bound = 0.0
     for hole, radius, offset in zip(holes, radii, shifts, strict=True):
         larger = max(radius, hole.radius)
@@ -452,33 +487,18 @@ def _local_edit_error(
         roundoff = 1e-12 * np.pi * larger**2 * hole.height
         volume_bound += slices + roundoff
         moment_bound += (slices + roundoff) * reach
-    if abs(volume - expected) > volume_bound or np.any(
-        np.abs(moment - expected_moment) > moment_bound
+    if abs(inside[0][0] - inside[1][0] - expected) > volume_bound or np.any(
+        np.abs(inside[0][1] - inside[1][1] - expected_moment) > moment_bound
     ):
         return "Rebuilt hole regions do not match the isolated-hole edit"
-    bores = []
-    for hole, radius, offset in zip(holes, radii, shifts, strict=True):
-        for size, center in ((hole.radius, np.zeros(3)), (radius, offset)):
-            box = Bnd_Box()
-            tool = BRepPrimAPI_MakeCylinder(
-                gp_Ax2(gp_Pnt(*(np.asarray(hole.base) + center)), gp_Dir(*hole.axis)),
-                float(size),
-                hole.height,
-            ).Shape()
-            BRepBndLib.Add_s(tool, box)
-            box.Enlarge(10 * tolerance)
-            bores.append(box)
-    for region in regions:
-        explorer = TopExp_Explorer(region, TopAbs_SOLID)
-        while explorer.More():
-            box = Bnd_Box()
-            BRepBndLib.Add_s(explorer.Current(), box)
-            corners = np.asarray(box.Get()).reshape(2, 3)
-            if not any(
-                np.all(corners[0] >= np.asarray(b.Get())[:3])
-                and np.all(corners[1] <= np.asarray(b.Get())[3:])
-                for b in bores
-            ):
-                return "Rebuilt CAD changed material away from the edited holes"
-            explorer.Next()
+    box = Bnd_Box()
+    BRepBndLib.Add_s(shape, box)
+    solid_reach = float(np.abs(np.asarray(box.Get())).max())
+    outside_volume = (total[0][0] - inside[0][0]) - (total[1][0] - inside[1][0])
+    outside_moment = (total[0][1] - inside[0][1]) - (total[1][1] - inside[1][1])
+    drift = 1e-7 * abs(total[0][0]) + 1e-9
+    if abs(outside_volume) > drift or np.any(
+        np.abs(outside_moment) > drift * solid_reach
+    ):
+        return "Rebuilt CAD changed material away from the edited holes"
     return None

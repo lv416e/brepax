@@ -752,6 +752,15 @@ def test_rebuild_accepts_exact_edit_beside_bspline_faces(radius, shift):
         domed_plate(), cylinder(base + np.array([0.2, 0, 0]), (0, 0, 1), radius, 6)
     ).Shape()
     assert _local_edit_error(working, misplaced, (hole,), radii, shifts) is not None
+    assert _local_edit_error(working, rebuilt, (hole,), radii, shifts) is None
+    # A notch far from the hole is outside the envelope; 0.008 exceeds the
+    # whole-solid drift allowance (1e-7 of about 5800).
+    notched = BRepAlgoAPI_Cut(
+        rebuilt, BRepPrimAPI_MakeBox(gp_Pnt(39.8, 23.8, 0), 0.2, 0.2, 0.2).Shape()
+    ).Shape()
+    assert _local_edit_error(working, notched, (hole,), radii, shifts) == (
+        "Rebuilt CAD changed material away from the edited holes"
+    )
 
 
 def test_rebuild_at_reference_returns_the_input_geometry():
@@ -785,4 +794,25 @@ def test_rebuild_leaves_unedited_step_holes_alone():
         np.pi * (radii[0] ** 2 - model.reference_radii[0] ** 2) * edit.holes[0].height
     )
     before = cad_metrics(compound(explorer.Current()))[0][0]
+    assert cad_metrics(rebuilt)[0][0] == pytest.approx(before - removed, rel=1e-6)
+
+
+@pytest.mark.slow
+def test_rebuild_accepts_many_edited_step_holes():
+    # Whole-solid properties of CTC-05 drift past their bound once three of
+    # its holes are edited, and the difference Booleans between the two
+    # nearly coincident solids return a wrong region.
+    path = Path(__file__).resolve().parents[2] / "fixtures" / "nist"
+    path = path / "nist_ctc_05_asme1_rd.stp"
+    if not path.exists():
+        pytest.skip("NIST fixture not available")
+    explorer = TopExp_Explorer(read_step(path), TopAbs_SOLID)
+    source = compound(explorer.Current())
+    edit = prepare_hole_edit(source, merge_same_domain=True)
+    model = edit.model
+    radii = (model.reference_radii + model.upper_radii) / 2
+    rebuilt = edit.rebuild(radii)
+    heights = np.array([hole.height for hole in edit.holes])
+    removed = np.pi * np.sum((radii**2 - model.reference_radii**2) * heights)
+    before = cad_metrics(source)[0][0]
     assert cad_metrics(rebuilt)[0][0] == pytest.approx(before - removed, rel=1e-6)
