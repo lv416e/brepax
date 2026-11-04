@@ -169,3 +169,9 @@ def test_units_and_placement(scale):
     assert float(gradient[0]) == pytest.approx(100.0 * scale**2, rel=1e-9)
     volume = mass(edit.rebuild(offsets))[0]
     assert volume == pytest.approx(float(edit.model.volume(offsets)), rel=1e-9)
+
+
+@pytest.mark.parametrize("face_id", [-1, 10_000])
+def test_out_of_range_face_ids_are_refused(face_id):
+    with pytest.raises(ValueError, match="outside the solid"):
+        prepare_face_offset(boss_block(), [face_id], frame=UNIT)

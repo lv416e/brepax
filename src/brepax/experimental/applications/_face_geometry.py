@@ -385,6 +385,11 @@ def recognize_faces(
     rejected: list[RejectedFace] = []
     candidates = range(len(faces)) if face_ids is None else face_ids
     for face_id in candidates:
+        # A negative index would silently select another face.
+        if not 0 <= face_id < len(faces):
+            raise ValueError(
+                f"Face ID {face_id} is outside the solid's {len(faces)} faces"
+            )
         face = faces[face_id]
         if BRepAdaptor_Surface(face).GetType() != GeomAbs_Plane:
             rejected.append(RejectedFace(face_id, "not planar"))
