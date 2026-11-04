@@ -453,12 +453,15 @@ def _local_edit_error(
     new bore, the edit must match the isolated-hole law up to the CAD
     tolerance: recognition accepts end planes within that tolerance of the
     cylinder extent, so each end may add or remove a slice of that thickness
-    over the changed cross-section. Outside the envelope, material may change
-    only by 1e-7 of the solid volume (and first moment), the relative bound
-    the global check also uses.
-    Each solid is intersected with the envelope separately; the two solids
-    are never subtracted from each other, since OCCT can return a wrong
-    region for two nearly coincident solids.
+    over the changed cross-section. Outside the envelope, volume and first
+    moment may change by 1e-7 relative, the bound the global check also uses.
+    A larger outside change passes only if every region of the difference
+    between the two solids lies within the envelope's bounding box: a Boolean
+    on a part with a large CAD tolerance can move faces within that tolerance,
+    which changes measured properties without leaving a difference region.
+    Each solid is intersected with the envelope separately: OCCT can return
+    a wrong region when subtracting two nearly coincident solids, so the
+    inside comparison never depends on that subtraction.
     """
     tolerance = shape_tolerance(shape)
     envelope = _hole_envelope(holes, radii, shifts, 10 * tolerance)
@@ -497,8 +500,39 @@ def _local_edit_error(
     outside_volume = (total[0][0] - inside[0][0]) - (total[1][0] - inside[1][0])
     outside_moment = (total[0][1] - inside[0][1]) - (total[1][1] - inside[1][1])
     drift = 1e-7 * abs(total[0][0]) + 1e-9
-    if abs(outside_volume) > drift or np.any(
-        np.abs(outside_moment) > drift * solid_reach
+    if abs(outside_volume) <= drift and np.all(
+        np.abs(outside_moment) <= drift * solid_reach
     ):
-        return "Rebuilt CAD changed material away from the edited holes"
+        return None
+    # A Boolean may also move faces within the CAD tolerance, which changes
+    # measured properties without leaving a difference region.
+    return _difference_away_from_envelope(shape, changed, envelope, tolerance)
+
+
+def _difference_away_from_envelope(
+    shape: TopoDS_Shape,
+    changed: TopoDS_Shape,
+    envelope: TopoDS_Shape,
+    tolerance: float,
+) -> str | None:
+    """Reject a difference region that does not lie within the envelope box."""
+    box = Bnd_Box()
+    BRepBndLib.Add_s(envelope, box)
+    box.Enlarge(10 * tolerance)
+    lower, upper = np.asarray(box.Get()).reshape(2, 3)
+    for minuend, subtrahend in ((shape, changed), (changed, shape)):
+        builder = BRepAlgoAPI_Cut(
+            BRepBuilderAPI_Copy(minuend, True, False).Shape(),
+            BRepBuilderAPI_Copy(subtrahend, True, False).Shape(),
+        )
+        if not builder.IsDone():
+            return "OCCT could not isolate the rebuilt hole regions"
+        explorer = TopExp_Explorer(builder.Shape(), TopAbs_SOLID)
+        while explorer.More():
+            region = Bnd_Box()
+            BRepBndLib.Add_s(explorer.Current(), region)
+            corners = np.asarray(region.Get()).reshape(2, 3)
+            if np.any(corners[0] < lower) or np.any(corners[1] > upper):
+                return "Rebuilt CAD changed material away from the edited holes"
+            explorer.Next()
     return None

@@ -43,8 +43,12 @@ the change in volume and first moment must match the edit. Because
 recognition accepts end planes within the CAD tolerance of the cylinder
 extent, this comparison allows one tolerance-thick slice of the changed
 cross-section at each end; it resolves misplaced bores at a few tolerances,
-not below. Outside the envelope, volume and first moment may change only by
-1e-7 relative. The two solids are never subtracted from each other: on NIST
+not below. Outside the envelope, volume and first moment may change by
+1e-7 relative. A larger outside change passes only if every region of the
+difference between the two solids lies beside the edited bores: on a part
+with a large CAD tolerance, a Boolean can move faces within that tolerance
+and change measured properties without leaving a difference region. The
+inside comparison never subtracts the two solids from each other: on NIST
 CTC-05, OCCT returned a "removed" region larger than the whole solid for two
 nearly coincident solids.
 Unify connected same-domain faces and edges after the Boolean operations so
