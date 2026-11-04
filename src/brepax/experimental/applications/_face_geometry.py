@@ -22,6 +22,7 @@ from brepax._occt.backend import (
     GeomAbs_Cylinder,
     GeomAbs_Plane,
     GProp_GProps,
+    Standard_Failure,
     TopAbs_EDGE,
     TopAbs_FACE,
     TopAbs_REVERSED,
@@ -283,7 +284,11 @@ def rebuild_faces(
     unchanged (see :func:`local_edit_error`). Same-domain faces are unified
     afterwards so the extended neighbors are single faces again.
     """
-    edited = [i for i, offset in enumerate(offsets) if offset != 0]
+    # OCCT cannot sweep a face by less than its tolerance; such an offset
+    # changes the volume by at most area * tolerance, within the validation
+    # bound, so the face stays where it is.
+    tolerance = shape_tolerance(shape)
+    edited = [i for i, offset in enumerate(offsets) if abs(offset) > tolerance]
     faces = tuple(faces[i] for i in edited)
     offsets = np.asarray(offsets, dtype=np.float64)[edited]
     changed = BRepBuilderAPI_Copy(shape, True, False).Shape()
@@ -291,8 +296,13 @@ def rebuild_faces(
         return changed
     all_faces = _faces(shape)
     for face, offset in zip(faces, offsets, strict=True):
-        tool = _prism(all_faces[face.face_id], np.asarray(face.normal), offset)
-        builder = (BRepAlgoAPI_Fuse if offset > 0 else BRepAlgoAPI_Cut)(changed, tool)
+        try:
+            tool = _prism(all_faces[face.face_id], np.asarray(face.normal), offset)
+            builder = (BRepAlgoAPI_Fuse if offset > 0 else BRepAlgoAPI_Cut)(
+                changed, tool
+            )
+        except Standard_Failure as failure:
+            raise RuntimeError("OCCT face offset failed") from failure
         if not builder.IsDone():
             raise RuntimeError("OCCT face offset failed")
         changed = builder.Shape()

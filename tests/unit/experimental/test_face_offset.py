@@ -175,3 +175,13 @@ def test_units_and_placement(scale):
 def test_out_of_range_face_ids_are_refused(face_id):
     with pytest.raises(ValueError, match="outside the solid"):
         prepare_face_offset(boss_block(), [face_id], frame=UNIT)
+
+
+def test_offsets_below_the_cad_tolerance_leave_the_face_in_place():
+    shape = boss_block()
+    faces, _ = recognize_face_offsets(shape, frame=UNIT)
+    top = next(f for f in faces if np.isclose(f.centroid[2], 10.0))
+    bottom = next(f for f in faces if np.isclose(f.centroid[2], 0.0))
+    edit = prepare_face_offset(shape, [top.face_id, bottom.face_id], frame=UNIT)
+    rebuilt = edit.rebuild(jnp.array([-0.5, -4.4e-18]))
+    assert mass(rebuilt)[0] == pytest.approx(mass(boss_block(3.5))[0], rel=1e-9)
