@@ -25,6 +25,7 @@ from brepax._occt.backend import (
     GeomAbs_Cylinder,
     GeomAbs_Plane,
     GProp_GProps,
+    ShapeUpgrade_UnifySameDomain,
     TopAbs_EDGE,
     TopAbs_FACE,
     TopAbs_FORWARD,
@@ -225,6 +226,51 @@ def shape_tolerance(shape: TopoDS_Shape) -> float:
                 tolerance, float(BRep_Tool.Tolerance_s(cast(items.FindKey(i))))
             )
     return tolerance
+
+
+def unify_same_domain(shape: TopoDS_Shape) -> TopoDS_Shape:
+    """Merge coincident same-domain faces and edges of a working solid.
+
+    STEP exporters commonly split one cylindrical wall into two half-cylinder
+    faces, and a coplanar seam can also split one axially; either split makes
+    ``recognize_holes`` reject the wall as an incomplete cylinder because no
+    single face spans the full 2*pi range. Unifying merges such splits (and
+    any other same-domain faces/edges elsewhere in the solid) into one face
+    without moving the boundary, so recognition can see the merged periodic
+    cylinder. The input's face partition is not preserved: callers must take
+    face IDs from the returned shape, not the original.
+
+    Raises ValueError (via ``require_solid``) if the result is not a single
+    valid solid. Raises RuntimeError if the measured volume or surface area
+    moved beyond a bound derived from the shape's own CAD tolerance
+    (``shape_tolerance``), which would indicate the merge changed geometry
+    rather than only its face partition.
+    """
+    tolerance = shape_tolerance(shape)
+    before_volume, before_area = cad_measures(shape)
+    length = GProp_GProps()
+    BRepGProp.LinearProperties_s(shape, length)
+    unifier = ShapeUpgrade_UnifySameDomain(shape, True, True, False)
+    unifier.Build()
+    merged = unifier.Shape()
+    require_solid(merged)
+    after_volume, after_area = cad_measures(merged)
+    # Same-domain merging only removes seams between faces/edges already
+    # continuous within the shape's own tolerance; it should not move the
+    # boundary. Bound the allowed drift as one tolerance-thick layer over the
+    # shape's own surface area (for volume) or total edge length (for area),
+    # plus a roundoff floor, instead of an unexplained fixed constant.
+    volume_bound = tolerance * before_area + 1e-9 * abs(before_volume)
+    area_bound = tolerance * length.Mass() + 1e-9 * abs(before_area)
+    if (
+        abs(after_volume - before_volume) > volume_bound
+        or abs(after_area - before_area) > area_bound
+    ):
+        raise RuntimeError(
+            "Same-domain unification changed the solid's volume or area "
+            "beyond the tolerance-derived bound"
+        )
+    return merged
 
 
 def recognize_holes(

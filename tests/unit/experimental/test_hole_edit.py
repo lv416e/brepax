@@ -23,6 +23,7 @@ from OCP.BRepPrimAPI import (
 from OCP.gp import gp_Ax1, gp_Ax2, gp_Dir, gp_Pnt, gp_Trsf
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
+from OCP.ShapeUpgrade import ShapeUpgrade_ShapeDivideClosed
 from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
 from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID, TopAbs_VERTEX
 from OCP.TopExp import TopExp_Explorer
@@ -263,6 +264,96 @@ def test_unsupported_holes_rejected(kind):
         tool = BRepAlgoAPI_Fuse(a, b).Shape()
     with pytest.raises(ValueError, match="No supported through-holes"):
         prepare_hole_edit(BRepAlgoAPI_Cut(shape, tool).Shape())
+
+
+def _single_hole_box_measures(base, axis, height, radius, shift=(0.0, 0.0, 0.0)):
+    """Independent analytic volume/area/center for one hole in a 40x24x6 box.
+
+    Standard box-minus-cylinder mass properties, matching the formulas
+    ``oracle()`` uses for the multi-hole stocks but written out directly so
+    this does not depend on how ``prepare_hole_edit`` itself recognizes or
+    partitions the hole.
+    """
+    box_volume, box_area = 40 * 24 * 6, 2 * (40 * 24 + 24 * 6 + 40 * 6)
+    box_center = np.array([20.0, 12.0, 3.0])
+    center = (
+        np.asarray(base, dtype=float)
+        + height / 2 * np.asarray(axis, dtype=float)
+        + np.asarray(shift, dtype=float)
+    )
+    void = np.pi * radius**2 * height
+    volume = box_volume - void
+    area = box_area + 2 * np.pi * radius * height - 2 * np.pi * radius**2
+    centroid = (box_volume * box_center - void * center) / volume
+    return volume, area, centroid
+
+
+def test_merge_same_domain_recovers_axially_split_hole():
+    base, axis, height = (10, 12, 0), (0, 0, 1), 6
+    shape = BRepPrimAPI_MakeBox(40, 24, 6).Shape()
+    a = cylinder(base, axis, 2, height / 2)
+    b = cylinder((10, 12, height / 2), axis, 2, height / 2)
+    # Same construction as the rejected "split" case: a coplanar Boolean seam
+    # divides the otherwise complete cylindrical wall into two faces.
+    tool = BRepAlgoAPI_Fuse(a, b).Shape()
+    split = BRepAlgoAPI_Cut(shape, tool).Shape()
+
+    with pytest.raises(ValueError, match="No supported through-holes"):
+        prepare_hole_edit(split)
+
+    edit = ordered_edit(split, merge_same_domain=True, deflection=0.0001)
+    assert len(edit.holes) == 1
+    radii = jnp.array([2.6])
+    shifts = jnp.array([[0.1, -0.05, 0.0]])
+    volume, area, center = _single_hole_box_measures(
+        base, axis, height, float(radii[0]), (0.1, -0.05, 0.0)
+    )
+    np.testing.assert_allclose(metrics(edit.model, radii), [volume, area], rtol=1e-5)
+    np.testing.assert_allclose(
+        edit.model.center_of_mass(radii, shifts), center, atol=1e-5
+    )
+    rebuilt = edit.rebuild(radii, shifts)
+    np.testing.assert_allclose(cad_metrics(rebuilt)[0], [volume, area], rtol=1e-9)
+
+
+def test_merge_same_domain_recovers_half_cylinder_faces():
+    base, axis, height, radius0 = (10, 12, 0), (0, 0, 1), 6, 2.0
+    box = BRepPrimAPI_MakeBox(40, 24, 6).Shape()
+    tool = cylinder(base, axis, radius0, height)
+    shape = BRepAlgoAPI_Cut(box, tool).Shape()
+    # ShapeUpgrade_ShapeDivideClosed splits the periodic cylindrical face at
+    # one seam, as a STEP exporter's own face partition commonly does.
+    divider = ShapeUpgrade_ShapeDivideClosed(shape)
+    divider.SetNbSplitPoints(1)
+    assert divider.Perform()
+    split = divider.Result()
+
+    with pytest.raises(ValueError, match="No supported through-holes"):
+        prepare_hole_edit(split)
+
+    edit = ordered_edit(split, merge_same_domain=True, deflection=0.0001)
+    assert len(edit.holes) == 1
+    radii = jnp.array([2.6])
+    volume, area, center = _single_hole_box_measures(
+        base, axis, height, float(radii[0])
+    )
+    np.testing.assert_allclose(metrics(edit.model, radii), [volume, area], rtol=1e-5)
+    np.testing.assert_allclose(edit.model.center_of_mass(radii), center, atol=1e-5)
+    rebuilt = edit.rebuild(radii)
+    np.testing.assert_allclose(cad_metrics(rebuilt)[0], [volume, area], rtol=1e-9)
+
+
+def test_merge_same_domain_default_is_unchanged():
+    shape, *_ = stock("rectangular")
+    default = prepare_hole_edit(shape, deflection=0.0001)
+    explicit = prepare_hole_edit(shape, merge_same_domain=False, deflection=0.0001)
+    assert [h.face_id for h in default.holes] == [h.face_id for h in explicit.holes]
+    np.testing.assert_array_equal(
+        np.asarray(default.model.vertices), np.asarray(explicit.model.vertices)
+    )
+    np.testing.assert_array_equal(
+        np.asarray(default.model.faces), np.asarray(explicit.model.faces)
+    )
 
 
 def test_invalid_inputs_and_traced_failure_mask():

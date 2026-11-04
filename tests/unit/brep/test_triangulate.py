@@ -12,19 +12,22 @@ import pytest
 from hypothesis import example, given, settings
 from hypothesis import strategies as st
 from OCP.BRep import BRep_Builder
+from OCP.BRepAdaptor import BRepAdaptor_Surface
 from OCP.BRepBuilderAPI import (
     BRepBuilderAPI_MakeEdge,
     BRepBuilderAPI_MakeFace,
     BRepBuilderAPI_MakeWire,
     BRepBuilderAPI_NurbsConvert,
+    BRepBuilderAPI_Transform,
 )
 from OCP.BRepCheck import BRepCheck_Analyzer
 from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism, BRepPrimAPI_MakeSphere
-from OCP.Geom import Geom_BezierCurve
-from OCP.gp import gp_Pln, gp_Pnt, gp_Vec
+from OCP.Geom import Geom_BezierCurve, Geom_BSplineSurface
+from OCP.gp import gp_Pln, gp_Pnt, gp_Trsf, gp_Vec
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
-from OCP.TColgp import TColgp_Array1OfPnt
+from OCP.TColgp import TColgp_Array1OfPnt, TColgp_Array2OfPnt
+from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
 from OCP.TopoDS import TopoDS_Compound
 
 from benchmarks.abc_evaluation import evaluate_step as evaluation
@@ -33,6 +36,7 @@ from brepax.brep.gprop import compute_gprop_ground_truth
 from brepax.brep.triangulate import (
     _eval_sphere,
     _extract_ax3,
+    _extract_face_geometric_params,
     divergence_volume,
     evaluate_mesh,
     extract_mesh_topology,
@@ -43,6 +47,7 @@ from brepax.brep.triangulate import (
     triangulate_shape,
 )
 from brepax.io.step import read_step
+from brepax.nurbs.evaluate import evaluate_surface
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
@@ -347,6 +352,100 @@ class TestTriangulateShape:
         assert tris.shape == (0, 3, 3)
         assert params == []
         assert extract_mesh_topology(compound) == []
+
+
+def _single_span_bspline_surface() -> Geom_BSplineSurface:
+    """Build a clamped, non-rational, degree-3 x degree-3 BSpline patch.
+
+    4x4 non-planar control points on the unit knot domain ``[0, 1]`` in
+    both directions, matching the clamped convention the flat-knot
+    evaluator in ``nurbs/evaluate.py`` assumes.
+    """
+    poles = TColgp_Array2OfPnt(1, 4, 1, 4)
+    for i in range(1, 5):
+        for j in range(1, 5):
+            poles.SetValue(i, j, gp_Pnt(float(i), float(j), float(i * j)))
+    knots = TColStd_Array1OfReal(1, 2)
+    knots.SetValue(1, 0.0)
+    knots.SetValue(2, 1.0)
+    mults = TColStd_Array1OfInteger(1, 2)
+    mults.SetValue(1, 4)
+    mults.SetValue(2, 4)
+    return Geom_BSplineSurface(poles, knots, knots, mults, mults, 3, 3)
+
+
+class TestBsplineMeshParameterExtension:
+    """Tests for evaluating out-of-domain B-spline mesh UV parameters.
+
+    OCCT's mesher can place a trimmed-face mesh node outside the
+    surface's knot domain (observed up to ~3.3e-4 on a real NIST part,
+    not just a roundoff-sized overshoot); ``Geom_BSplineSurface::Value``
+    still evaluates it there by continuing the end span's polynomial
+    piece. ``triangulate_shape`` passes mesh UV parameters through
+    unmodified (see ``bspline_basis`` in ``nurbs/evaluate.py``), so an
+    out-of-domain parameter must evaluate to the same point as OCCT,
+    not the origin a vanishing basis used to produce.
+    """
+
+    def test_out_of_domain_mesh_parameter_matches_occt_not_origin(self) -> None:
+        """Reproduces the defect directly and checks the fix against OCCT."""
+        bspl = _single_span_bspline_surface()
+        face = BRepBuilderAPI_MakeFace(bspl, 1e-6).Face()
+        adaptor = BRepAdaptor_Surface(face)
+        result = _extract_face_geometric_params(adaptor)
+        assert result is not None
+        surface_type, params = result
+        assert surface_type == "bspline"
+
+        knots_u = params["knots_u"]
+        degree_u = params["deg_u"]
+        lower_u = float(np.asarray(knots_u)[degree_u])
+        # A few ulps, like the roundoff case, and a much larger
+        # undershoot, like the NIST STC-10 face-139 anomaly: both must
+        # match OCCT, not just the roundoff-sized one.
+        v_mid = 0.5
+        for undershoot in (lower_u - 9 * np.finfo(np.float64).eps, lower_u - 3.3e-4):
+            point = evaluate_surface(
+                params["control_points"],
+                knots_u,
+                params["knots_v"],
+                degree_u,
+                params["deg_v"],
+                jnp.array(undershoot),
+                jnp.array(v_mid),
+            )
+            oracle = bspl.Value(undershoot, v_mid)
+            occt = np.array([oracle.X(), oracle.Y(), oracle.Z()])
+            np.testing.assert_allclose(np.asarray(point), occt, atol=1e-9)
+            # The historical bug: a vanishing basis collapsed this to
+            # the origin, which disagrees with OCCT's own node here.
+            assert not np.allclose(occt, 0.0)
+
+    @pytest.mark.parametrize("fixture", ["nurbs_box", "nurbs_saddle"])
+    def test_no_origin_collapsed_corners_on_tracked_fixtures(
+        self, fixture: str
+    ) -> None:
+        """No BSpline mesh corner collapses to the origin on tracked fixtures.
+
+        Both tracked fixtures happen to have a legitimate mesh vertex
+        at the world origin, so this translates the shape by a large,
+        arbitrary offset first: UV knot parametrization is unaffected
+        by a rigid transform, so any post-translation corner still at
+        the origin can only be a vanishing-basis artifact, not a
+        coincidentally-placed real point.
+        """
+        offset = gp_Vec(1234.5, -6789.25, 42.75)
+        transform = gp_Trsf()
+        transform.SetTranslation(offset)
+
+        shape = read_step(FIXTURES / f"{fixture}.step")
+        moved = BRepBuilderAPI_Transform(shape, transform, True).Shape()
+
+        triangles, params = triangulate_shape(moved)
+        assert any(p["surface_type"] == "bspline" for p in params)
+        corners = np.asarray(triangles).reshape(-1, 3)
+        n_origin = int(np.sum(np.all(corners == 0.0, axis=-1)))
+        assert n_origin == 0
 
 
 class TestMeshMetrics:
