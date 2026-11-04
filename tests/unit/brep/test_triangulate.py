@@ -1399,6 +1399,22 @@ class TestTriangulateShapeWatertight:
         # at that scale without indicating a real discrepancy.
         np.testing.assert_allclose(mesh.max_gap, eager.max_gap, atol=1e-9)
 
+    def test_topology_is_a_valid_jit_static_argument(self) -> None:
+        """A topology can be passed to ``jit`` as a static argument.
+
+        JAX hashes static arguments; the topology holds lists and arrays,
+        so it must hash and compare by identity.
+        """
+        topology = extract_watertight_topology(read_step(FIXTURES / "nurbs_box.step"))
+        jitted = jax.jit(evaluate_watertight_mesh, static_argnums=0)
+        mesh = jitted(topology, topology.params_list)
+        eager = evaluate_watertight_mesh(topology, topology.params_list)
+        np.testing.assert_allclose(mesh.vertices, eager.vertices, atol=1e-12)
+        assert topology == topology
+        assert topology != extract_watertight_topology(
+            read_step(FIXTURES / "nurbs_box.step")
+        )
+
     def test_evaluate_watertight_mesh_returns_from_jit_and_vmap(self) -> None:
         """A ``WatertightMesh`` is a registered pytree (an ``equinox.Module``
         of arrays only), so ``jax.jit`` and ``jax.vmap`` can return it

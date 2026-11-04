@@ -1008,7 +1008,9 @@ def _weld_shared_vertices(
         # discretizations of the same curve), so both sides should agree up
         # to floating-point roundoff -- not an adjustable weld tolerance.
         scale = max(1.0, float(np.ptp(params_a)))
-        if not np.allclose(params_a[order_a], params_b[order_b], atol=1e-9 * scale):
+        if not np.allclose(
+            params_a[order_a], params_b[order_b], rtol=0.0, atol=1e-9 * scale
+        ):
             raise ValueError(
                 "Shared edge discretizations disagree in curve parameter "
                 "beyond floating-point roundoff"
@@ -1187,7 +1189,9 @@ class WatertightMesh(eqx.Module):
     ``tolerance`` argument of :func:`triangulate_shape_watertight`."""
 
 
-@dataclass(frozen=True)
+# Identity equality and hashing: the fields hold lists and arrays, and a
+# topology is built once per shape and passed to jit as a static argument.
+@dataclass(frozen=True, eq=False)
 class WatertightTopology:
     """Frozen host-side topology feeding :func:`evaluate_watertight_mesh`.
 

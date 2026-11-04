@@ -37,7 +37,7 @@ shared vertex's representative, which silently gives `d(vertex)/d(params)`
 one-sided: the other incident face's shape-derivative contribution at that
 row is zero, biasing any future optimization that moves both adjacent
 surfaces, and on NIST FTC-07/STC-07 (and STC-10) picking the worse of the two
-sides inflated an existing, narrow evaluator defect (see below) up to 46%
+sides inflated a since-fixed evaluator defect (see below) up to 46%
 relative area error with no signal that anything was wrong.
 
 ## Decision
@@ -122,53 +122,39 @@ applied) on four representative fixtures. A recorded hash is not a
 portable reference, because OCCT's mesh itself differs between platforms:
 `sample_sphere` has 2996 triangles on macOS and 3000 on Linux.
 
-Investigating the prototype's FTC-07/STC-07/STC-10 discrepancy (a prior,
-unmerged spike that picked one of the two incident faces' evaluations as
-each shared vertex's representative, rather than averaging) found it is not
-a parametrization-mismatch bug that prototype introduced. Both the unchanged
-`triangulate_shape` and the new watertight path reuse the same
-`_snap_mesh_parameters_to_knot_domain` function, whose ulp-based overshoot
-tolerance is occasionally too tight (observed roughly 9-10 ulps on these
-specific B-spline faces, against an 8-ulp allowance), leaving a handful of
-mesh boundary nodes a few ulps outside their face's clamped knot domain.
-Evaluating a clamped B-spline basis there returns the degenerate
-all-basis-functions-vanish fallback the function's own docstring already
-describes, collapsing those nodes to the origin. This defect already exists
-on `main`, independent of this change: `triangulate_shape` has 403 of 92,058
-triangle corners collapsed to the origin on FTC-07 alone, contributing part
-of its existing ~0.3-1% baseline error. Welding does not introduce this
-defect, but it does spread each defective node's influence from one face's
-own triangles to the correctly evaluated neighboring face sharing that edge,
-which is why the welded relative error is larger (up to several percent
-volume, tens of percent area) than the unwelded baseline on exactly these
-three fixtures. `max_gap` reports this directly (tens to hundreds of working
-units, far past any plausible CAD tolerance), so passing the shape's own
-tolerance rejects these three meshes instead of silently returning them.
-Fixing the evaluator's ulp threshold itself is a separate, pre-existing
-numerical defect in a shared function used by both triangulation modes, out
-of this decision's scope (tracked separately).
+An earlier spike reported several percent volume error on FTC-07, STC-07
+and STC-10. Welding was not the cause. OCCT placed some B-spline mesh nodes
+slightly outside the knot domain, where `bspline_basis` returned a zero
+basis and moved them to the origin, in both triangulation modes; welding
+only spread each bad node to the neighboring face. `bspline_basis` now
+continues the end polynomial pieces outside the domain, as
+`Geom_BSplineSurface::Value` does. Re-measured on each of the 39 local
+fixture solids alone, against OCCT `GProp` of that solid at the default
+deflection: every mesh closes; the relative volume error is at most
+1.4e-4 on the NIST parts (FTC-07 5.3e-6, STC-07 2.9e-6, STC-10 1.4e-4)
+and at most 6.3e-3 on the coarse analytic samples, where it is
+discretization error. `max_gap` bounds the raw disagreement between
+incident faces before averaging, not the error of the averaged mesh. It
+reaches 3.1e-2, 7.9e-3 and 6.2e-3 model units on those three parts and
+0.11 on CTC-02, whose volume error is 2.1e-5; the source of these gaps has
+not been investigated.
 
-`prepare_hole_edit`'s `triangulate_shape` + `closed_mesh` weld is a clean
-drop-in replacement for `triangulate_shape_watertight` (verified against all
-39 local fixtures without changing `_hole_mesh.py`'s API), but is not wired in
-by this decision: `closed_mesh`'s position-based weld keeps whichever
-duplicate point it meets first, while watertight welding averages, so
-swapping it changes `prepare_hole_edit`'s computed vertex positions (and
-therefore its downstream volumes and gradients) on every fixture, not just
-the 8 that previously failed to close. On well-behaved fixtures that shift
-is sub-tolerance; on the three evaluator-defective fixtures above it is not
-(the same tens-to-hundreds-of-working-units gap described above). That mix
-of a usually-small but occasionally large numerical change to an
-experimental public contract with its own tests should be a separate,
-deliberately scoped change.
+`triangulate_shape_watertight` can replace the `triangulate_shape` +
+`closed_mesh` weld in `prepare_hole_edit`, but this decision does not wire
+it in. `closed_mesh`'s position-based weld keeps whichever duplicate point
+it meets first, while watertight welding averages, so the swap changes
+`prepare_hole_edit`'s vertex positions, volumes and gradients on every
+fixture, not only on the solids that previously failed to close. That
+numerical change to an experimental public contract belongs in a separate
+change with its own measurements.
 
 ## Consequences
 
 Easier:
 
-- 38 of the 39 local NIST, FreeCAD and misc solids close under
-  `triangulate_shape_watertight` (the 39th, `nurbs_saddle.step`, is a single
-  open B-spline patch with a genuine free boundary, not a solid).
+- All 39 solids in the local NIST, FreeCAD and misc fixtures close under
+  `triangulate_shape_watertight`. `nurbs_saddle.step`, a single open
+  B-spline patch with a genuine free boundary, contains no solid.
 - A caller can differentiate, `jit`, or `vmap` a mesh metric with respect to
   specific per-face surface parameters (e.g. one face's B-spline control
   points) through `evaluate_watertight_mesh`, with a shape derivative that is
