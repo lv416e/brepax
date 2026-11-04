@@ -1424,6 +1424,106 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#certified-minimal-dimension-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Certified minimal dimension changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Certified minimal dimension changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contract-and-limits_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contract and limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dimension_query
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="dimension_query">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.DimensionQueryResult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DimensionQueryResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.DimensionLaw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DimensionLaw
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.minimal_volume_change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        minimal_volume_change
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.face_offset_laws" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        face_offset_laws
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.hole_radius_laws" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hole_radius_laws
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#circular-cut-crossing-a-plate-edge" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3817,6 +3917,106 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#certified-minimal-dimension-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Certified minimal dimension changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Certified minimal dimension changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contract-and-limits_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contract and limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dimension_query
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="dimension_query">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.DimensionQueryResult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DimensionQueryResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.DimensionLaw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DimensionLaw
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.minimal_volume_change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        minimal_volume_change
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.face_offset_laws" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        face_offset_laws
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.dimension_query.hole_radius_laws" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hole_radius_laws
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#circular-cut-crossing-a-plate-edge" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6031,6 +6231,307 @@ edited_cad = edit.rebuild(offsets)</p>
 
     </div>
 
+</div><h2 id="certified-minimal-dimension-changes">Certified minimal dimension changes<a class="headerlink" href="#certified-minimal-dimension-changes" title="Permanent link">&para;</a></h2>
+<p><code>minimal_volume_change</code> asks for the cheapest weighted change of dimension
+handles that brings the volume change into a band. It returns a rechecked
+witness, a proof that no handle values in the box reach the band, or an
+explicitly unresolved result. Handles come from prepared through-holes
+(radius) and planar faces (offset).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.applications.dimension_query</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">face_offset_laws</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">minimal_volume_change</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.applications.face_offset</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">prepare_face_offset</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">recognize_face_offsets</span><span class="p">,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">)</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.io.step</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_step</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">shape</span> <span class="o">=</span> <span class="n">read_step</span><span class="p">(</span><span class="s2">&quot;part.step&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">faces</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recognize_face_offsets</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="n">edit</span> <span class="o">=</span> <span class="n">prepare_face_offset</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">[</span><span class="n">faces</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">face_id</span><span class="p">,</span> <span class="n">faces</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">face_id</span><span class="p">])</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="n">volume</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">edit</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">volume</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="n">result</span> <span class="o">=</span> <span class="n">minimal_volume_change</span><span class="p">(</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="n">face_offset_laws</span><span class="p">(</span><span class="n">edit</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.02</span> <span class="o">*</span> <span class="n">volume</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.015</span> <span class="o">*</span> <span class="n">volume</span><span class="p">)</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="p">)</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;optimal_within_tolerance&quot;</span><span class="p">:</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>    <span class="n">edited_shape</span> <span class="o">=</span> <span class="n">edit</span><span class="o">.</span><span class="n">rebuild</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+</code></pre></div>
+<h3 id="contract-and-limits_2">Contract and limits<a class="headerlink" href="#contract-and-limits_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Each handle contributes an exact univariate law: <code>area * offset</code> for a
+  face and <code>-pi * height * (r**2 - r0**2)</code> for a hole radius. The
+  coefficients are the prepared measurements, converted exactly to
+  rationals; pi is enclosed between rationals 1e-40 apart. Results
+  certify this represented model, not the source CAD; rebuild and validate
+  a witness before using it.</li>
+<li>The cost is <code>sum(weight * abs(value - reference))</code>, with every handle
+  kept in its prepared interval. Laws must be monotone on their intervals.</li>
+<li><code>optimal_within_tolerance</code>: <code>values</code> is a float vector whose volume
+  change, evaluated exactly for every pi in the enclosure, lies in the
+  band, and <code>lower_bound</code> bounds the cost of every handle vector in the box
+  that reaches the band. Lower bounds come from exact convex hulls of each
+  handle's (volume, cost) curve.</li>
+<li><code>infeasible</code>: <code>reachable</code>, the exact range of the volume change over the
+  box, misses the band.</li>
+<li><code>unresolved</code>: the node budget ran out. <code>lower_bound</code> still holds, and
+  <code>values</code> is the best witness found, if any.</li>
+<li>A minimal witness usually lies on an edge of the band. The rebuilt CAD
+  matches the law only within the rebuild's validation bound, which grows
+  with the CAD tolerance, so its measured volume can fall just outside the
+  band. On <code>occt_linkrods</code> (tolerance 3.3e-3), a hole witness on the band
+  edge rebuilt just outside it. When the rebuilt part itself must be in
+  the band, query a band narrowed by that allowance.</li>
+<li>Handle intervals are the only constraints the query sees. A hole edit
+  can also reject radii inside its bounds through the mesh orientation
+  check of <code>edit.model.is_valid</code>; the lower bound still holds for the radii
+  it accepts, but check a hole witness with it before <code>edit.rebuild</code>.</li>
+<li>Only the volume is constrained. Center-of-mass targets, hole center
+  shifts and handles of different prepared edits rebuilt together are not
+  supported yet.</li>
+</ul>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="brepax.experimental.applications.dimension_query" class="doc doc-heading">
+            <code>brepax.experimental.applications.dimension_query</code>
+
+
+<a href="#brepax.experimental.applications.dimension_query" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Certified minimal changes of dimension handles that reach a volume band.</p>
+<p>Each handle contributes an exact univariate volume law in its own value.
+Holes contribute <code>-pi * height * (r**2 - r0**2)</code> and planar faces
+<code>area * offset</code>. Because the laws add up, the reachable volume over the
+handle box is exact, and the cheapest weighted change reaching a band is
+found by branch and bound with exact rational lower bounds. The certificate
+applies to the represented laws, whose coefficients are the prepared
+measurements; only a validated rebuild connects a witness to edited CAD.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="brepax.experimental.applications.dimension_query.DimensionQueryResult" class="doc doc-heading">
+            <code>DimensionQueryResult</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#brepax.experimental.applications.dimension_query.DimensionQueryResult" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Outcome of :func:<code>minimal_volume_change</code>.</p>
+<p><code>optimal_within_tolerance</code>: <code>values</code> reach the band for every value
+of pi in the enclosure, and no handle values in the box reach it with a
+weighted change below <code>lower_bound</code>, which is within <code>tolerance</code> of
+<code>change</code>. <code>infeasible</code>: <code>reachable</code>, the exact range of the volume
+change over the box (widened by the pi enclosure), misses the band.
+<code>unresolved</code>: the node budget ran out; <code>values</code> is the best witness
+found, if any, and <code>lower_bound</code> still bounds every solution.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="brepax.experimental.applications.dimension_query.DimensionLaw" class="doc doc-heading">
+            <code>DimensionLaw</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#brepax.experimental.applications.dimension_query.DimensionLaw" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Exact volume contribution of one handle as a function of its value.</p>
+<p>The contribution is <code>r(x) - r(x0) + pi * (q(x) - q(x0))</code> with
+<code>r</code> and <code>q</code> given by <code>rational</code> and <code>pi_coefficients</code> (constant,
+linear, quadratic). It must be monotone on <code>[lower, upper]</code>. Lengths
+and volumes use the input CAD's units; <code>weight</code> scales the cost
+<code>weight * abs(x - reference)</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.experimental.applications.dimension_query.minimal_volume_change" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">minimal_volume_change</span><span class="p">(</span><span class="n">laws</span><span class="p">,</span> <span class="n">volume_change</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_nodes</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span></code>
+
+<a href="#brepax.experimental.applications.dimension_query.minimal_volume_change" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Find the cheapest weighted change of handle values reaching a volume band.</p>
+<p><code>volume_change</code> is the band <code>[low, high]</code> for the summed volume
+contributions, in input units cubed. The cost is
+<code>sum(weight * abs(x - reference))</code> over handles, each kept in its
+<code>[lower, upper]</code>. A witness is a float vector checked exactly against
+the band for every pi in the enclosure. Lower bounds come from exact
+convex hulls of each handle's (volume, cost) curve, so the returned
+lower bound holds for every handle vector in the box. <code>tolerance</code> is
+the accepted absolute gap between witness cost and lower bound; it
+defaults to 1e-9 times the total weighted interval width.</p>
+<p>A minimal witness usually lies on an edge of the band, and rebuilt CAD
+matches the law only within its validation bound; narrow the band by
+that allowance when the rebuilt part itself must lie in it. The query
+sees only the intervals of the laws. Checks a prepared edit applies on
+top of them, such as the mesh orientation in
+<code>PreparedHoleEdit.model.is_valid</code>, are not part of it: the lower
+bound still holds for the handle vectors those checks accept, but a
+witness can fail them, so check it before rebuilding.</p>
+<p>Raises ValueError for an empty or inverted band, a law that is not
+monotone on its interval, or a reference outside its interval.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.experimental.applications.dimension_query.face_offset_laws" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">face_offset_laws</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#brepax.experimental.applications.dimension_query.face_offset_laws" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Volume laws <code>area * offset</code> of a prepared face offset, in input units.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brepax.experimental.applications.dimension_query.hole_radius_laws" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">hole_radius_laws</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#brepax.experimental.applications.dimension_query.hole_radius_laws" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Volume laws <code>-pi * height * (r**2 - r0**2)</code> of prepared holes.</p>
+<p>Radii range over the prepared radius bounds with zero center shift. The
+mesh orientation check of <code>edit.model.is_valid</code> can reject radii
+inside those bounds, so check a witness with it before
+<code>edit.rebuild</code>.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
 </div><h2 id="circular-cut-crossing-a-plate-edge">Circular cut crossing a plate edge<a class="headerlink" href="#circular-cut-crossing-a-plate-edge" title="Permanent link">&para;</a></h2>
 <p><code>brepax.experimental.contact</code> evaluates the remaining volume of a rectangular
 plate after a perpendicular circular through-cut, including the transition
@@ -6040,21 +6541,21 @@ STEP input or rebuild a solid; the imported-hole API above retains its
 clearance constraints.</p>
 <p>Use a source checkout containing this experimental module for the example
 and benchmark below.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.contact</span><span class="w"> </span><span class="kn">import</span> <span class="n">plate_with_hole_volume</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">center</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">])</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">half_extents</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">])</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">height</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">volume</span><span class="p">(</span><span class="n">radius</span><span class="p">):</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="k">return</span> <span class="n">plate_with_hole_volume</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">half_extents</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># First contact is at radius 1.5; 1.7 opens the right edge.</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">value</span><span class="p">,</span> <span class="n">derivative</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">value_and_grad</span><span class="p">(</span><span class="n">volume</span><span class="p">))(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mf">1.7</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.contact</span><span class="w"> </span><span class="kn">import</span> <span class="n">plate_with_hole_volume</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">center</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">])</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">half_extents</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">])</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">height</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">volume</span><span class="p">(</span><span class="n">radius</span><span class="p">):</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="k">return</span> <span class="n">plate_with_hole_volume</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">half_extents</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="c1"># First contact is at radius 1.5; 1.7 opens the right edge.</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="n">value</span><span class="p">,</span> <span class="n">derivative</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">value_and_grad</span><span class="p">(</span><span class="n">volume</span><span class="p">))(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mf">1.7</span><span class="p">))</span>
 </code></pre></div>
 <p>Use one length unit and local plate coordinates. All parameters support first
 derivatives; exact contact can have a smooth volume even when the solid's
@@ -6063,7 +6564,7 @@ center at fixed radius correctly has zero volume derivative. See
 <a href="../../architecture/adr/0022-contact-volume-experiment/">ADR-0022</a> for the
 scope, numerical limitations, and comparison requirements.</p>
 <p>Run the independent geometry and estimator comparison from a checkout:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.contact_transition.run<span class="w"> </span>--cad<span class="w"> </span>--output<span class="w"> </span>/tmp/contact.json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.contact_transition.run<span class="w"> </span>--cad<span class="w"> </span>--output<span class="w"> </span>/tmp/contact.json
 </code></pre></div>
 <p>The output retains failed cases, all declared smoothing choices, finite-difference
 steps, fresh OCCT and mesh checks, and synchronized execution costs. Ordinary
@@ -6193,26 +6694,26 @@ changing when two solids move from a known opposing planar contact. It takes
 a convex contact polygon and a translation/rotation direction. Unlike the
 circular-cut example, this is a <strong>one-sided directional response</strong>, generally
 nonlinear in direction, with no single gradient representing every motion.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.planar_contact</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">planar_contact_volume_direction</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">prepare_planar_contact_patch</span><span class="p">,</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">patch</span> <span class="o">=</span> <span class="n">prepare_planar_contact_patch</span><span class="p">(</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="p">[[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">origin</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">basis</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="p">)</span>
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="n">tilts</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="n">response</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span>
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="k">lambda</span> <span class="n">omega</span><span class="p">:</span> <span class="n">planar_contact_volume_direction</span><span class="p">(</span>
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        <span class="n">patch</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">omega</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="p">)</span>
-<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="p">))(</span><span class="n">tilts</span><span class="p">)</span>
-<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="c1"># Both tilts create overlap: response == [1, 1].</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.planar_contact</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">planar_contact_volume_direction</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">prepare_planar_contact_patch</span><span class="p">,</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">patch</span> <span class="o">=</span> <span class="n">prepare_planar_contact_patch</span><span class="p">(</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="p">[[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="n">origin</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">basis</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="p">)</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="n">tilts</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="n">response</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="k">lambda</span> <span class="n">omega</span><span class="p">:</span> <span class="n">planar_contact_volume_direction</span><span class="p">(</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="n">patch</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">omega</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="p">)</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="p">))(</span><span class="n">tilts</span><span class="p">)</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="c1"># Both tilts create overlap: response == [1, 1].</span>
 </code></pre></div>
 <p>The plane normal is the cross product of the basis columns, outward from the
 fixed solid. Inputs use one length unit; translation is length per unit of the
@@ -6235,7 +6736,7 @@ Curved or holed faces, initial overlap, additional contact patches, and general
 nonconvex CAD are outside this selected-face preparation contract. The collection
 API below handles the separate case of explicitly supplied convex cells.</p>
 <p>Run the grouped estimator comparison and fresh CAD direction-selection example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.face_contact.run<span class="w"> </span>--output<span class="w"> </span>/tmp/face-contact.json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.face_contact.run<span class="w"> </span>--output<span class="w"> </span>/tmp/face-contact.json
 </code></pre></div>
 <p>The same finite motion candidates and action step are evaluated with actual CAD
 volumes. Results include calibration choices, five geometry-group splits,
@@ -6774,28 +7275,28 @@ volume response is zero. Shared patch edges are allowed; duplicate cells are
 not.</p>
 <p>For example, a cube approaching the floor and wall of an L-shaped stock has
 two unit-area contact patches:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax._occt.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">BRepPrimAPI_MakeBox</span><span class="p">,</span> <span class="n">gp_Pnt</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.planar_contact</span><span class="w"> </span><span class="kn">import</span> <span class="n">planar_contact_set_volume_direction</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.planar_contact_collection_cad</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">prepare_planar_contact_set_reference</span><span class="p">,</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="p">)</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">fixed</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="n">BRepPrimAPI_MakeBox</span><span class="p">(</span><span class="n">gp_Pnt</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">Shape</span><span class="p">(),</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>    <span class="n">BRepPrimAPI_MakeBox</span><span class="p">(</span><span class="n">gp_Pnt</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">Shape</span><span class="p">(),</span>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="p">]</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="n">moving</span> <span class="o">=</span> <span class="p">[</span><span class="n">BRepPrimAPI_MakeBox</span><span class="p">(</span><span class="n">gp_Pnt</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">Shape</span><span class="p">()]</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="n">prepared</span> <span class="o">=</span> <span class="n">prepare_planar_contact_set_reference</span><span class="p">(</span>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>    <span class="n">fixed</span><span class="p">,</span> <span class="n">moving</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;zero_residual&quot;</span>
-<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="p">)</span>
-<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="n">response</span> <span class="o">=</span> <span class="n">planar_contact_set_volume_direction</span><span class="p">(</span>
-<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>    <span class="n">prepared</span><span class="o">.</span><span class="n">contact_set</span><span class="p">,</span>
-<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>    <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
-<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="p">)</span>  <span class="c1"># 2.0; the finite overlap is 2*t - t**2 for small positive t.</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax._occt.backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">BRepPrimAPI_MakeBox</span><span class="p">,</span> <span class="n">gp_Pnt</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.planar_contact</span><span class="w"> </span><span class="kn">import</span> <span class="n">planar_contact_set_volume_direction</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.planar_contact_collection_cad</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">prepare_planar_contact_set_reference</span><span class="p">,</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="p">)</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="n">fixed</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    <span class="n">BRepPrimAPI_MakeBox</span><span class="p">(</span><span class="n">gp_Pnt</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">Shape</span><span class="p">(),</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="n">BRepPrimAPI_MakeBox</span><span class="p">(</span><span class="n">gp_Pnt</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">Shape</span><span class="p">(),</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="p">]</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">moving</span> <span class="o">=</span> <span class="p">[</span><span class="n">BRepPrimAPI_MakeBox</span><span class="p">(</span><span class="n">gp_Pnt</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">Shape</span><span class="p">()]</span>
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="n">prepared</span> <span class="o">=</span> <span class="n">prepare_planar_contact_set_reference</span><span class="p">(</span>
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>    <span class="n">fixed</span><span class="p">,</span> <span class="n">moving</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;zero_residual&quot;</span>
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="p">)</span>
+<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="n">response</span> <span class="o">=</span> <span class="n">planar_contact_set_volume_direction</span><span class="p">(</span>
+<a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>    <span class="n">prepared</span><span class="o">.</span><span class="n">contact_set</span><span class="p">,</span>
+<a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>    <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="p">)</span>  <span class="c1"># 2.0; the finite overlap is 2*t - t**2 for small positive t.</span>
 </code></pre></div>
 <p>Preparation requires JAX x64. The packed set supports <code>jit</code> and <code>vmap</code>, with
 optional triangle capacity and masks
@@ -6817,8 +7318,8 @@ an explicit design in its working frame and then transforming the contact model
 is a distinct route; finite CAD must still be checked after actual placement.</p>
 <p>The bounded cutter/socket example selects both a direction and a finite amount,
 then executes an actual stock-minus-cutter Boolean edit:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.run<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/multi-contact.json<span class="w"> </span>--step-output<span class="w"> </span>/tmp/cutter-edit.step
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.run<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/multi-contact.json<span class="w"> </span>--step-output<span class="w"> </span>/tmp/cutter-edit.step
 </code></pre></div>
 <p>The report compares target-removal error and fixed-step material removal,
 including single-patch ablations, sampled estimators, actual CAD differences,
@@ -7051,19 +7552,19 @@ rate = planar_contact_set_volume_direction(
 <p><code>brepax.experimental.planar_contact_placement</code> keeps local geometry and a
 common frame instead of baking a transformation into every vertex. With the
 local cells from the preceding example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.planar_contact_placement</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">placed_planar_contact_set_volume_direction</span><span class="p">,</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">prepare_placed_planar_contact_set_reference</span><span class="p">,</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">)</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">placed</span> <span class="o">=</span> <span class="n">prepare_placed_planar_contact_set_reference</span><span class="p">(</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">fixed</span><span class="p">,</span> <span class="n">moving</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">origin</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">length_scale</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;zero_residual&quot;</span><span class="p">,</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="p">)</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">rate</span> <span class="o">=</span> <span class="n">placed_planar_contact_set_volume_direction</span><span class="p">(</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="n">placed</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">0.001</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.001</span><span class="p">]),</span>
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="p">)</span>  <span class="c1"># 2e-9 in world volume units per dimensionless time.</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.planar_contact_placement</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">placed_planar_contact_set_volume_direction</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">prepare_placed_planar_contact_set_reference</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">)</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">placed</span> <span class="o">=</span> <span class="n">prepare_placed_planar_contact_set_reference</span><span class="p">(</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">fixed</span><span class="p">,</span> <span class="n">moving</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">origin</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">length_scale</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;zero_residual&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="p">)</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="n">rate</span> <span class="o">=</span> <span class="n">placed_planar_contact_set_volume_direction</span><span class="p">(</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="n">placed</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">0.001</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.001</span><span class="p">]),</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="p">)</span>  <span class="c1"># 2e-9 in world volume units per dimensionless time.</span>
 </code></pre></div>
 <p>The convention is <code>world = origin + length_scale * rotation @ local</code>.
 World velocities and pivot are pulled back to the local frame. Diagnostics in
@@ -7364,25 +7865,25 @@ into two exact times a few ULP apart. Adjacent pieces with an exactly identical
 total polynomial are coalesced before packing, so such a split disappears when
 the total volume does not change across it; distinct events that cannot be
 packed still raise "no resolvable float64 chamber".</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_translation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">polyhedral_translation_slope</span><span class="p">,</span>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">polyhedral_translation_volume</span><span class="p">,</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">prepare_polyhedral_translation</span><span class="p">,</span>
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="p">)</span>
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="n">box</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">3</span><span class="p">)))</span>
-<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="n">path</span> <span class="o">=</span> <span class="n">prepare_polyhedral_translation</span><span class="p">(</span>
-<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>    <span class="p">[</span><span class="n">box</span><span class="p">],</span> <span class="p">[</span><span class="n">box</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">max_step</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="p">)</span>
-<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="n">value</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">polyhedral_translation_volume</span><span class="p">)(</span><span class="n">path</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>  <span class="c1"># 0.0625</span>
-<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="n">left</span> <span class="o">=</span> <span class="n">polyhedral_translation_slope</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>  <span class="c1"># 2</span>
-<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="n">right</span> <span class="o">=</span> <span class="n">polyhedral_translation_slope</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>  <span class="c1"># -2</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_translation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">polyhedral_translation_slope</span><span class="p">,</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="n">polyhedral_translation_volume</span><span class="p">,</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">prepare_polyhedral_translation</span><span class="p">,</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">)</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="n">box</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">3</span><span class="p">)))</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="n">path</span> <span class="o">=</span> <span class="n">prepare_polyhedral_translation</span><span class="p">(</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>    <span class="p">[</span><span class="n">box</span><span class="p">],</span> <span class="p">[</span><span class="n">box</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">max_step</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="p">)</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="n">value</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">polyhedral_translation_volume</span><span class="p">)(</span><span class="n">path</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>  <span class="c1"># 0.0625</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="n">left</span> <span class="o">=</span> <span class="n">polyhedral_translation_slope</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>  <span class="c1"># 2</span>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="n">right</span> <span class="o">=</span> <span class="n">polyhedral_translation_slope</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>  <span class="c1"># -2</span>
 </code></pre></div>
 <p>This edge-contact example has zero initial slope, grows quadratically, and
 then loses overlap after the event at step one. Values have cubic length units;
@@ -7400,8 +7901,8 @@ Out-of-range queries, and slope requests from a side outside the prepared
 interval, return NaN. Preparation is intended for small convex cells and can
 be expensive. It does not support rotation or certify that a separate CAD
 model matches the represented hulls.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.translation<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/translation.json<span class="w"> </span>--step-output<span class="w"> </span>/tmp/translation-edit.step
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.translation<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/translation.json<span class="w"> </span>--step-output<span class="w"> </span>/tmp/translation-edit.step
 </code></pre></div>
 <p>The benchmark compares independent interval/section references and actual CAD,
 checks event slopes, and executes a target-volume Cut on a known monotone
@@ -7739,30 +8240,30 @@ of the contract.</p>
 to find target-volume positions over the entire prepared translation path.
 It handles multiple roots, roots at extrema, and constant solution intervals.
 These are host queries; they do not differentiate the root-selection operation.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_targets</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="n">polyhedral_translation_range</span><span class="p">,</span>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="n">polyhedral_translation_targets</span><span class="p">,</span>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="p">)</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_translation</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_polyhedral_translation</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="n">box</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">3</span><span class="p">)))</span>
-<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="n">path</span> <span class="o">=</span> <span class="n">prepare_polyhedral_translation</span><span class="p">(</span>
-<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>    <span class="p">[</span><span class="n">box</span><span class="p">],</span> <span class="p">[</span><span class="n">box</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">max_step</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="p">)</span>
-<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="n">solutions</span> <span class="o">=</span> <span class="n">polyhedral_translation_targets</span><span class="p">(</span>
-<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>    <span class="n">path</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
-<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="p">)</span>
-<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="n">steps</span> <span class="o">=</span> <span class="p">[</span><span class="n">root</span><span class="o">.</span><span class="n">step</span> <span class="k">for</span> <span class="n">root</span> <span class="ow">in</span> <span class="n">solutions</span><span class="o">.</span><span class="n">roots</span><span class="p">]</span>  <span class="c1"># [0.5, 1.5]</span>
-<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="n">volume_range</span> <span class="o">=</span> <span class="n">polyhedral_translation_range</span><span class="p">(</span>
-<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>    <span class="n">path</span><span class="p">,</span> <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
-<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="p">)</span>
-<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="c1"># The maximum volume enclosure is exactly [1, 1].</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_targets</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="n">polyhedral_translation_range</span><span class="p">,</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="n">polyhedral_translation_targets</span><span class="p">,</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="p">)</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_translation</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_polyhedral_translation</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="n">box</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">3</span><span class="p">)))</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="n">path</span> <span class="o">=</span> <span class="n">prepare_polyhedral_translation</span><span class="p">(</span>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>    <span class="p">[</span><span class="n">box</span><span class="p">],</span> <span class="p">[</span><span class="n">box</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">max_step</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="p">)</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="n">solutions</span> <span class="o">=</span> <span class="n">polyhedral_translation_targets</span><span class="p">(</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>    <span class="n">path</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="p">)</span>
+<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="n">steps</span> <span class="o">=</span> <span class="p">[</span><span class="n">root</span><span class="o">.</span><span class="n">step</span> <span class="k">for</span> <span class="n">root</span> <span class="ow">in</span> <span class="n">solutions</span><span class="o">.</span><span class="n">roots</span><span class="p">]</span>  <span class="c1"># [0.5, 1.5]</span>
+<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="n">volume_range</span> <span class="o">=</span> <span class="n">polyhedral_translation_range</span><span class="p">(</span>
+<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a>    <span class="n">path</span><span class="p">,</span> <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
+<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a><span class="p">)</span>
+<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a><span class="c1"># The maximum volume enclosure is exactly [1, 1].</span>
 </code></pre></div>
 <p><code>unreachable</code> means no exact solution exists on this represented path.
 <code>unresolved</code> means exact solutions exist but some cannot be returned as
@@ -8162,43 +8663,43 @@ changes the geometry with those parameters. Translation velocity stays fixed.</p
 <p>The following example changes the initial gap and the stock extrusion height.
 At the reference design the target has two positions; the first is a simple
 root whose sensitivity can be evaluated inside its event interval.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_parameter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="n">AffinePolyhedralCell</span><span class="p">,</span>
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="n">polyhedral_parameter_position_sensitivity</span><span class="p">,</span>
-<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="n">prepare_polyhedral_parameter</span><span class="p">,</span>
-<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>    <span class="n">specialize_polyhedral_parameter</span><span class="p">,</span>
-<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="p">)</span>
-<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_targets</span><span class="w"> </span><span class="kn">import</span> <span class="n">polyhedral_translation_targets</span>
-<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>
-<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="n">stock</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
-<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>    <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
-<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="p">])</span>
-<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="n">stock_changes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
-<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="n">stock_changes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="n">tool</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="o">-</span><span class="mf">0.375</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.125</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))))</span>
-<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a><span class="n">tool_changes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
-<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a><span class="n">tool_changes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
-<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a><span class="n">design</span> <span class="o">=</span> <span class="n">prepare_polyhedral_parameter</span><span class="p">(</span>
-<a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">stock</span><span class="p">,</span> <span class="n">stock_changes</span><span class="p">)],</span>
-<a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">tool</span><span class="p">,</span> <span class="n">tool_changes</span><span class="p">)],</span>
-<a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a>    <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">max_step</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
-<a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a><span class="p">)</span>
-<a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a><span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a><span class="n">path</span> <span class="o">=</span> <span class="n">specialize_polyhedral_parameter</span><span class="p">(</span><span class="n">design</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
-<a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a><span class="n">solutions</span> <span class="o">=</span> <span class="n">polyhedral_translation_targets</span><span class="p">(</span>
-<a id="__codelineno-13-32" name="__codelineno-13-32" href="#__codelineno-13-32"></a>    <span class="n">path</span><span class="p">,</span> <span class="mi">15</span> <span class="o">/</span> <span class="mi">128</span><span class="p">,</span> <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
-<a id="__codelineno-13-33" name="__codelineno-13-33" href="#__codelineno-13-33"></a><span class="p">)</span>
-<a id="__codelineno-13-34" name="__codelineno-13-34" href="#__codelineno-13-34"></a><span class="n">steps</span> <span class="o">=</span> <span class="p">[</span><span class="n">root</span><span class="o">.</span><span class="n">step</span> <span class="k">for</span> <span class="n">root</span> <span class="ow">in</span> <span class="n">solutions</span><span class="o">.</span><span class="n">roots</span><span class="p">]</span>  <span class="c1"># [23/32, 5/4]</span>
-<a id="__codelineno-13-35" name="__codelineno-13-35" href="#__codelineno-13-35"></a><span class="n">sensitivity</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">polyhedral_parameter_position_sensitivity</span><span class="p">)(</span>
-<a id="__codelineno-13-36" name="__codelineno-13-36" href="#__codelineno-13-36"></a>    <span class="n">design</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="mi">23</span> <span class="o">/</span> <span class="mi">32</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span>
-<a id="__codelineno-13-37" name="__codelineno-13-37" href="#__codelineno-13-37"></a><span class="p">)</span>  <span class="c1"># [1, -15/32]: fixed physical target, dimensionless design parameters.</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_parameter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">AffinePolyhedralCell</span><span class="p">,</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    <span class="n">polyhedral_parameter_position_sensitivity</span><span class="p">,</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="n">prepare_polyhedral_parameter</span><span class="p">,</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>    <span class="n">specialize_polyhedral_parameter</span><span class="p">,</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="p">)</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_targets</span><span class="w"> </span><span class="kn">import</span> <span class="n">polyhedral_translation_targets</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="n">stock</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>    <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="p">])</span>
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a><span class="n">stock_changes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="n">stock_changes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="n">tool</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="o">-</span><span class="mf">0.375</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.125</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))))</span>
+<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a><span class="n">tool_changes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a><span class="n">tool_changes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a><span class="n">design</span> <span class="o">=</span> <span class="n">prepare_polyhedral_parameter</span><span class="p">(</span>
+<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">stock</span><span class="p">,</span> <span class="n">stock_changes</span><span class="p">)],</span>
+<a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">tool</span><span class="p">,</span> <span class="n">tool_changes</span><span class="p">)],</span>
+<a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a>    <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">max_step</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+<a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a><span class="p">)</span>
+<a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a><span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-14-30" name="__codelineno-14-30" href="#__codelineno-14-30"></a><span class="n">path</span> <span class="o">=</span> <span class="n">specialize_polyhedral_parameter</span><span class="p">(</span><span class="n">design</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+<a id="__codelineno-14-31" name="__codelineno-14-31" href="#__codelineno-14-31"></a><span class="n">solutions</span> <span class="o">=</span> <span class="n">polyhedral_translation_targets</span><span class="p">(</span>
+<a id="__codelineno-14-32" name="__codelineno-14-32" href="#__codelineno-14-32"></a>    <span class="n">path</span><span class="p">,</span> <span class="mi">15</span> <span class="o">/</span> <span class="mi">128</span><span class="p">,</span> <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
+<a id="__codelineno-14-33" name="__codelineno-14-33" href="#__codelineno-14-33"></a><span class="p">)</span>
+<a id="__codelineno-14-34" name="__codelineno-14-34" href="#__codelineno-14-34"></a><span class="n">steps</span> <span class="o">=</span> <span class="p">[</span><span class="n">root</span><span class="o">.</span><span class="n">step</span> <span class="k">for</span> <span class="n">root</span> <span class="ow">in</span> <span class="n">solutions</span><span class="o">.</span><span class="n">roots</span><span class="p">]</span>  <span class="c1"># [23/32, 5/4]</span>
+<a id="__codelineno-14-35" name="__codelineno-14-35" href="#__codelineno-14-35"></a><span class="n">sensitivity</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">polyhedral_parameter_position_sensitivity</span><span class="p">)(</span>
+<a id="__codelineno-14-36" name="__codelineno-14-36" href="#__codelineno-14-36"></a>    <span class="n">design</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="mi">23</span> <span class="o">/</span> <span class="mi">32</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span>
+<a id="__codelineno-14-37" name="__codelineno-14-37" href="#__codelineno-14-37"></a><span class="p">)</span>  <span class="c1"># [1, -15/32]: fixed physical target, dimensionless design parameters.</span>
 </code></pre></div>
 <p>An <code>AffinePolyhedralCell</code> has vertices <code>(N, 3)</code> and parameter displacements
 <code>(P, N, 3)</code>. Its vertex map is affine in <code>theta</code>; vertices, displacement
@@ -8228,8 +8729,8 @@ treatment. Supply <code>target_parameter_gradient</code> when the target itself 
 with the design. For fixed dimensionless parameters, scaling all lengths by
 <code>s</code> scales volume and its parameter derivatives by <code>s**3</code>; convert physical
 length sensitivities by the chain rule. Retain independent CAD validation.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.parametric<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/parametric.json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.parametric<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/parametric.json
 </code></pre></div>
 <p>This benchmark compares finite-profile inversion, first-order proposals and
 CAD-only search on the same supplied translation paths and ranges. It checks
@@ -8667,37 +9168,37 @@ event boundaries or switching between root branches is promised.</p>
 <code>theta=0</code> for a single affine design parameter. It requires fixed facet normals
 and translation velocity, valid bounded cells, disjoint same-body interiors,
 and no initial cross-body overlap throughout its certified region.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_boundary</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    <span class="n">polyhedral_event_boundary_response</span><span class="p">,</span>
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>    <span class="n">prepare_polyhedral_event_boundary</span><span class="p">,</span>
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>    <span class="n">specialize_polyhedral_event_boundary</span><span class="p">,</span>
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="p">)</span>
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">AffinePolyhedralCell</span>
-<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_targets</span><span class="w"> </span><span class="kn">import</span> <span class="n">polyhedral_translation_targets</span>
-<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>
-<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="n">stock</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">3</span><span class="p">)))</span>
-<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="n">tool</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="o">-</span><span class="mf">1.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">))))</span>
-<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="n">changes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
-<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="n">changes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">tool</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mf">1.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
-<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="n">boundary</span> <span class="o">=</span> <span class="n">prepare_polyhedral_event_boundary</span><span class="p">(</span>
-<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">stock</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))],</span>
-<a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">tool</span><span class="p">,</span> <span class="n">changes</span><span class="p">)],</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
-<a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a>    <span class="n">max_step</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">parameter_radius</span><span class="o">=</span><span class="n">Fraction</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
-<a id="__codelineno-15-24" name="__codelineno-15-24" href="#__codelineno-15-24"></a><span class="p">)</span>
-<a id="__codelineno-15-25" name="__codelineno-15-25" href="#__codelineno-15-25"></a><span class="n">response</span> <span class="o">=</span> <span class="n">polyhedral_event_boundary_response</span><span class="p">(</span><span class="n">boundary</span><span class="p">,</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-<a id="__codelineno-15-26" name="__codelineno-15-26" href="#__codelineno-15-26"></a><span class="c1"># Signed left/right theta derivatives are 1 and 0; no ordinary theta derivative.</span>
-<a id="__codelineno-15-27" name="__codelineno-15-27" href="#__codelineno-15-27"></a><span class="n">path</span> <span class="o">=</span> <span class="n">specialize_polyhedral_event_boundary</span><span class="p">(</span><span class="n">boundary</span><span class="p">,</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
-<a id="__codelineno-15-28" name="__codelineno-15-28" href="#__codelineno-15-28"></a><span class="n">solutions</span> <span class="o">=</span> <span class="n">polyhedral_translation_targets</span><span class="p">(</span>
-<a id="__codelineno-15-29" name="__codelineno-15-29" href="#__codelineno-15-29"></a>    <span class="n">path</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
-<a id="__codelineno-15-30" name="__codelineno-15-30" href="#__codelineno-15-30"></a><span class="p">)</span>
-<a id="__codelineno-15-31" name="__codelineno-15-31" href="#__codelineno-15-31"></a><span class="c1"># Full-volume solutions form the interval [3/2, 13/8].</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_boundary</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    <span class="n">polyhedral_event_boundary_response</span><span class="p">,</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>    <span class="n">prepare_polyhedral_event_boundary</span><span class="p">,</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>    <span class="n">specialize_polyhedral_event_boundary</span><span class="p">,</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="p">)</span>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">AffinePolyhedralCell</span>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_targets</span><span class="w"> </span><span class="kn">import</span> <span class="n">polyhedral_translation_targets</span>
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>
+<a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="n">stock</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">3</span><span class="p">)))</span>
+<a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="n">tool</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">((</span><span class="o">-</span><span class="mf">1.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">))))</span>
+<a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a><span class="n">changes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a><span class="n">changes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">tool</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mf">1.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+<a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a><span class="n">boundary</span> <span class="o">=</span> <span class="n">prepare_polyhedral_event_boundary</span><span class="p">(</span>
+<a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">stock</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))],</span>
+<a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">tool</span><span class="p">,</span> <span class="n">changes</span><span class="p">)],</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+<a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a>    <span class="n">max_step</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">parameter_radius</span><span class="o">=</span><span class="n">Fraction</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+<a id="__codelineno-16-24" name="__codelineno-16-24" href="#__codelineno-16-24"></a><span class="p">)</span>
+<a id="__codelineno-16-25" name="__codelineno-16-25" href="#__codelineno-16-25"></a><span class="n">response</span> <span class="o">=</span> <span class="n">polyhedral_event_boundary_response</span><span class="p">(</span><span class="n">boundary</span><span class="p">,</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<a id="__codelineno-16-26" name="__codelineno-16-26" href="#__codelineno-16-26"></a><span class="c1"># Signed left/right theta derivatives are 1 and 0; no ordinary theta derivative.</span>
+<a id="__codelineno-16-27" name="__codelineno-16-27" href="#__codelineno-16-27"></a><span class="n">path</span> <span class="o">=</span> <span class="n">specialize_polyhedral_event_boundary</span><span class="p">(</span><span class="n">boundary</span><span class="p">,</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a><span class="n">solutions</span> <span class="o">=</span> <span class="n">polyhedral_translation_targets</span><span class="p">(</span>
+<a id="__codelineno-16-29" name="__codelineno-16-29" href="#__codelineno-16-29"></a>    <span class="n">path</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
+<a id="__codelineno-16-30" name="__codelineno-16-30" href="#__codelineno-16-30"></a><span class="p">)</span>
+<a id="__codelineno-16-31" name="__codelineno-16-31" href="#__codelineno-16-31"></a><span class="c1"># Full-volume solutions form the interval [3/2, 13/8].</span>
 </code></pre></div>
 <p><code>parameter_radius</code> selects reference points at <code>-radius</code> and <code>+radius</code>; it is
 not a tolerance, finite-difference step, or claimed validity bound. Inspect
@@ -8721,8 +9222,8 @@ design parameter, scaling geometry, displacement coefficients and velocity
 by <code>s &gt; 0</code> scales volume and directional responses by <code>s**3</code>. Exact rigid
 coordinate changes preserve them; independently rounded inputs can change the certificate.
 See the <a href="../../explanation/stratification_theory/#a-supplied-event-order-exchange">directional derivation</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.event_boundary<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/event-boundary.json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.event_boundary<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/event-boundary.json
 </code></pre></div>
 <p>For each supplied design dimension, this bounded comparison finds a target
 position along a prescribed translation path. It compares reuse of a boundary
@@ -9018,20 +9519,20 @@ chooses a parameter and translation step that meet the target-volume allowance,
 while bounding how much the absolute change from an initial parameter could
 still improve. It does not assume a monotone volume or connected feasible set.</p>
 <p>Using <code>boundary</code> from the example above:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_design</span><span class="w"> </span><span class="kn">import</span> <span class="n">polyhedral_design_target</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">polyhedral_design_target</span><span class="p">(</span>
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">boundary</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">parameter_bounds</span><span class="o">=</span><span class="p">(</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)),</span>
-<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">initial_parameter</span><span class="o">=</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
-<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="n">parameter_tolerance</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
-<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
-<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
-<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>    <span class="n">max_boxes</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
-<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="p">)</span>
-<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">witness</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>    <span class="n">theta</span><span class="p">,</span> <span class="n">step</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">witness</span><span class="o">.</span><span class="n">parameter</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">witness</span><span class="o">.</span><span class="n">step</span>
-<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>    <span class="c1"># Validate this numerical design and edit against actual rebuilt CAD.</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_design</span><span class="w"> </span><span class="kn">import</span> <span class="n">polyhedral_design_target</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">polyhedral_design_target</span><span class="p">(</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    <span class="n">boundary</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="n">parameter_bounds</span><span class="o">=</span><span class="p">(</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)),</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>    <span class="n">initial_parameter</span><span class="o">=</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>    <span class="n">parameter_tolerance</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>    <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>    <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>    <span class="n">max_boxes</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="p">)</span>
+<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">witness</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>    <span class="n">theta</span><span class="p">,</span> <span class="n">step</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">witness</span><span class="o">.</span><span class="n">parameter</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">witness</span><span class="o">.</span><span class="n">step</span>
+<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>    <span class="c1"># Validate this numerical design and edit against actual rebuilt CAD.</span>
 </code></pre></div>
 <p>For a supplied event-boundary certificate, the parameter bounds must lie
 strictly inside its open outer endpoints. For continuation, they must lie
@@ -9058,8 +9559,8 @@ and optimal objective values. Scaling geometry, affine displacements and
 velocity by <code>s</code> requires target and volume tolerance to scale by <code>s**3</code>. Exact
 represented-coordinate laws do not certify separately rounded geometry or the accuracy of an OCCT edit. See the
 <a href="../../explanation/stratification_theory/#searching-for-a-feasible-design-across-the-exchange">bound derivation</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.design_search<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/design-search.json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.design_search<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/design-search.json
 </code></pre></div>
 <p>The bounded comparison searches the design dimension as well as translation.
 It compares the certified model with complete fixed-profile rebuilding and
@@ -9355,25 +9856,25 @@ retains the same explicit convex cells, one affine design parameter, fixed
 facet normals and fixed translation velocity as the local parameter model.
 It does not require event positions or trial radii from the caller.</p>
 <p>Using <code>stock</code>, <code>tool</code>, and <code>changes</code> from the event-boundary example above:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_continuation</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_polyhedral_continuation</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="n">coverage</span> <span class="o">=</span> <span class="n">prepare_polyhedral_continuation</span><span class="p">(</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">stock</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))],</span>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">tool</span><span class="p">,</span> <span class="n">changes</span><span class="p">)],</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>    <span class="n">max_step</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>    <span class="n">parameter_bounds</span><span class="o">=</span><span class="p">(</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)),</span>
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>    <span class="n">seed_parameter</span><span class="o">=</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
-<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>    <span class="n">max_charts</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>    <span class="n">max_center_trials</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="p">)</span>
-<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="n">result</span> <span class="o">=</span> <span class="n">polyhedral_design_target</span><span class="p">(</span>
-<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>    <span class="n">coverage</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>    <span class="n">parameter_bounds</span><span class="o">=</span><span class="n">coverage</span><span class="o">.</span><span class="n">parameter_bounds</span><span class="p">,</span>
-<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>    <span class="n">initial_parameter</span><span class="o">=</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
-<a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>    <span class="n">parameter_tolerance</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
-<a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>    <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
-<a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>    <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
-<a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.polyhedral_continuation</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_polyhedral_continuation</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="n">coverage</span> <span class="o">=</span> <span class="n">prepare_polyhedral_continuation</span><span class="p">(</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">stock</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))],</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    <span class="p">[</span><span class="n">AffinePolyhedralCell</span><span class="p">(</span><span class="n">tool</span><span class="p">,</span> <span class="n">changes</span><span class="p">)],</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>    <span class="n">max_step</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>    <span class="n">parameter_bounds</span><span class="o">=</span><span class="p">(</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)),</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>    <span class="n">seed_parameter</span><span class="o">=</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>    <span class="n">max_charts</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>    <span class="n">max_center_trials</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="p">)</span>
+<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a><span class="n">result</span> <span class="o">=</span> <span class="n">polyhedral_design_target</span><span class="p">(</span>
+<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>    <span class="n">coverage</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a>    <span class="n">parameter_bounds</span><span class="o">=</span><span class="n">coverage</span><span class="o">.</span><span class="n">parameter_bounds</span><span class="p">,</span>
+<a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a>    <span class="n">initial_parameter</span><span class="o">=</span><span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+<a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a>    <span class="n">parameter_tolerance</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+<a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a>    <span class="n">step_tolerance</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
+<a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a>    <span class="n">volume_tolerance</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+<a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a><span class="p">)</span>
 </code></pre></div>
 <p>The original cells at parameter zero must admit fixed-normal preparation, and
 the seed must admit a regular local chart. A nonregular seed, an unsupported
@@ -9395,8 +9896,8 @@ equal-cost numerical edits are not promised to be equivariant. Simultaneous
 event exchanges, general geometric changes, arbitrary STEP decomposition and
 gradients of the selected design remain outside this contract. See the
 <a href="../../explanation/stratification_theory/#discovering-adjacent-parameter-regions">continuation argument</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.continuation<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/continuation.json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.continuation<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/continuation.json
 </code></pre></div>
 <p>The comparison uses stepped and oblique geometry mechanisms, with separate
 unsupported-frontier controls. It supplies no event locations to the automatic
@@ -9661,8 +10162,8 @@ or coefficient scales even when the host parameter is certified.</p>
     </div>
 
 </div><h3 id="selecting-finite-edits-with-a-cad-budget">Selecting finite edits with a CAD budget<a class="headerlink" href="#selecting-finite-edits-with-a-cad-budget" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.selection<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/finite-selection.json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>benchmark<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>benchmarks.multi_contact.selection<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span>--output<span class="w"> </span>/tmp/finite-selection.json
 </code></pre></div>
 <p>This benchmark compares analytical candidate ordering and CAD confirmation
 with CAD-only adaptive selection. Its separate amount-refinement panel uses
