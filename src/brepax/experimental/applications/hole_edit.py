@@ -18,7 +18,7 @@ from brepax.brep.triangulate import (
     divergence_volume,
     mesh_center_of_mass,
     mesh_surface_area,
-    triangulate_shape,
+    triangulate_shape_watertight,
 )
 from brepax.experimental.applications._hole_geometry import (
     RejectedHole,
@@ -29,7 +29,7 @@ from brepax.experimental.applications._hole_geometry import (
     recognize_holes,
     unify_same_domain,
 )
-from brepax.experimental.applications._hole_mesh import closed_mesh, displacement_fields
+from brepax.experimental.applications._hole_mesh import displacement_fields
 from brepax.experimental.applications.cad_frame import CadFrame
 
 
@@ -335,8 +335,9 @@ def prepare_hole_edit(
         selected = tuple(by_id[i] for i in ids)
     if not selected:
         raise ValueError(f"No supported through-holes selected; rejected={rejected}")
-    triangles, _ = triangulate_shape(working, deflection=deflection)
-    vertices, faces = closed_mesh(np.asarray(triangles), tolerance * 0.1)
+    mesh = triangulate_shape_watertight(working, deflection=deflection)
+    vertices = np.asarray(mesh.vertices)
+    faces = np.asarray(mesh.faces)
     holes = tuple(external_hole(hole, frame) for hole in selected)
     reference = jnp.array([hole.radius for hole in holes])
     fields = displacement_fields(vertices, selected, tolerance)
