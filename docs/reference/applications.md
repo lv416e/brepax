@@ -224,6 +224,79 @@ the scope decision.
         - RejectedFace
       show_source: false
 
+## Certified minimal dimension changes
+
+`minimal_volume_change` asks for the cheapest weighted change of dimension
+handles that brings the volume change into a band. It returns a rechecked
+witness, a proof that no handle values in the box reach the band, or an
+explicitly unresolved result. Handles come from prepared through-holes
+(radius) and planar faces (offset).
+
+```python
+import jax
+import jax.numpy as jnp
+
+from brepax.experimental.applications.dimension_query import (
+    face_offset_laws,
+    minimal_volume_change,
+)
+from brepax.experimental.applications.face_offset import (
+    prepare_face_offset,
+    recognize_face_offsets,
+)
+from brepax.io.step import read_step
+
+jax.config.update("jax_enable_x64", True)
+shape = read_step("part.step")
+faces, _ = recognize_face_offsets(shape)
+edit = prepare_face_offset(shape, [faces[0].face_id, faces[1].face_id])
+volume = float(edit.model.volume(jnp.zeros(2)))
+result = minimal_volume_change(
+    face_offset_laws(edit), (-0.02 * volume, -0.015 * volume)
+)
+if result.status == "optimal_within_tolerance":
+    edited_shape = edit.rebuild(jnp.array(result.values))
+```
+
+### Contract and limits
+
+- Each handle contributes an exact univariate law: `area * offset` for a
+  face and `-pi * height * (r**2 - r0**2)` for a hole radius. The
+  coefficients are the prepared measurements, converted exactly to
+  rationals; pi is enclosed between rationals 1e-40 apart. Results
+  certify this represented model, not the source CAD; rebuild and validate
+  a witness before using it.
+- The cost is `sum(weight * abs(value - reference))`, with every handle
+  kept in its prepared interval. Laws must be monotone on their intervals.
+- `optimal_within_tolerance`: `values` is a float vector whose volume
+  change, evaluated exactly for every pi in the enclosure, lies in the
+  band, and `lower_bound` bounds the cost of every handle vector in the box
+  that reaches the band. Lower bounds come from exact convex hulls of each
+  handle's (volume, cost) curve.
+- `infeasible`: `reachable`, the exact range of the volume change over the
+  box, misses the band.
+- `unresolved`: the node budget ran out. `lower_bound` still holds, and
+  `values` is the best witness found, if any.
+- A minimal witness usually lies on an edge of the band. The rebuilt CAD
+  matches the law only within the rebuild's validation bound, which grows
+  with the CAD tolerance, so its measured volume can fall just outside the
+  band. On `occt_linkrods` (tolerance 3.3e-3), a hole witness on the band
+  edge rebuilt just outside it. When the rebuilt part itself must be in
+  the band, query a band narrowed by that allowance.
+- Only the volume is constrained. Center-of-mass targets, hole center
+  shifts and handles of different prepared edits rebuilt together are not
+  supported yet.
+
+::: brepax.experimental.applications.dimension_query
+    options:
+      members:
+        - minimal_volume_change
+        - DimensionQueryResult
+        - DimensionLaw
+        - face_offset_laws
+        - hole_radius_laws
+      show_source: false
+
 ## Circular cut crossing a plate edge
 
 `brepax.experimental.contact` evaluates the remaining volume of a rectangular
