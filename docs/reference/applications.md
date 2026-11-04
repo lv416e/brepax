@@ -150,6 +150,80 @@ accuracy: check the rebuilt CAD and refine the discretization when necessary.
         - RejectedHole
       show_source: false
 
+## STEP planar face offsets
+
+`recognize_face_offsets` finds planar faces of a supplied B-Rep that can move
+along their outward normals, and `prepare_face_offset` turns selected faces
+into a JAX model of exact volume and center-of-mass laws. The host `rebuild`
+method sweeps each face by its offset, fuses or cuts the swept prism in OCCT,
+and validates the result against the same laws.
+
+```python
+import jax
+import jax.numpy as jnp
+
+from brepax.experimental.applications.face_offset import (
+    prepare_face_offset,
+    recognize_face_offsets,
+)
+from brepax.io.step import read_step
+
+jax.config.update("jax_enable_x64", True)
+shape = read_step("part.step")
+faces, rejected = recognize_face_offsets(shape)
+face = faces[0]
+edit = prepare_face_offset(shape, [face.face_id])
+offsets = jnp.array([face.upper / 2])
+volume, gradient = jax.value_and_grad(edit.model.volume)(offsets)
+center = edit.model.center_of_mass(offsets)
+edited_shape = edit.rebuild(offsets)
+```
+
+### Contract and limits
+
+- A face qualifies when it is planar with a single boundary loop and every
+  neighbor is a perpendicular plane or a cylinder whose axis runs along the
+  face normal. Faces with inner loops, drafted or filleted neighbors, and
+  other neighbor types are reported in `rejected` with a reason.
+- Each face gets a closed interval `[lower, upper]` (input units, positive
+  outward) that ends before the first event: the swept face meeting other
+  material, leaving the solid, or running past the far end of a neighbor.
+  Intervals come from bounding boxes of OCCT Boolean results, so they can
+  only be shorter than the true range, and they keep a margin of 10 CAD
+  tolerances. Travel is capped at twice the part size. A face whose Boolean
+  already disagrees with the law at a tiny offset is rejected.
+- Within the intervals, volume is `V0 + sum(area * offset)` and each face
+  adds `area * offset * (centroid + normal * offset / 2)` to the first
+  moment. These laws are exact for the represented faces; outside the
+  intervals the model returns NaN and `rebuild` raises. Model methods
+  support `jit`, `vmap` and differentiation.
+- Selected faces must be independent: not adjacent, and with disjoint boxes
+  around their full swept ranges. Coupled moves, such as two faces sharing an
+  edge, are out of scope.
+- `rebuild` checks whole-solid volume and first moment first. If those miss
+  the law, a box around each swept slab decides: inside it, the change must
+  match the law within the CAD tolerance; outside it, volume and first
+  moment may change by at most 1e-7 relative. A Boolean can rebuild faces far
+  from the edit, so the edited CAD can differ there by that much. Same-domain
+  faces of the result are unified, so face IDs change.
+- Recognition sweeps and probes every candidate in OCCT and can take seconds
+  per face on large parts. `frame` and `merge_same_domain` behave as in
+  `prepare_hole_edit`.
+
+See [ADR-0023](../architecture/adr/0023-validated-dimension-handles.md) for
+the scope decision.
+
+::: brepax.experimental.applications.face_offset
+    options:
+      members:
+        - recognize_face_offsets
+        - prepare_face_offset
+        - PreparedFaceOffset
+        - FaceOffsetModel
+        - PlanarFace
+        - RejectedFace
+      show_source: false
+
 ## Circular cut crossing a plate edge
 
 `brepax.experimental.contact` evaluates the remaining volume of a rectangular

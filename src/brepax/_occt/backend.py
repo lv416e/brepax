@@ -47,6 +47,8 @@ from OCP.gp import gp_Ax2, gp_Dir, gp_Pln, gp_Pnt, gp_Trsf, gp_Vec
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.ShapeUpgrade import ShapeUpgrade_UnifySameDomain
+from OCP.Standard import Standard_Failure
+from OCP.StdFail import StdFail_NotDone
 from OCP.STEPControl import STEPControl_AsIs, STEPControl_Reader, STEPControl_Writer
 from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
 from OCP.TopAbs import (
@@ -113,6 +115,8 @@ __all__ = [
     "STEPControl_Reader",
     "STEPControl_Writer",
     "ShapeUpgrade_UnifySameDomain",
+    "Standard_Failure",
+    "StdFail_NotDone",
     "TColStd_Array1OfInteger",
     "TColStd_Array1OfReal",
     "TopAbs_EDGE",
