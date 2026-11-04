@@ -19,7 +19,9 @@ one valid solid, with perpendicular planar ends and sufficient clearance.
 Keep recognition, normalization and OCCT reconstruction on the host, behind
 the existing OCCT binding boundary. Keep the JAX model purely array-based.
 
-A fixed reference mesh shares welded vertices. Radial and transverse displacement
+A fixed reference mesh shares welded vertices; it is the watertight
+triangulation of ADR-0024, whose shared vertices come from OCCT's edge
+discretizations rather than from coordinate proximity. Radial and transverse displacement
 move the cylinder and its planar boundary together, tapering to zero before
 reaching another feature. Parameters are external-unit radii and optional
 world-coordinate center shifts, with the hole axis fixed. Omitting shifts

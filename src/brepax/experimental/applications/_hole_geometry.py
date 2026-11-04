@@ -316,6 +316,8 @@ def rebuild_holes(
 ) -> TopoDS_Shape:
     # Each call owns its CAD data; Boolean builders may update input tolerances.
     changed = BRepBuilderAPI_Copy(shape, True, False).Shape()
+    if not holes:
+        return changed
     for operation, sizes, offsets in (
         (BRepAlgoAPI_Fuse, [hole.radius for hole in holes], np.zeros_like(shifts)),
         (BRepAlgoAPI_Cut, radii, shifts),

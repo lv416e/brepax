@@ -18,7 +18,7 @@ from brepax.brep.triangulate import (
     divergence_volume,
     mesh_center_of_mass,
     mesh_surface_area,
-    triangulate_shape,
+    triangulate_shape_watertight,
 )
 from brepax.experimental.applications._hole_geometry import (
     RejectedHole,
@@ -29,7 +29,7 @@ from brepax.experimental.applications._hole_geometry import (
     recognize_holes,
     unify_same_domain,
 )
-from brepax.experimental.applications._hole_mesh import closed_mesh, displacement_fields
+from brepax.experimental.applications._hole_mesh import displacement_fields
 from brepax.experimental.applications.cad_frame import CadFrame
 
 
@@ -220,8 +220,11 @@ class PreparedHoleEdit:
         whole-solid OCCT properties disagree, the removed and added regions must
         still match the edit and stay beside the edited bores. Input CAD
         remains owned by the caller; each reconstruction uses an owned copy.
-        Same-domain faces/edges are unified, so unselected geometry is preserved
-        but original face partitions and IDs are not.
+        Only holes whose radius differs from its reference or whose center
+        moves are filled and cut again; the others keep their imported faces,
+        since a STEP hole wall may deviate from its ideal cylinder within the
+        CAD tolerance. Same-domain faces/edges are unified, so unselected
+        geometry is preserved but original face partitions and IDs are not.
         """
         values = jnp.asarray(radii)
         shifts = self.model._shifts(
@@ -234,11 +237,19 @@ class PreparedHoleEdit:
                 "Invalid radii or center shifts: expected finite bounded values, "
                 "transverse shifts and valid mesh orientation"
             )
+        radius_values = np.asarray(values, dtype=np.float64)
+        transverse = np.asarray(self.model._transverse(shifts))
+        # Compare in caller units: converting a reference radius to working
+        # units and back need not round-trip exactly.
+        edited = np.flatnonzero(
+            (radius_values != np.asarray(self.model.reference_radii))
+            | np.any(transverse != 0, axis=1)
+        )
         working = rebuild_holes(
             self._shape,
-            self._working_holes,
-            np.asarray(values, dtype=np.float64) / self.frame.length_scale,
-            np.asarray(self.model._transverse(shifts)) / self.frame.length_scale,
+            tuple(self._working_holes[i] for i in edited),
+            radius_values[edited] / self.frame.length_scale,
+            transverse[edited] / self.frame.length_scale,
         )
         return self.frame.restore_shape(working)
 
@@ -293,7 +304,9 @@ def prepare_hole_edit(
     usable interval further; callers must check ``model.is_valid``.
 
     Raises ValueError for invalid CAD, unsupported selections, no supported
-    holes, or a mesh that cannot be welded into a closed oriented surface.
+    holes, a mesh that cannot be welded into a closed oriented surface, or
+    incident faces whose mesh nodes disagree by more than twice the shape's
+    CAD tolerance (``WatertightMesh.max_gap``).
     Unsupported surface evaluators raise NotImplementedError. OCCT extraction
     failures propagate. When ``merge_same_domain`` is True, a failed or
     geometry-changing unification also raises ValueError or RuntimeError.
@@ -335,8 +348,13 @@ def prepare_hole_edit(
         selected = tuple(by_id[i] for i in ids)
     if not selected:
         raise ValueError(f"No supported through-holes selected; rejected={rejected}")
-    triangles, _ = triangulate_shape(working, deflection=deflection)
-    vertices, faces = closed_mesh(np.asarray(triangles), tolerance * 0.1)
+    # Two faces sharing an edge each lie within the CAD tolerance of it, so
+    # their mesh nodes there may disagree by up to twice that tolerance.
+    mesh = triangulate_shape_watertight(
+        working, deflection=deflection, tolerance=2 * tolerance
+    )
+    vertices = np.asarray(mesh.vertices)
+    faces = np.asarray(mesh.faces)
     holes = tuple(external_hole(hole, frame) for hole in selected)
     reference = jnp.array([hole.radius for hole in holes])
     fields = displacement_fields(vertices, selected, tolerance)

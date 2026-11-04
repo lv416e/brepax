@@ -752,3 +752,37 @@ def test_rebuild_accepts_exact_edit_beside_bspline_faces(radius, shift):
         domed_plate(), cylinder(base + np.array([0.2, 0, 0]), (0, 0, 1), radius, 6)
     ).Shape()
     assert _local_edit_error(working, misplaced, (hole,), radii, shifts) is not None
+
+
+def test_rebuild_at_reference_returns_the_input_geometry():
+    shape, *_ = stock()
+    edit = prepare_hole_edit(shape)
+    rebuilt = edit.rebuild(edit.model.reference_radii)
+    np.testing.assert_allclose(
+        cad_metrics(rebuilt)[0], cad_metrics(shape)[0], rtol=1e-12
+    )
+
+
+@pytest.mark.slow
+def test_rebuild_leaves_unedited_step_holes_alone():
+    # CTC-05's hole walls deviate from their ideal cylinders within its CAD
+    # tolerance, so filling and re-cutting an unedited hole leaves a sliver
+    # that the region check rejects.
+    path = Path(__file__).resolve().parents[2] / "fixtures" / "nist"
+    path = path / "nist_ctc_05_asme1_rd.stp"
+    if not path.exists():
+        pytest.skip("NIST fixture not available")
+    explorer = TopExp_Explorer(read_step(path), TopAbs_SOLID)
+    edit = prepare_hole_edit(compound(explorer.Current()), merge_same_domain=True)
+    assert len(edit.holes) == 10
+    model = edit.model
+    edit.rebuild(model.reference_radii)
+    radii = model.reference_radii.at[0].set(
+        (model.reference_radii[0] + model.upper_radii[0]) / 2
+    )
+    rebuilt = edit.rebuild(radii)
+    removed = (
+        np.pi * (radii[0] ** 2 - model.reference_radii[0] ** 2) * edit.holes[0].height
+    )
+    before = cad_metrics(compound(explorer.Current()))[0][0]
+    assert cad_metrics(rebuilt)[0][0] == pytest.approx(before - removed, rel=1e-6)
