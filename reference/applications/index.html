@@ -4838,8 +4838,11 @@ or disagreement with isolated-hole volume, area or center of mass. When
 whole-solid OCCT properties disagree, the removed and added regions must
 still match the edit and stay beside the edited bores. Input CAD
 remains owned by the caller; each reconstruction uses an owned copy.
-Same-domain faces/edges are unified, so unselected geometry is preserved
-but original face partitions and IDs are not.</p>
+Only holes whose radius differs from its reference or whose center
+moves are filled and cut again; the others keep their imported faces,
+since a STEP hole wall may deviate from its ideal cylinder within the
+CAD tolerance. Same-domain faces/edges are unified, so unselected
+geometry is preserved but original face partitions and IDs are not.</p>
 
 
     </div>
@@ -5186,7 +5189,9 @@ Geometry outside the radial support stays fixed. These are local edits,
 not a topology-changing CAD kernel. Mesh orientation may restrict the
 usable interval further; callers must check <code>model.is_valid</code>.</p>
 <p>Raises ValueError for invalid CAD, unsupported selections, no supported
-holes, or a mesh that cannot be welded into a closed oriented surface.
+holes, a mesh that cannot be welded into a closed oriented surface, or
+incident faces whose mesh nodes disagree by more than twice the shape's
+CAD tolerance (<code>WatertightMesh.max_gap</code>).
 Unsupported surface evaluators raise NotImplementedError. OCCT extraction
 failures propagate. When <code>merge_same_domain</code> is True, a failed or
 geometry-changing unification also raises ValueError or RuntimeError.
