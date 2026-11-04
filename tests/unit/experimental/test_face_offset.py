@@ -185,3 +185,18 @@ def test_offsets_below_the_cad_tolerance_leave_the_face_in_place():
     edit = prepare_face_offset(shape, [top.face_id, bottom.face_id], frame=UNIT)
     rebuilt = edit.rebuild(jnp.array([-0.5, -4.4e-18]))
     assert mass(rebuilt)[0] == pytest.approx(mass(boss_block(3.5))[0], rel=1e-9)
+
+
+def test_probe_is_rebuilt_on_parts_with_a_large_cad_tolerance():
+    from OCP.ShapeFix import ShapeFix_ShapeTolerance
+    from OCP.TopAbs import TopAbs_SHAPE
+
+    shape = boss_block()
+    ShapeFix_ShapeTolerance().SetTolerance(shape, 0.01, TopAbs_SHAPE)
+    faces, _ = recognize_face_offsets(shape, frame=UNIT)
+    top = next(f for f in faces if np.isclose(f.centroid[2], 10.0))
+    # 10 tolerances of margin; the interval still ends before the boss height.
+    assert -4.0 < top.lower <= -4.0 + 0.1 + 1e-9
+    edit = prepare_face_offset(shape, [top.face_id], frame=UNIT)
+    volume = mass(edit.rebuild(jnp.array([-1.0])))[0]
+    assert volume == pytest.approx(mass(boss_block(3.0))[0], rel=1e-6)

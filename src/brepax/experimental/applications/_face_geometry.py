@@ -23,6 +23,7 @@ from brepax._occt.backend import (
     GeomAbs_Plane,
     GProp_GProps,
     Standard_Failure,
+    StdFail_NotDone,
     TopAbs_EDGE,
     TopAbs_FACE,
     TopAbs_REVERSED,
@@ -53,9 +54,13 @@ from brepax.experimental.applications._hole_geometry import (
 
 # Neighbor directions must agree with the face normal to this cosine slack.
 _ANGLE_SLACK = 1e-9
-# Offset of the Boolean probe that screens out faces whose Booleans already
-# disagree with the law, in working units (the working part spans 40).
+# Smallest offset of the Boolean probe that screens out faces whose Booleans
+# already disagree with the law, in working units (the working part spans
+# 40). The probe also stays 10 CAD tolerances above the shape tolerance so
+# that it is actually rebuilt.
 _PROBE = 1e-3
+# OCP raises these unrelated classes when a sweep or Boolean cannot be built.
+_OCCT_FAILURES = (Standard_Failure, StdFail_NotDone)
 # Longest travel searched for an event, in working units.
 _REACH = 80.0
 
@@ -182,11 +187,16 @@ def _events(
     travel = []
     for sign in (1.0, -1.0):
         limit = _REACH
-        tool = _prism(face, normal, sign * _REACH)
         copy = BRepBuilderAPI_Copy(solid, True, False).Shape()
-        builder = (
-            BRepAlgoAPI_Common(copy, tool) if sign > 0 else BRepAlgoAPI_Cut(tool, copy)
-        )
+        try:
+            tool = _prism(face, normal, sign * _REACH)
+            builder = (
+                BRepAlgoAPI_Common(copy, tool)
+                if sign > 0
+                else BRepAlgoAPI_Cut(tool, copy)
+            )
+        except _OCCT_FAILURES:
+            return None
         if not builder.IsDone():
             return None
         explorer = TopExp_Explorer(builder.Shape(), TopAbs_SOLID)
@@ -301,7 +311,7 @@ def rebuild_faces(
             builder = (BRepAlgoAPI_Fuse if offset > 0 else BRepAlgoAPI_Cut)(
                 changed, tool
             )
-        except Standard_Failure as failure:
+        except _OCCT_FAILURES as failure:
             raise RuntimeError("OCCT face offset failed") from failure
         if not builder.IsDone():
             raise RuntimeError("OCCT face offset failed")
@@ -384,9 +394,12 @@ def recognize_faces(
     A face qualifies when it is planar with a single boundary loop and every
     neighbor is a perpendicular plane or a cylinder whose axis runs along the
     face normal. Its interval comes from :func:`_events`. A face whose
-    Boolean already breaks the law at a 1e-3 working-unit probe in either
-    direction is rejected. ``face_ids`` restricts the search; by default
-    every planar face is examined and every rejected planar face reported.
+    Boolean already breaks the law at a probe offset in either direction is
+    rejected; the probe is 1e-3 working units or 10 CAD tolerances,
+    whichever is larger, and a face whose interval is shorter than the probe
+    on both sides has no admissible offset. ``face_ids`` restricts the
+    search; by default every planar face is examined and every rejected
+    planar face reported.
     """
     tolerance = shape_tolerance(shape)
     faces = _faces(shape)
@@ -434,11 +447,12 @@ def recognize_faces(
             -travel[1],
             travel[0],
         )
-        if record.upper < _PROBE and -record.lower < _PROBE:
+        probe_size = max(_PROBE, 10 * tolerance)
+        if record.upper < probe_size and -record.lower < probe_size:
             rejected.append(RejectedFace(face_id, "no admissible offset"))
             continue
         failure = None
-        for probe in (_PROBE, -_PROBE):
+        for probe in (probe_size, -probe_size):
             if not record.lower <= probe <= record.upper:
                 continue
             try:
