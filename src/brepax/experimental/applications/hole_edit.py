@@ -220,8 +220,11 @@ class PreparedHoleEdit:
         whole-solid OCCT properties disagree, the removed and added regions must
         still match the edit and stay beside the edited bores. Input CAD
         remains owned by the caller; each reconstruction uses an owned copy.
-        Same-domain faces/edges are unified, so unselected geometry is preserved
-        but original face partitions and IDs are not.
+        Only holes whose radius differs from its reference or whose center
+        moves are filled and cut again; the others keep their imported faces,
+        since a STEP hole wall may deviate from its ideal cylinder within the
+        CAD tolerance. Same-domain faces/edges are unified, so unselected
+        geometry is preserved but original face partitions and IDs are not.
         """
         values = jnp.asarray(radii)
         shifts = self.model._shifts(
@@ -234,11 +237,19 @@ class PreparedHoleEdit:
                 "Invalid radii or center shifts: expected finite bounded values, "
                 "transverse shifts and valid mesh orientation"
             )
+        radius_values = np.asarray(values, dtype=np.float64)
+        transverse = np.asarray(self.model._transverse(shifts))
+        # Compare in caller units: converting a reference radius to working
+        # units and back need not round-trip exactly.
+        edited = np.flatnonzero(
+            (radius_values != np.asarray(self.model.reference_radii))
+            | np.any(transverse != 0, axis=1)
+        )
         working = rebuild_holes(
             self._shape,
-            self._working_holes,
-            np.asarray(values, dtype=np.float64) / self.frame.length_scale,
-            np.asarray(self.model._transverse(shifts)) / self.frame.length_scale,
+            tuple(self._working_holes[i] for i in edited),
+            radius_values[edited] / self.frame.length_scale,
+            transverse[edited] / self.frame.length_scale,
         )
         return self.frame.restore_shape(working)
 
