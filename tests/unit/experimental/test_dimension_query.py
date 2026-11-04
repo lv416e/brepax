@@ -142,6 +142,18 @@ def test_node_budget_leaves_a_valid_lower_bound():
     assert capped.lower_bound <= full.change
 
 
+def test_lower_bound_holds_when_the_gap_tolerance_prunes_boxes():
+    laws = (hole_law(1.07, 3.33, weight=2.94), hole_law(0.71, 2.17, weight=1.18))
+    band = (3.25, 3.55)
+    exact = minimal_volume_change(laws, band)
+    assert exact.status == "optimal_within_tolerance"
+    loose = minimal_volume_change(laws, band, tolerance=0.01)
+    assert loose.status == "optimal_within_tolerance"
+    # Boxes discarded as within the gap of the incumbent still count.
+    assert loose.lower_bound <= exact.change
+    assert loose.change - loose.lower_bound <= Fraction(0.01)
+
+
 def test_invalid_inputs_are_refused():
     with pytest.raises(ValueError, match="low <= high"):
         minimal_volume_change((face_law(1.0),), (1.0, 0.0))

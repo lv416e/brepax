@@ -283,6 +283,10 @@ if result.status == "optimal_within_tolerance":
   band. On `occt_linkrods` (tolerance 3.3e-3), a hole witness on the band
   edge rebuilt just outside it. When the rebuilt part itself must be in
   the band, query a band narrowed by that allowance.
+- Handle intervals are the only constraints the query sees. A hole edit
+  can also reject radii inside its bounds through the mesh orientation
+  check of `edit.model.is_valid`; the lower bound still holds for the radii
+  it accepts, but check a hole witness with it before `edit.rebuild`.
 - Only the volume is constrained. Center-of-mass targets, hole center
   shifts and handles of different prepared edits rebuilt together are not
   supported yet.

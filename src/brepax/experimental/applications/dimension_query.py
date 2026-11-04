@@ -349,7 +349,12 @@ def minimal_volume_change(
 
     A minimal witness usually lies on an edge of the band, and rebuilt CAD
     matches the law only within its validation bound; narrow the band by
-    that allowance when the rebuilt part itself must lie in it.
+    that allowance when the rebuilt part itself must lie in it. The query
+    sees only the intervals of the laws. Checks a prepared edit applies on
+    top of them, such as the mesh orientation in
+    ``PreparedHoleEdit.model.is_valid``, are not part of it: the lower
+    bound still holds for the handle vectors those checks accept, but a
+    witness can fail them, so check it before rebuilding.
 
     Raises ValueError for an empty or inverted band, a law that is not
     monotone on its interval, or a reference outside its interval.
@@ -390,8 +395,10 @@ def minimal_volume_change(
         return DimensionQueryResult("infeasible", None, None, None, reachable, None, 0)
     heapq.heappush(heap, (relaxed[0], next(counter), root))
     best: tuple[Fraction, list[float]] | None = None
-    # Bounds of boxes that could be neither split nor resolved.
-    stuck: list[Fraction] = []
+    # Bounds of boxes that could be neither split nor resolved, and of boxes
+    # dropped because they could not improve the incumbent by more than the
+    # gap; both still bound the cost of the solutions they contain.
+    set_aside: list[Fraction] = []
     nodes = 0
     status: Literal["optimal_within_tolerance", "infeasible", "unresolved"]
     while True:
@@ -416,6 +423,7 @@ def minimal_volume_change(
             if found is not None and (best is None or found[0] < best[0]):
                 best = found
         if best is not None and bound >= best[0] - gap:
+            set_aside.append(bound)
             continue
         points = [
             Fraction(_float_value(h, lo, hi, d))
@@ -429,18 +437,20 @@ def minimal_volume_change(
         lo, hi = boxes[j]
         cut = points[j] if lo < points[j] < hi else (lo + hi) / 2
         if not lo < cut < hi:
-            stuck.append(bound)
+            set_aside.append(bound)
             continue
         for part in ((lo, cut), (cut, hi)):
             child = list(boxes)
             child[j] = part
             relaxed_child = _relax(handles, child, bound_band)
-            if relaxed_child is not None and (
-                best is None or relaxed_child[0] < best[0] - gap
-            ):
+            if relaxed_child is None:
+                continue
+            if best is None or relaxed_child[0] < best[0] - gap:
                 heapq.heappush(heap, (relaxed_child[0], next(counter), child))
-    if stuck:
-        floor = min(stuck)
+            else:
+                set_aside.append(relaxed_child[0])
+    if set_aside:
+        floor = min(set_aside)
         lower_bound = floor if lower_bound is None else min(lower_bound, floor)
         if best is None or floor < best[0] - gap:
             status = "unresolved"
@@ -503,7 +513,10 @@ def hole_radius_laws(
 ) -> tuple[DimensionLaw, ...]:
     """Volume laws ``-pi * height * (r**2 - r0**2)`` of prepared holes.
 
-    Radii range over the prepared radius bounds with zero center shift.
+    Radii range over the prepared radius bounds with zero center shift. The
+    mesh orientation check of ``edit.model.is_valid`` can reject radii
+    inside those bounds, so check a witness with it before
+    ``edit.rebuild``.
     """
     weights = [1.0] * len(edit.holes) if weights is None else list(weights)
     if len(weights) != len(edit.holes):
