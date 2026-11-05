@@ -334,7 +334,13 @@ def test_ligament_constraints_change_the_answer_and_the_rebuild_keeps_them():
     assert result.status == "optimal_within_tolerance"
     radii = jnp.asarray(result.values)
     assert result.change > free.change
-    assert jnp.min(edit.model.ligament_bounds(radii)) >= minimum - 1e-12
+    # Exact arithmetic on the measured distance, which is what is promised.
+    travel = sum(
+        abs(Fraction(x) - Fraction(law.reference))
+        for x, law in zip(result.values, laws, strict=True)
+    )
+    between = float(edit.model.hole_clearance[0, 1])
+    assert travel <= Fraction(between) - Fraction(minimum)
     assert band[0] - 1e-9 <= cad_volume_change(edit, radii) <= band[1] + 1e-9
 
 
@@ -366,3 +372,73 @@ def cad_volume_change(edit, radii):
 
     reference = edit.frame.restore_shape(edit.working_shape)
     return measured(edit.rebuild(radii)) - measured(reference)
+
+
+def test_a_zero_slope_at_the_far_end_keeps_the_lower_bound_valid():
+    # Cost against volume is convex here and its slope diverges at x = 0, where
+    # the law is flat; a chord would lie above the curve.
+    laws = (
+        DimensionLaw("a", 1.0, 0.0, 1.0, 1.0, (ZERO, ZERO, Fraction(1)), (ZERO,) * 3),
+        DimensionLaw("b", 0.0, 0.0, 1.0, 0.8, (ZERO, Fraction(-1), ZERO), (ZERO,) * 3),
+    )
+    band = (-0.76, -0.75)
+    result = minimal_volume_change(laws, band, max_nodes=50_000)
+    # Moving a to 0.5 reaches -0.75 at cost 0.5.
+    assert float(result.lower_bound) <= 0.5
+    assert result.status == "optimal_within_tolerance"
+    assert float(result.change) <= 0.5 + 1e-9
+
+
+def plate_with(holes, size=(80, 50, 6)):
+    shape = BRepPrimAPI_MakeBox(*size).Shape()
+    for x, radius in holes:
+        tool = BRepPrimAPI_MakeCylinder(
+            gp_Ax2(gp_Pnt(x, size[1] / 2, 0), gp_Dir(0, 0, 1)), radius, size[2]
+        )
+        shape = BRepAlgoAPI_Cut(shape, tool.Shape()).Shape()
+    frame = CadFrame(1.0, (0.0, 0.0, 0.0))
+    first = prepare_hole_edit(shape, frame=frame)
+    ids = [hole.face_id for hole in sorted(first.holes, key=lambda h: h.base[0])]
+    return prepare_hole_edit(shape, ids, frame=frame)
+
+
+@pytest.mark.parametrize(
+    "holes, minimum, values",
+    [
+        # 7 - 0.1 rounds up as a float, so a limit computed in floats exceeds
+        # the exact room.
+        (((20, 10), (47, 10)), 0.1, (5.0, 8.1)),
+        # The largest travels only just exceed the room, and rounding their sum
+        # can hide that.
+        (((20, 2), (25.3, 1.3)), 0.3500000000000001, (1.0, 0.65)),
+    ],
+)
+def test_ligament_constraints_exclude_values_below_the_exact_minimum(
+    holes, minimum, values
+):
+    edit = plate_with(holes)
+    laws, limits = hole_ligament_constraints(edit, minimum)
+    between = np.asarray(edit.model.hole_clearance)
+    travel = [
+        abs(Fraction(x) - Fraction(law.reference))
+        for law, x in zip(laws, values, strict=True)
+    ]
+    pair = min(Fraction(float(between[0, 1])), Fraction(float(between[1, 0])))
+    allowed = all(
+        law.lower <= x <= law.upper for law, x in zip(laws, values, strict=True)
+    ) and all(sum(travel) <= Fraction(limit.limit) for limit in limits)
+    # These values travel past the exact room, so nothing may admit them.
+    assert sum(travel) > pair - Fraction(minimum)
+    assert not allowed
+
+
+def test_ligament_constraints_keep_an_exactly_feasible_endpoint():
+    edit = plate_with(((10, 2),), (40, 24, 6))
+    laws, limits = hole_ligament_constraints(edit, 7.0)
+    # The clearance is exactly 8, so a radius of exactly 3 leaves exactly 7.
+    assert laws[0].upper == 3.0
+    edge = -30 * math.pi
+    result = minimal_volume_change(
+        laws, (math.nextafter(edge, -math.inf), edge), travel_limits=limits
+    )
+    assert result.status != "infeasible"

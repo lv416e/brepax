@@ -332,9 +332,13 @@ from brepax.experimental.applications.dimension_query import (
     hole_ligament_constraints,
     minimal_volume_change,
 )
+from brepax.experimental.applications.hole_edit import prepare_hole_edit
 
+edit = prepare_hole_edit(shape)
 laws, limits = hole_ligament_constraints(edit, minimum_ligament=3.0)
-result = minimal_volume_change(laws, band, travel_limits=limits)
+result = minimal_volume_change(
+    laws, (-0.02 * volume, -0.015 * volume), travel_limits=limits
+)
 ```
 
 Infeasibility then concerns the bound, which can be stricter than the geometry
@@ -355,11 +359,11 @@ which a B-Rep does not carry, and are not represented.
 - `optimal_within_tolerance`: `values` is a float vector whose volume
   change, evaluated exactly for every pi in the enclosure, lies in the
   band, and `lower_bound` bounds the cost of every handle vector in the box
-  that reaches the band. Lower bounds come from exact convex hulls of each
+  that satisfies `travel_limits` and reaches the band. Lower bounds come from exact convex hulls of each
   handle's (volume, cost) curve.
 - `infeasible`: no handle values in the box that satisfy `travel_limits` reach
-  the band. `reachable` is the exact range of the volume change over the box,
-  ignoring travel limits.
+  the band. `reachable` encloses the range of the volume change over the box,
+  exact up to the pi enclosure, and ignores travel limits.
 - `unresolved`: the node budget ran out. `lower_bound` still holds, and
   `values` is the best witness found, if any.
 - A minimal witness usually lies on an edge of the band. The rebuilt CAD

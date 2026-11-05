@@ -144,6 +144,11 @@ class _Handle:
         sign = 1 if far > near else -1
         sn, sf = self.slope(near), self.slope(far)
         chord = (cf - cn) / (df - dn)
+        if sn != 0 and sf == 0:
+            # Cost per unit of volume diverges toward the flat end, so the curve
+            # is convex and the tangent at the near end stays below it. The
+            # remaining jump at ``far`` is left to branching.
+            return (dn, cn), [(self.w * sign / sn, df - dn)]
         if sn != 0 and sf != 0:
             tangent_near = self.w * sign / sn
             tangent_far = self.w * sign / sf
@@ -673,8 +678,10 @@ def hole_ligament_constraints(
 ) -> tuple[tuple[DimensionLaw, ...], tuple[TravelLimit, ...]]:
     """Hole radius laws and travel limits that keep a minimum ligament.
 
-    Any handle values these allow keep ``HoleEditModel.ligament_bounds`` at or
-    above ``minimum_ligament`` in input units: each radius interval narrows by
+    In exact arithmetic, any handle values these allow keep the ligament bound
+    at or above ``minimum_ligament`` in input units; evaluating
+    ``HoleEditModel.ligament_bounds`` in floats can round it by an ulp. Each
+    radius interval narrows by
     its distance to fixed faces, and each pair of selected holes that could
     otherwise come too close gets a :class:`TravelLimit`. Pass both to
     :func:`minimal_volume_change`. Infeasibility then concerns that bound, which
@@ -688,6 +695,7 @@ def hole_ligament_constraints(
     laws = hole_radius_laws(edit, weights)
     fixed = np.asarray(edit.model.fixed_clearance, dtype=np.float64)
     to_holes = np.asarray(edit.model.hole_clearance, dtype=np.float64)
+    minimum = Fraction(minimum_ligament)
     narrowed = []
     for i, law in enumerate(laws):
         closest = min(float(fixed[i]), float(np.min(to_holes[i])))
@@ -695,12 +703,16 @@ def hole_ligament_constraints(
             raise ValueError(
                 f"{law.label}: its ligament bound {closest} is below the minimum"
             )
-        reach = float(fixed[i]) - minimum_ligament
+        if np.isinf(fixed[i]):
+            narrowed.append(law)
+            continue
+        reach = Fraction(float(fixed[i])) - minimum
+        reference = Fraction(law.reference)
         narrowed.append(
             replace(
                 law,
-                lower=max(law.lower, _toward(law.reference - reach, law.reference)),
-                upper=min(law.upper, _toward(law.reference + reach, law.reference)),
+                lower=max(law.lower, _float_above(reference - reach)),
+                upper=min(law.upper, _float_below(reference + reach)),
             )
         )
     limits = []
@@ -708,19 +720,37 @@ def hole_ligament_constraints(
         for j in range(i + 1, len(laws)):
             # Both holes use the smaller measured distance: a tolerance can
             # make the two OCCT queries of one pair differ slightly.
-            room = min(float(to_holes[i, j]), float(to_holes[j, i])) - minimum_ligament
+            closest = min(float(to_holes[i, j]), float(to_holes[j, i]))
+            if np.isinf(closest):
+                continue
+            room = Fraction(closest) - minimum
             widest = sum(
-                max(law.upper - law.reference, law.reference - law.lower)
-                for law in (narrowed[i], narrowed[j])
+                (
+                    max(
+                        Fraction(law.upper) - Fraction(law.reference),
+                        Fraction(law.reference) - Fraction(law.lower),
+                    )
+                    for law in (narrowed[i], narrowed[j])
+                ),
+                Fraction(0),
             )
             if widest > room:
-                limits.append(TravelLimit(laws[i].label, laws[j].label, room))
+                limits.append(
+                    TravelLimit(laws[i].label, laws[j].label, _float_below(room))
+                )
     return tuple(narrowed), tuple(limits)
 
 
-def _toward(value: float, reference: float) -> float:
-    """``value``, rounded so that its travel from ``reference`` cannot grow."""
-    return math.nextafter(value, reference)
+def _float_below(value: Fraction) -> float:
+    """The largest float not above ``value``."""
+    rounded = float(value)
+    return math.nextafter(rounded, -math.inf) if Fraction(rounded) > value else rounded
+
+
+def _float_above(value: Fraction) -> float:
+    """The smallest float not below ``value``."""
+    rounded = float(value)
+    return math.nextafter(rounded, math.inf) if Fraction(rounded) < value else rounded
 
 
 __all__ = [

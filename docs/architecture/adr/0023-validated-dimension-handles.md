@@ -150,11 +150,11 @@ candidates against an independent oracle.
 
 Callers can ask minimal-change questions about imported parts, for example
 reducing mass within bounds on selected dimensions while keeping a minimum
-ligament. They receive either a rechecked and rebuilt edit or a model-scoped
-infeasibility proof.
+ligament. They receive a rechecked witness to rebuild, a model-scoped
+infeasibility proof, or an explicitly unresolved result.
 
-Laws and ligament bounds do not need differentiation to be certified: they are
-polynomial or piecewise linear, and the query uses them directly. Differentiation
+Laws and ligament bounds do not need differentiation to be certified: in the
+radii they are polynomial or piecewise linear, and the query uses them directly. Differentiation
 serves responses a caller builds on top of them, such as a stress surrogate
 fitted to hole size and ligament, whose derivative matches finite differences
 through rebuilt CAD. Such a search has no certificate, so its result must be
