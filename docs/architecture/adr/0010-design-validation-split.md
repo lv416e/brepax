@@ -39,3 +39,15 @@ Split Gate 3 into two sub-criteria:
 - The 3D extension will include GPU benchmark as part of the primitive test suite
 - CPU flattening data serves as a baseline for GPU comparison
 - The 70% efficiency threshold remains unchanged for the GPU evaluation
+
+## Later measurements
+
+The CPU table above measured the closed-form disk-disk union that Method (C)
+was at the time. Commit `ae86dd0`, the generalization of ADR-0012, replaced it
+with a grid SDF evaluation at `resolution=128`, and per-stratum dispatch added
+more grid passes. The same benchmark at each commit, on the same class of Apple
+Silicon CPU under load, gave about 9.8M samples/s at batch 1024 before that
+change, about 15K/s after it, and between 5K/s and 9K/s on 2026-11-05. The table
+therefore describes neither current Method (C) throughput nor a baseline for its
+GPU comparison. Throughput was traded for generality; the code changed on
+purpose, and no gradual regression was found across the commits measured.
