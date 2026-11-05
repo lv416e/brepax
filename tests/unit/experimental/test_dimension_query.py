@@ -198,5 +198,11 @@ def test_hole_radius_witness_rebuilds_into_the_band():
     band = (-0.004 * before, -0.003 * before)
     result = minimal_volume_change(hole_radius_laws(edit), band)
     assert result.status == "optimal_within_tolerance"
-    change = mass(edit.rebuild(jnp.array(result.values))) - before
+    radii = jnp.array(result.values)
+    # Query and JAX model are the same law, and the witness is editable.
+    assert bool(edit.model.is_valid(radii))
+    assert float(edit.model.volume(radii)) - before == pytest.approx(
+        float(result.volume_change[0]), rel=1e-9
+    )
+    change = mass(edit.rebuild(radii)) - before
     assert band[0] - 1e-9 * before <= change <= band[1] + 1e-9 * before

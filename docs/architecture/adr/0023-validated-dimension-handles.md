@@ -90,12 +90,13 @@ unsupported rather than extrapolated.
 Responses have two tiers, which stay distinct in API, documentation and
 evidence:
 
-- exact laws: volume and first moment as polynomials in the handle values
-  inside their intervals, evaluated in exact rational arithmetic on the host
-  and in float64 under JAX;
-- discretized responses: surface area, inertia and per-face manufacturability
-  metrics evaluated on a frozen reference mesh moved by handle displacement
-  fields. Their derivatives are derivatives of that discretization.
+- exact laws: volume, surface area and first moment as polynomials in the
+  handle values inside their intervals, evaluated in exact rational arithmetic
+  on the host and in float64 under JAX;
+- discretized responses: inertia and per-face manufacturability metrics
+  evaluated on a frozen reference mesh moved by handle displacement fields.
+  Their derivatives are derivatives of that discretization. The mesh is an
+  optional layer: its limits restrict neither a handle's interval nor a rebuild.
 
 Exact constraints are local: wall thickness between two declared parallel
 faces, and ligaments from a declared hole to a declared wall or another
@@ -117,16 +118,16 @@ no certificate; its result must be validated after rebuilding.
 
 Rebuild each edit in OCCT with local Boolean operations: fill and re-cut for
 holes, fuse or cut a swept face prism for planar offsets. Validate the rebuild
-through the removed and added difference regions, as ADR-0021 does. Their net
-volume and first moment must match the exact laws within the CAD tolerance
-allowance, and each region must lie beside its handle's swept region. A
-certificate applies to the represented handle model; only a validated rebuild
-connects it to the edited CAD.
+against the exact laws, as ADR-0021 does: when whole-solid properties disagree,
+measurements inside and outside an envelope around the edited geometry decide.
+A certificate applies to the represented handle model; only a validated
+rebuild connects it to the edited CAD.
 
 Keep host preparation, interval derivation, rebuilding and validation behind
 the OCCT boundary. Keep evaluators array-based and JAX-transformable. The
-layer stays experimental. The existing hole-editing API remains supported
-while it is expressed through handles. Planar offsets and the inverse query
+layer stays experimental. The hole-editing API moved to exact laws and a
+separate optional mesh as a clean break, and is the handle implementation for
+holes. Planar offsets and the inverse query
 follow in separate changes, each gated by an imported-fixture census. The
 census counts recognized, validated, wrongly accepted and unsupported
 candidates against an independent oracle.

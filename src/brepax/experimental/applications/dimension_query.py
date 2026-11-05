@@ -349,12 +349,7 @@ def minimal_volume_change(
 
     A minimal witness usually lies on an edge of the band, and rebuilt CAD
     matches the law only within its validation bound; narrow the band by
-    that allowance when the rebuilt part itself must lie in it. The query
-    sees only the intervals of the laws. Checks a prepared edit applies on
-    top of them, such as the mesh orientation in
-    ``PreparedHoleEdit.model.is_valid``, are not part of it: the lower
-    bound still holds for the handle vectors those checks accept, but a
-    witness can fail them, so check it before rebuilding.
+    that allowance when the rebuilt part itself must lie in it.
 
     Raises ValueError for an empty or inverted band, a law that is not
     monotone on its interval, or a reference outside its interval.
@@ -513,10 +508,7 @@ def hole_radius_laws(
 ) -> tuple[DimensionLaw, ...]:
     """Volume laws ``-pi * height * (r**2 - r0**2)`` of prepared holes.
 
-    Radii range over the prepared radius bounds with zero center shift. The
-    mesh orientation check of ``edit.model.is_valid`` can reject radii
-    inside those bounds, so check a witness with it before
-    ``edit.rebuild``.
+    Radii range over the prepared radius bounds with zero center shift.
     """
     weights = [1.0] * len(edit.holes) if weights is None else list(weights)
     if len(weights) != len(edit.holes):

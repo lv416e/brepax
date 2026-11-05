@@ -7,8 +7,9 @@ preparation. Their individual contracts define differentiation and input scope.
 
 `prepare_hole_edit` recognizes cylindrical through-holes in a supplied B-Rep.
 It can edit selected radii and centers without reconstructing the stock's modeling history.
-The JAX model moves hole walls and adjoining planar boundaries together; the
-host `rebuild` method produces a new OCCT shape for further use or STEP export.
+The JAX model holds the exact volume, surface-area and first-moment laws of the
+holes, so it needs no mesh; the host `rebuild` method produces a new OCCT shape
+for further use or STEP export.
 
 ```python
 import equinox as eqx
@@ -23,7 +24,7 @@ shape = read_step("part.step")
 all_holes = prepare_hole_edit(shape)
 # Select one hole by its input face ID; other features remain fixed.
 face_id = all_holes.holes[0].face_id
-edit = prepare_hole_edit(shape, [face_id], deflection=0.0001)
+edit = prepare_hole_edit(shape, [face_id])
 model = edit.model
 radii = (model.reference_radii + model.upper_radii) / 2
 assert bool(eqx.filter_jit(model.is_valid)(radii))
@@ -80,8 +81,7 @@ STEP roundtrips, and independent CAD finite-difference references.
 - Radii, center shifts, hole metadata, returned points and metrics use the input CAD's units.
   A fixed `CadFrame` normalizes host preparation and numerical evaluation. By
   default, the input bounding box is centered and its largest extent becomes
-  40 working units. The `deflection` argument is in **working units**, not the
-  original STEP units. No physical unit is inferred from a numeric coordinate.
+  40 working units. No physical unit is inferred from a numeric coordinate.
 - Preparation requires JAX x64. Recognition and CAD rebuilding run outside
   `jit`, `vmap` and differentiation. Geometry/metric methods support all three;
   the Boolean validity predicate supports `jit`/`vmap`. Keep the prepared model
@@ -94,25 +94,22 @@ STEP roundtrips, and independent CAD finite-difference references.
   growth share that clearance: `norm(shift) + max(radius-r0, 0)` must not exceed
   `0.2*clearance`, even when shrinking a hole. Axial shifts are invalid beyond
   roundoff (`64 * x64_epsilon * r0`); the residual is projected out.
-  `model.is_valid` also checks
-  local triangle orientation. Invalid edits return NaN geometry/metrics under
-  JAX; `rebuild` raises. Gradients at invalid inputs are undefined.
+  Invalid edits return NaN metrics under JAX; `rebuild` raises. Gradients at
+  invalid inputs are undefined.
 - Volume and area are rigid-motion invariant; their radius gradients are too.
   Under positive length scaling `s`, values scale by `s**3` and `s**2`, and
-  radius gradients by `s**2` and `s`. Centers/vertices transform as points;
+  radius gradients by `s**2` and `s`. Centers transform as points;
   center radius derivatives rotate as vectors and are unchanged by unit scaling.
   Rotate center shifts with the geometry. Scalar shift gradients rotate as
   vectors and scale like radius gradients. The center-of-mass shift Jacobian
   transforms as `R @ J @ R.T` and is unchanged by unit scaling. These Jacobians
   describe transverse motion, with zero axial component; they do not authorize
   editing the hole depth or orientation.
-  Fresh meshing may change discretization error, so compare within an accuracy
-  budget rather than demanding identical triangulations.
-- Gradients describe a frozen mesh with coupled boundary motion. They do not
-  differentiate OCCT reconstruction or remeshing. Rebuild and independently
-  check CAD before accepting an optimized design; refine `deflection` when
-  value or derivative accuracy is insufficient. The local validity predicate
-  is not a general self-intersection certificate.
+- Volume, area and first moment follow the laws of isolated complete cylinders
+  with planar ends, from reference measures integrated adaptively to 1e-9
+  relative. They hold up to the CAD tolerance of the prepared solid and do not
+  differentiate OCCT reconstruction. Rebuild and independently check CAD before
+  accepting an optimized design.
 - Face IDs apply only to the prepared input. Reconstruction unifies connected
   same-domain faces and edges to remove fill seams; unselected geometry stays
   fixed, but its face partition can change. Do not assume that Boolean output
@@ -137,8 +134,8 @@ measurements alone cannot determine a center position.
 
 Choose enough independent target measurements. For four coplanar equal-height
 holes, volume and even the full 3D center of mass need not determine all four
-radii uniquely. A small mesh optimization residual also does not certify CAD
-accuracy: check the rebuilt CAD and refine the discretization when necessary.
+radii uniquely. A small residual of the laws also does not certify the CAD:
+check the rebuilt part.
 
 ::: brepax.experimental.applications.hole_edit
     options:
@@ -148,6 +145,40 @@ accuracy: check the rebuilt CAD and refine the discretization when necessary.
         - HoleEditModel
         - ThroughHole
         - RejectedHole
+      show_source: false
+
+### Frozen mesh for responses without a law
+
+`prepare_hole_mesh` builds the watertight triangulation of a prepared edit and
+moves it with the same radii and shifts. Use it for responses with no exact
+law, such as metrics evaluated on triangles. Volume, area and center of mass
+are also available on the mesh for comparing discretizations, and are less
+accurate than the laws above.
+
+```python
+from brepax.experimental.applications.hole_mesh import prepare_hole_mesh
+
+mesh = prepare_hole_mesh(edit, deflection=0.0001)
+assert bool(mesh.is_valid(radii))
+triangles = jax.jit(mesh.triangles)(radii)
+```
+
+- `deflection` is in **working units**, not the original STEP units.
+- Gradients describe the frozen mesh with coupled boundary motion. They do not
+  differentiate remeshing, and refining `deflection` changes their error. Fresh
+  meshing may change discretization error, so compare within an accuracy budget
+  rather than demanding identical triangulations.
+- `mesh.is_valid` also rejects collapsed or locally reversed triangles. This
+  limits the mesh only: `edit.rebuild` does not consult it, so an edit the mesh
+  refuses can still rebuild. It is not a general self-intersection certificate.
+- Preparation can fail where the edit itself is fine, for example when incident
+  faces disagree by more than twice the CAD tolerance.
+
+::: brepax.experimental.applications.hole_mesh
+    options:
+      members:
+        - prepare_hole_mesh
+        - HoleMeshModel
       show_source: false
 
 ## STEP planar face offsets
@@ -283,10 +314,6 @@ if result.status == "optimal_within_tolerance":
   band. On `occt_linkrods` (tolerance 3.3e-3), a hole witness on the band
   edge rebuilt just outside it. When the rebuilt part itself must be in
   the band, query a band narrowed by that allowance.
-- Handle intervals are the only constraints the query sees. A hole edit
-  can also reject radii inside its bounds through the mesh orientation
-  check of `edit.model.is_valid`; the lower bound still holds for the radii
-  it accepts, but check a hole witness with it before `edit.rebuild`.
 - Only the volume is constrained. Center-of-mass targets, hole center
   shifts and handles of different prepared edits rebuilt together are not
   supported yet.

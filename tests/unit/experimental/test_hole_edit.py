@@ -1,4 +1,8 @@
-"""Independent CAD, analytic derivative and placement oracles for hole edits."""
+"""Independent CAD, analytic derivative and placement oracles for hole edits.
+
+The exact model is held to CAD precision; the optional frozen mesh to its
+discretization error.
+"""
 
 from pathlib import Path
 
@@ -42,6 +46,7 @@ from brepax.experimental.applications._hole_geometry import (
 )
 from brepax.experimental.applications.cad_frame import CadFrame
 from brepax.experimental.applications.hole_edit import prepare_hole_edit
+from brepax.experimental.applications.hole_mesh import prepare_hole_mesh
 from brepax.io.step import read_step
 
 
@@ -129,26 +134,22 @@ def assert_closed(triangles):
 @pytest.mark.parametrize("kind", ["rectangular", "round", "orthogonal"])
 def test_values_derivatives_closed_boundaries_and_independent_cad(kind):
     shape, *_ = stock(kind)
-    edit = ordered_edit(shape, deflection=0.000025)
+    edit = ordered_edit(shape)
     radii = jnp.array([2.5, 2.4])
     expected, derivative, center, center_derivative = oracle(kind, np.asarray(radii))
     values = jax.jit(metrics)(edit.model, radii)
     jacobian = jax.jit(jax.jacrev(metrics, argnums=1))(edit.model, radii)
-    np.testing.assert_allclose(values, expected, rtol=1e-5)
-    np.testing.assert_allclose(jacobian, derivative, rtol=1e-4)
-    np.testing.assert_allclose(edit.model.center_of_mass(radii), center, atol=1e-5)
+    np.testing.assert_allclose(values, expected, rtol=1e-10)
+    np.testing.assert_allclose(jacobian, derivative, rtol=1e-12)
+    np.testing.assert_allclose(edit.model.center_of_mass(radii), center, atol=1e-9)
     np.testing.assert_allclose(
         jax.jacrev(edit.model.center_of_mass)(radii),
         center_derivative,
-        rtol=2e-4,
-        atol=1e-7,
+        rtol=1e-8,
+        atol=1e-10,
     )
     rebuilt = edit.rebuild(radii)
     np.testing.assert_allclose(cad_metrics(rebuilt)[0], expected, rtol=1e-10)
-    fresh, _ = triangulate_shape(rebuilt, deflection=0.000025)
-    np.testing.assert_allclose(
-        [divergence_volume(fresh), mesh_surface_area(fresh)], expected, rtol=1e-5
-    )
     trials = jnp.stack(
         [
             edit.model.reference_radii,
@@ -158,8 +159,6 @@ def test_values_derivatives_closed_boundaries_and_independent_cad(kind):
         ]
     )
     assert np.asarray(jax.jit(jax.vmap(edit.model.is_valid))(trials)).all()
-    for mesh in jax.jit(jax.vmap(edit.model.triangles))(trials):
-        assert_closed(mesh)
     # Independent rebuilt-CAD finite differences, not derivatives of the mesh.
     for step in (1e-2, 1e-3):
         columns = []
@@ -184,29 +183,27 @@ def test_fresh_cad_rotation_translation_units_and_gradient_laws(scale):
     origin = np.array([1000.0, -2000.0, 3000.0])
     rotation.SetValues(*np.column_stack([scale * matrix, origin]).reshape(-1))
     moved = BRepBuilderAPI_Transform(shape, rotation, True, False).Shape()
-    edit = ordered_edit(
-        moved, frame=CadFrame(scale, tuple(origin)), deflection=0.000025
-    )
+    edit = ordered_edit(moved, frame=CadFrame(scale, tuple(origin)))
     radii = scale * jnp.array([2.5, 2.4])
     values, derivative, center, center_derivative = oracle(
         "rectangular", np.array([2.5, 2.4])
     )
     np.testing.assert_allclose(
-        jax.jit(metrics)(edit.model, radii), values * [scale**3, scale**2], rtol=1e-5
+        jax.jit(metrics)(edit.model, radii), values * [scale**3, scale**2], rtol=1e-9
     )
     np.testing.assert_allclose(
         jax.jacrev(metrics, argnums=1)(edit.model, radii),
         derivative * np.array([scale**2, scale])[:, None],
-        rtol=1e-4,
+        rtol=1e-12,
     )
     np.testing.assert_allclose(
-        (edit.model.center_of_mass(radii) - origin) / scale, matrix @ center, atol=1e-5
+        (edit.model.center_of_mass(radii) - origin) / scale, matrix @ center, atol=1e-8
     )
     np.testing.assert_allclose(
         jax.jacrev(edit.model.center_of_mass)(radii),
         matrix @ center_derivative,
-        rtol=2e-4,
-        atol=1e-7,
+        rtol=1e-8,
+        atol=1e-10,
     )
     rebuilt_values, rebuilt_center = cad_metrics(edit.rebuild(radii))
     np.testing.assert_allclose(rebuilt_values, values * [scale**3, scale**2], rtol=1e-8)
@@ -226,7 +223,7 @@ def test_step_selection_preserves_unselected_hole_and_input(tmp_path):
     source = read_step(Path(__file__).parents[2] / "fixtures/box_with_holes.step")
     all_holes = prepare_hole_edit(source)
     selected = next(hole for hole in all_holes.holes if hole.radius == pytest.approx(4))
-    edit = prepare_hole_edit(source, [selected.face_id], deflection=0.0001)
+    edit = prepare_hole_edit(source, [selected.face_id])
     original = cad_metrics(source)[0]
     radii = jnp.array([4.4])
     edited = step_roundtrip(edit.rebuild(radii), tmp_path / "edited.step")
@@ -239,10 +236,11 @@ def test_step_selection_preserves_unselected_hole_and_input(tmp_path):
         cad_metrics(edit.rebuild(radii))[0], cad_metrics(edited)[0], rtol=1e-10
     )
     np.testing.assert_allclose(
-        metrics(edit.model, radii), cad_metrics(edited)[0], rtol=1e-5
+        metrics(edit.model, radii), cad_metrics(edited)[0], rtol=1e-9
     )
-    base = np.asarray(edit.model.triangles(edit.model.reference_radii))
-    moved = np.asarray(edit.model.triangles(radii))
+    mesh = prepare_hole_mesh(edit, deflection=0.0001)
+    base = np.asarray(mesh.triangles(edit.model.reference_radii))
+    moved = np.asarray(mesh.triangles(radii))
     fixed = np.isclose(np.linalg.norm(base[..., :2] - [30, 15], axis=-1), 3, atol=1e-7)
     assert fixed.any()
     np.testing.assert_array_equal(moved[fixed], base[fixed])
@@ -301,16 +299,16 @@ def test_merge_same_domain_recovers_axially_split_hole():
     with pytest.raises(ValueError, match="No supported through-holes"):
         prepare_hole_edit(split)
 
-    edit = ordered_edit(split, merge_same_domain=True, deflection=0.0001)
+    edit = ordered_edit(split, merge_same_domain=True)
     assert len(edit.holes) == 1
     radii = jnp.array([2.6])
     shifts = jnp.array([[0.1, -0.05, 0.0]])
     volume, area, center = _single_hole_box_measures(
         base, axis, height, float(radii[0]), (0.1, -0.05, 0.0)
     )
-    np.testing.assert_allclose(metrics(edit.model, radii), [volume, area], rtol=1e-5)
+    np.testing.assert_allclose(metrics(edit.model, radii), [volume, area], rtol=1e-9)
     np.testing.assert_allclose(
-        edit.model.center_of_mass(radii, shifts), center, atol=1e-5
+        edit.model.center_of_mass(radii, shifts), center, atol=1e-8
     )
     rebuilt = edit.rebuild(radii, shifts)
     np.testing.assert_allclose(cad_metrics(rebuilt)[0], [volume, area], rtol=1e-9)
@@ -331,28 +329,31 @@ def test_merge_same_domain_recovers_half_cylinder_faces():
     with pytest.raises(ValueError, match="No supported through-holes"):
         prepare_hole_edit(split)
 
-    edit = ordered_edit(split, merge_same_domain=True, deflection=0.0001)
+    edit = ordered_edit(split, merge_same_domain=True)
     assert len(edit.holes) == 1
     radii = jnp.array([2.6])
     volume, area, center = _single_hole_box_measures(
         base, axis, height, float(radii[0])
     )
-    np.testing.assert_allclose(metrics(edit.model, radii), [volume, area], rtol=1e-5)
-    np.testing.assert_allclose(edit.model.center_of_mass(radii), center, atol=1e-5)
+    np.testing.assert_allclose(metrics(edit.model, radii), [volume, area], rtol=1e-9)
+    np.testing.assert_allclose(edit.model.center_of_mass(radii), center, atol=1e-8)
     rebuilt = edit.rebuild(radii)
     np.testing.assert_allclose(cad_metrics(rebuilt)[0], [volume, area], rtol=1e-9)
 
 
 def test_merge_same_domain_default_is_unchanged():
     shape, *_ = stock("rectangular")
-    default = prepare_hole_edit(shape, deflection=0.0001)
-    explicit = prepare_hole_edit(shape, merge_same_domain=False, deflection=0.0001)
+    default = prepare_hole_edit(shape)
+    explicit = prepare_hole_edit(shape, merge_same_domain=False)
     assert [h.face_id for h in default.holes] == [h.face_id for h in explicit.holes]
+    meshes = [
+        prepare_hole_mesh(edit, deflection=0.0001) for edit in (default, explicit)
+    ]
     np.testing.assert_array_equal(
-        np.asarray(default.model.vertices), np.asarray(explicit.model.vertices)
+        np.asarray(meshes[0].vertices), np.asarray(meshes[1].vertices)
     )
     np.testing.assert_array_equal(
-        np.asarray(default.model.faces), np.asarray(explicit.model.faces)
+        np.asarray(meshes[0].faces), np.asarray(meshes[1].faces)
     )
 
 
@@ -379,7 +380,7 @@ def test_invalid_inputs_and_traced_failure_mask():
             prepare_hole_edit(shape, ids)
     for deflection in (0.0, -1.0, np.nan):
         with pytest.raises(ValueError, match="deflection"):
-            prepare_hole_edit(shape, deflection=deflection)
+            prepare_hole_mesh(edit, deflection=deflection)
     with pytest.raises(ValueError, match="non-null"):
         prepare_hole_edit(TopoDS_Shape())
     with pytest.raises(ValueError, match="No supported"):
@@ -422,9 +423,7 @@ def test_inverse_edit_of_three_step_holes_preserves_fourth(tmp_path):
     source = step_roundtrip(plate([2.4, 2.8, 3.2, 2.0]), tmp_path / "source.step")
     discovery = prepare_hole_edit(source)
     selected = sorted(discovery.holes, key=lambda hole: hole.radius)[1:]
-    edit = prepare_hole_edit(
-        source, [hole.face_id for hole in selected], deflection=0.000025
-    )
+    edit = prepare_hole_edit(source, [hole.face_id for hole in selected])
     target_radii = np.array([2.8, 2.4, 3.0])
     values, center = cad_metrics(plate([*target_radii, 2.0]))
     target = jnp.array([values[0], *center[:2]])
@@ -445,11 +444,11 @@ def test_inverse_edit_of_three_step_holes_preserves_fourth(tmp_path):
         assert np.linalg.matrix_rank(np.asarray(jacobian), tol=1e-9) == 3
         radii = radii - jnp.linalg.solve(jacobian, residual_value)
         assert bool(edit.model.is_valid(radii))
-    np.testing.assert_allclose(radii, target_radii, rtol=1e-4)
+    np.testing.assert_allclose(radii, target_radii, rtol=1e-8)
     output = step_roundtrip(edit.rebuild(radii), tmp_path / "edited.step")
     rebuilt, rebuilt_center = cad_metrics(output)
-    np.testing.assert_allclose(rebuilt, values, rtol=1e-5)
-    np.testing.assert_allclose(rebuilt_center, center, atol=1e-5)
+    np.testing.assert_allclose(rebuilt, values, rtol=1e-8)
+    np.testing.assert_allclose(rebuilt_center, center, atol=1e-8)
     # Output feature IDs can change; discover the unchanged smallest bore again.
     found = prepare_hole_edit(output)
     assert min(hole.radius for hole in found.holes) == pytest.approx(2.0, abs=1e-8)
@@ -461,7 +460,7 @@ def test_counterbore_shoulder_is_not_a_through_hole_end():
         shape = BRepAlgoAPI_Cut(
             shape, cylinder(base, (0, 0, 1), radius, height)
         ).Shape()
-    edit = prepare_hole_edit(shape, deflection=0.000025)
+    edit = prepare_hole_edit(shape)
     assert len(edit.holes) == 1
     assert edit.holes[0].radius == pytest.approx(2)
     assert len(edit.rejected) == 1
@@ -472,7 +471,7 @@ def test_counterbore_shoulder_is_not_a_through_hole_end():
     radii = jnp.array([2.2])
     expected = BRepAlgoAPI_Cut(shape, cylinder((10, 12, 0), (0, 0, 1), 2.2, 3)).Shape()
     np.testing.assert_allclose(
-        metrics(edit.model, radii), cad_metrics(expected)[0], rtol=1e-5
+        metrics(edit.model, radii), cad_metrics(expected)[0], rtol=1e-9
     )
     np.testing.assert_allclose(
         cad_metrics(edit.rebuild(radii))[0], cad_metrics(expected)[0], rtol=1e-10
@@ -515,7 +514,7 @@ def test_nested_single_solid_compound_is_editable():
     edit = prepare_hole_edit(compound(compound(shape)))
     radii = edit.model.reference_radii * 1.05
     np.testing.assert_allclose(
-        metrics(edit.model, radii), cad_metrics(edit.rebuild(radii))[0], rtol=1e-4
+        metrics(edit.model, radii), cad_metrics(edit.rebuild(radii))[0], rtol=1e-9
     )
 
 
@@ -531,39 +530,34 @@ def position_metrics(model, radii, shifts):
 @pytest.mark.parametrize("kind", ["rectangular", "round", "orthogonal"])
 def test_center_and_radius_edits_against_independent_cad(kind):
     source, *_ = stock(kind)
-    edit = ordered_edit(source, deflection=0.000025)
+    edit = ordered_edit(source)
     radii = jnp.array([2.3, 2.8])
     shifts = jnp.array([[0.2, -0.3, 0.0], [-0.25, 0.2, 0.0]])
     if kind == "orthogonal":
         shifts = shifts.at[1].set(jnp.array([0.0, 0.2, -0.25]))
     expected, dr, center, dc = oracle(kind, np.asarray(radii), shifts)
     values = jax.jit(position_metrics)(edit.model, radii, shifts)
-    np.testing.assert_allclose(values[:2], expected, rtol=1e-5)
-    np.testing.assert_allclose(values[2:], center, atol=1e-5)
+    np.testing.assert_allclose(values[:2], expected, rtol=1e-10)
+    np.testing.assert_allclose(values[2:], center, atol=1e-9)
     radius_jac, shift_jac = jax.jit(jax.jacrev(position_metrics, argnums=(1, 2)))(
         edit.model, radii, shifts
     )
     np.testing.assert_allclose(
-        radius_jac, np.concatenate([dr, dc]), rtol=2e-4, atol=1e-7
+        radius_jac, np.concatenate([dr, dc]), rtol=1e-8, atol=1e-10
     )
     # Translation leaves V/A unchanged; COM responds to the translated void.
     axes = np.array([hole.axis for hole in edit.holes])
     projectors = np.eye(3) - axes[:, :, None] * axes[:, None, :]
     voids = np.pi * np.asarray(radii) ** 2 * [hole.height for hole in edit.holes]
     expected_dc = np.einsum("h,hij->ihj", -voids / expected[0], projectors)
-    np.testing.assert_allclose(shift_jac[:2], 0, atol=1e-8)
-    np.testing.assert_allclose(shift_jac[2:], expected_dc, rtol=2e-4, atol=1e-7)
+    np.testing.assert_allclose(shift_jac[:2], 0, atol=1e-12)
+    np.testing.assert_allclose(shift_jac[2:], expected_dc, rtol=1e-8, atol=1e-10)
     independent, *_ = stock(kind, radii, shifts)
     rebuilt = edit.rebuild(radii, shifts)
     for shape in (independent, rebuilt):
         actual, actual_center = cad_metrics(shape)
         np.testing.assert_allclose(actual, expected, rtol=1e-10)
         np.testing.assert_allclose(actual_center, center, atol=1e-9)
-    fresh, _ = triangulate_shape(rebuilt, deflection=0.000025)
-    np.testing.assert_allclose(
-        [divergence_volume(fresh), mesh_surface_area(fresh)], expected, rtol=1e-5
-    )
-    assert_closed(edit.model.triangles(radii, shifts))
     # Perturb independent CAD construction, not the editing implementation.
     for step in (0.01, 0.001):
         for h, component in ((0, 0), (1, 1)):
@@ -591,34 +585,32 @@ def test_center_edit_fresh_placement_and_gradient_covariance(scale):
     origin = np.array([1000.0, -2000.0, 3000.0])
     transform.SetValues(*np.column_stack([scale * rotation, origin]).reshape(-1))
     moved = BRepBuilderAPI_Transform(shape, transform, True, False).Shape()
-    edit = ordered_edit(
-        moved, frame=CadFrame(scale, tuple(origin)), deflection=0.000025
-    )
+    edit = ordered_edit(moved, frame=CadFrame(scale, tuple(origin)))
     radii = np.array([2.3, 2.8])
     shifts = np.array([[0.2, -0.3, 0.0], [0.0, 0.2, -0.25]])
     moved_radii = jnp.asarray(scale * radii)
     moved_shifts = jnp.asarray(scale * shifts @ rotation.T)
     expected, dr, center, dc = oracle("orthogonal", radii, shifts)
     values = position_metrics(edit.model, moved_radii, moved_shifts)
-    np.testing.assert_allclose(values[:2], expected * [scale**3, scale**2], rtol=1e-5)
+    np.testing.assert_allclose(values[:2], expected * [scale**3, scale**2], rtol=1e-9)
     np.testing.assert_allclose(
-        (values[2:] - origin) / scale, rotation @ center, atol=1e-5
+        (values[2:] - origin) / scale, rotation @ center, atol=1e-8
     )
     radius_jac, shift_jac = jax.jit(jax.jacrev(position_metrics, argnums=(1, 2)))(
         edit.model, moved_radii, moved_shifts
     )
     np.testing.assert_allclose(
-        radius_jac[:2] / np.array([scale**2, scale])[:, None], dr, rtol=2e-4
+        radius_jac[:2] / np.array([scale**2, scale])[:, None], dr, rtol=1e-8
     )
-    np.testing.assert_allclose(radius_jac[2:], rotation @ dc, rtol=2e-4, atol=1e-7)
+    np.testing.assert_allclose(radius_jac[2:], rotation @ dc, rtol=1e-8, atol=1e-10)
     axes = np.array([[0, 0, 1], [1, 0, 0]]) @ rotation.T
     projectors = np.eye(3) - axes[:, :, None] * axes[:, None, :]
     voids = np.pi * radii**2 * [16, 40]
     expected_dc = np.einsum("h,hij->ihj", -voids / expected[0], projectors)
     np.testing.assert_allclose(
-        shift_jac[:2] / np.array([scale**2, scale])[:, None, None], 0, atol=1e-7
+        shift_jac[:2] / np.array([scale**2, scale])[:, None, None], 0, atol=1e-10
     )
-    np.testing.assert_allclose(shift_jac[2:], expected_dc, rtol=2e-4, atol=1e-7)
+    np.testing.assert_allclose(shift_jac[2:], expected_dc, rtol=1e-8, atol=1e-10)
     actual, actual_center = cad_metrics(edit.rebuild(moved_radii, moved_shifts))
     np.testing.assert_allclose(actual, expected * [scale**3, scale**2], rtol=1e-8)
     np.testing.assert_allclose(
@@ -632,20 +624,20 @@ def test_center_edit_budget_rejection_batching_and_zero_default():
     model = edit.model
     radii = model.reference_radii
     zero = jnp.zeros((2, 3))
-    np.testing.assert_array_equal(model.triangles(radii), model.triangles(radii, zero))
+    np.testing.assert_array_equal(model.volume(radii), model.volume(radii, zero))
     np.testing.assert_allclose(
-        jax.jacrev(model.volume, argnums=1)(radii, zero), 0, atol=1e-9
+        jax.jacrev(model.volume, argnums=1)(radii, zero), 0, atol=1e-12
     )
     limit = model.upper_radii - radii
     at_limit = zero.at[:, 0].set(limit)
     assert bool(eqx.filter_jit(model.is_valid)(radii, at_limit))
-    assert_closed(model.triangles(radii, at_limit))
+    assert_closed(prepare_hole_mesh(edit).triangles(radii, at_limit))
     actual, center = cad_metrics(edit.rebuild(radii, at_limit))
     np.testing.assert_allclose(
         position_metrics(model, radii, at_limit),
         np.concatenate([actual, center]),
-        rtol=1e-4,
-        atol=1e-6,
+        rtol=1e-8,
+        atol=1e-8,
     )
     cases = jnp.stack(
         [
@@ -675,7 +667,7 @@ def test_inverse_center_edit_step_roundtrip_preserves_unselected_hole(tmp_path):
     source = step_roundtrip(source, tmp_path / "source.step")
     found = prepare_hole_edit(source)
     selected = min(found.holes, key=lambda hole: hole.radius)
-    edit = prepare_hole_edit(source, [selected.face_id], deflection=0.000025)
+    edit = prepare_hole_edit(source, [selected.face_id])
     target_shift = np.array([0.6, -0.4, 0.0])
     target, *_ = stock(radii=(2.3, 3.0), shifts=np.array([target_shift, np.zeros(3)]))
     target_values, target_center = cad_metrics(target)
@@ -699,14 +691,14 @@ def test_inverse_center_edit_step_roundtrip_preserves_unselected_hole(tmp_path):
         assert np.linalg.matrix_rank(np.asarray(derivative), tol=1e-9) == 3
         parameters -= jnp.linalg.solve(derivative, value)
         assert bool(edit.model.is_valid(*decode(parameters)))
-    np.testing.assert_allclose(parameters, [2.3, *target_shift[:2]], rtol=5e-4)
+    np.testing.assert_allclose(parameters, [2.3, *target_shift[:2]], rtol=1e-7)
     r, d = decode(parameters)
     result = step_roundtrip(edit.rebuild(r, d), tmp_path / "edited.step")
     actual, actual_center = cad_metrics(result)
-    np.testing.assert_allclose(actual, target_values, rtol=1e-5)
-    np.testing.assert_allclose(actual_center, target_center, atol=1e-5)
+    np.testing.assert_allclose(actual, target_values, rtol=1e-8)
+    np.testing.assert_allclose(actual_center, target_center, atol=1e-8)
     holes = sorted(prepare_hole_edit(result).holes, key=lambda hole: hole.radius)
-    np.testing.assert_allclose(holes[0].base, [10.6, 11.6, 0], atol=2e-4)
+    np.testing.assert_allclose(holes[0].base, [10.6, 11.6, 0], atol=1e-6)
     np.testing.assert_allclose(holes[1].base, [28, 12, 0], atol=1e-9)
     assert holes[1].radius == pytest.approx(3, abs=1e-9)
     np.testing.assert_allclose(
@@ -833,4 +825,120 @@ def test_rebuild_fallback_rejects_change_between_edited_bores():
     ).Shape()
     assert _local_edit_error(working, notched, holes, radii, shifts) == (
         "Rebuilt CAD changed material away from the edited holes"
+    )
+
+
+def nist_solid(name):
+    path = Path(__file__).resolve().parents[2] / "fixtures" / "nist" / name
+    if not path.exists():
+        pytest.skip("NIST fixture not available")
+    return compound(TopExp_Explorer(read_step(path), TopAbs_SOLID).Current())
+
+
+def test_reference_measures_are_the_cad_measures():
+    shape, *_ = stock()
+    model = ordered_edit(shape).model
+    volume, area = GProp_GProps(), GProp_GProps()
+    BRepGProp.VolumeProperties_s(shape, volume, 1e-9)
+    BRepGProp.SurfaceProperties_s(shape, area, 1e-9)
+    center = volume.CentreOfMass()
+    reference = model.reference_radii
+    # The laws start from the measured solid, not from a discretized copy.
+    assert float(model.volume(reference)) == pytest.approx(volume.Mass(), rel=1e-12)
+    assert float(model.surface_area(reference)) == pytest.approx(area.Mass(), rel=1e-12)
+    np.testing.assert_allclose(
+        model.center_of_mass(reference), [center.X(), center.Y(), center.Z()], atol=1e-9
+    )
+
+
+@pytest.mark.parametrize("kind", ["rectangular", "round", "orthogonal"])
+def test_mesh_matches_analytic_values_within_its_discretization(kind):
+    shape, *_ = stock(kind)
+    edit = ordered_edit(shape)
+    mesh = prepare_hole_mesh(edit, deflection=0.000025)
+    radii = jnp.array([2.5, 2.4])
+    expected, derivative, center, center_derivative = oracle(kind, np.asarray(radii))
+    np.testing.assert_allclose(jax.jit(metrics)(mesh, radii), expected, rtol=1e-5)
+    np.testing.assert_allclose(
+        jax.jit(jax.jacrev(metrics, argnums=1))(mesh, radii), derivative, rtol=1e-4
+    )
+    np.testing.assert_allclose(mesh.center_of_mass(radii), center, atol=1e-5)
+    np.testing.assert_allclose(
+        jax.jacrev(mesh.center_of_mass)(radii), center_derivative, rtol=2e-4, atol=1e-7
+    )
+    model = edit.model
+    trials = jnp.stack(
+        [model.reference_radii, model.lower_radii, model.upper_radii, radii]
+    )
+    assert np.asarray(jax.jit(jax.vmap(mesh.is_valid))(trials)).all()
+    for triangles in jax.jit(jax.vmap(mesh.triangles))(trials):
+        assert_closed(triangles)
+    fresh, _ = triangulate_shape(edit.rebuild(radii), deflection=0.000025)
+    np.testing.assert_allclose(
+        [divergence_volume(fresh), mesh_surface_area(fresh)], expected, rtol=1e-5
+    )
+    shifts = jnp.array([[0.2, -0.3, 0.0], [-0.25, 0.2, 0.0]])
+    if kind == "orthogonal":
+        shifts = shifts.at[1].set(jnp.array([0.0, 0.2, -0.25]))
+    moved = jnp.array([2.3, 2.8])
+    expected, _, center, _ = oracle(kind, np.asarray(moved), shifts)
+    values = jax.jit(position_metrics)(mesh, moved, shifts)
+    np.testing.assert_allclose(values[:2], expected, rtol=1e-5)
+    np.testing.assert_allclose(values[2:], center, atol=1e-5)
+    assert_closed(mesh.triangles(moved, shifts))
+
+
+@pytest.mark.parametrize("scale", [0.001, 1000.0])
+def test_mesh_units_and_placement(scale):
+    shape, *_ = stock("rectangular")
+    transform = gp_Trsf()
+    transform.SetRotation(gp_Ax1(gp_Pnt(), gp_Dir(1, 2, 3)), 0.7)
+    rotation = np.array([[transform.Value(i, j) for j in (1, 2, 3)] for i in (1, 2, 3)])
+    origin = np.array([1000.0, -2000.0, 3000.0])
+    transform.SetValues(*np.column_stack([scale * rotation, origin]).reshape(-1))
+    moved = BRepBuilderAPI_Transform(shape, transform, True, False).Shape()
+    edit = ordered_edit(moved, frame=CadFrame(scale, tuple(origin)))
+    mesh = prepare_hole_mesh(edit, deflection=0.000025)
+    radii = scale * jnp.array([2.5, 2.4])
+    values, derivative, center, _ = oracle("rectangular", np.array([2.5, 2.4]))
+    np.testing.assert_allclose(
+        jax.jit(metrics)(mesh, radii), values * [scale**3, scale**2], rtol=1e-5
+    )
+    np.testing.assert_allclose(
+        jax.jacrev(metrics, argnums=1)(mesh, radii),
+        derivative * np.array([scale**2, scale])[:, None],
+        rtol=1e-4,
+    )
+    np.testing.assert_allclose(
+        (mesh.center_of_mass(radii) - origin) / scale, rotation @ center, atol=1e-5
+    )
+
+
+@pytest.mark.slow
+def test_mesh_limits_do_not_restrict_the_edit():
+    # FTC-08's end planes hold thin triangles that flip before the radius
+    # bound, although the CAD edit is fine there.
+    source = nist_solid("nist_ftc_08_asme1_rc.stp")
+    edit = prepare_hole_edit(source, merge_same_domain=True)
+    model = edit.model
+    assert bool(model.is_valid(model.upper_radii))
+    assert not bool(prepare_hole_mesh(edit).is_valid(model.upper_radii))
+    expected = float(model.volume(model.upper_radii))
+    rebuilt = edit.rebuild(model.upper_radii)
+    assert cad_metrics(rebuilt)[0][0] == pytest.approx(expected, rel=1e-6)
+
+
+@pytest.mark.slow
+def test_a_crack_away_from_the_holes_only_blocks_the_mesh():
+    # FTC-07 has a real gap of about 5 CAD tolerances between a sphere and a
+    # cylinder face, away from the recognized holes.
+    source = nist_solid("nist_ftc_07_asme1_rd.stp")
+    edit = prepare_hole_edit(source, merge_same_domain=True)
+    with pytest.raises(ValueError, match="gap"):
+        prepare_hole_mesh(edit)
+    model = edit.model
+    radii = (model.reference_radii + model.upper_radii) / 2
+    rebuilt = edit.rebuild(radii)
+    assert cad_metrics(rebuilt)[0][0] == pytest.approx(
+        float(model.volume(radii)), rel=1e-6
     )

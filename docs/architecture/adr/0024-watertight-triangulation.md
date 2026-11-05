@@ -139,14 +139,12 @@ reaches 3.1e-2, 7.9e-3 and 6.2e-3 model units on those three parts and
 0.11 on CTC-02, whose volume error is 2.1e-5; the source of these gaps has
 not been investigated.
 
-`triangulate_shape_watertight` can replace the `triangulate_shape` +
-`closed_mesh` weld in `prepare_hole_edit`, but this decision does not wire
-it in. `closed_mesh`'s position-based weld keeps whichever duplicate point
-it meets first, while watertight welding averages, so the swap changes
-`prepare_hole_edit`'s vertex positions, volumes and gradients on every
-fixture, not only on the solids that previously failed to close. That
-numerical change to an experimental public contract belongs in a separate
-change with its own measurements.
+This decision did not wire `triangulate_shape_watertight` into hole editing,
+because `closed_mesh`'s position-based weld keeps whichever duplicate point it
+meets first while watertight welding averages, which changes vertex positions,
+volumes and gradients on every fixture. A later change adopted it. Hole editing
+itself no longer needs a mesh (ADR-0021); `prepare_hole_mesh` builds the
+watertight mesh on request for responses without an exact law.
 
 ## Consequences
 
@@ -174,6 +172,3 @@ Harder:
   boundary, a non-manifold edge, or an edge discretization with no stored
   curve parameters); callers that need a result for an open shell must use
   `triangulate_shape` instead.
-- `prepare_hole_edit` still relies on `closed_mesh`'s tolerance weld and
-  therefore keeps failing to close those same 8 fixtures until a dedicated,
-  separately scoped change adopts `triangulate_shape_watertight` there.
