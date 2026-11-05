@@ -1,8 +1,10 @@
 """Experimental fixed-topology radius and center editing of STEP through-holes.
 
-Host preparation/reconstruction uses OCCT. The array model couples cylindrical
-walls and planar end boundaries on one frozen, welded mesh. It does not trace
-through feature recognition, Boolean rebuilding, meshing, or topology changes.
+Host preparation and reconstruction use OCCT. The array model holds the exact
+volume, surface-area and first-moment laws of the represented holes, so it
+needs no mesh; responses without a law belong to the optional frozen mesh of
+:mod:`brepax.experimental.applications.hole_mesh`. Nothing traces through
+feature recognition, Boolean rebuilding or topology changes.
 """
 
 from collections.abc import Sequence
@@ -11,15 +13,11 @@ from dataclasses import dataclass, field
 import equinox as eqx
 import jax.numpy as jnp
 import numpy as np
-from jaxtyping import Array, Bool, Float, Int
+from jaxtyping import Array, Bool, Float
 
+from brepax._occt.backend import BRepGProp, GProp_GProps
 from brepax._occt.types import TopoDS_Shape
-from brepax.brep.triangulate import (
-    divergence_volume,
-    mesh_center_of_mass,
-    mesh_surface_area,
-    triangulate_shape_watertight,
-)
+from brepax.experimental.applications._edit_validation import volume_and_moment
 from brepax.experimental.applications._hole_geometry import (
     RejectedHole,
     ThroughHole,
@@ -29,12 +27,11 @@ from brepax.experimental.applications._hole_geometry import (
     recognize_holes,
     unify_same_domain,
 )
-from brepax.experimental.applications._hole_mesh import displacement_fields
 from brepax.experimental.applications.cad_frame import CadFrame
 
 
 class HoleEditModel(eqx.Module):
-    """Pure array model; differentiate radii and shifts with preparation frozen.
+    """Exact laws of isolated holes; differentiate radii and shifts directly.
 
     Each method accepts external-unit ``radii`` and optional ``center_shifts``
     with shape (selected holes, 3). Shifts are world-coordinate vectors from
@@ -43,75 +40,65 @@ class HoleEditModel(eqx.Module):
     invalid; roundoff-sized components are projected out. Shift Jacobians are
     tangent derivatives, with zero axial component, not axial edit support.
 
+    Within the bounds, with ``t = r - r0``, a hole of height ``h`` changes the
+    volume by ``-pi*h*t*(2*r0 + t)``, the surface area by
+    ``2*pi*h*t - 2*pi*t*(2*r0 + t)``, and the first moment by
+    ``-pi*h*(t*(2*r0 + t)*c + r**2*s)`` for center ``c`` and transverse shift
+    ``s``. The laws hold exactly for holes recognized as complete cylinders
+    with planar ends, up to the CAD tolerance of the prepared solid. The
+    reference measures come from adaptive OCCT integration to 1e-9 relative.
+
     Geometry and metric methods support ``jit``, ``vmap`` and parameter
     differentiation; the Boolean validity predicate supports ``jit``/``vmap``.
-    Lengths are in the input CAD's units. Use the metric methods for stable
-    evaluation before restoring a potentially large world origin. Scalar
-    measures and their radius derivatives are invariant under rigid placement.
-    Rotate shifts along with the CAD: scalar shift gradients rotate as vectors,
-    while the center-of-mass shift Jacobian transforms as R*J*R.T. Under positive
-    unit scaling s, volume/area scale by s**3/s**2 and length gradients by
-    s**2/s. Center-of-mass length Jacobians do not scale. Points and centers
-    transform as points. These laws hold
-    up to CAD tolerance and discretization error after fresh preparation.
+    Lengths are in the input CAD's units. Scalar measures and their radius
+    derivatives are invariant under rigid placement. Rotate shifts along with
+    the CAD: scalar shift gradients rotate as vectors, while the
+    center-of-mass shift Jacobian transforms as R*J*R.T. Under positive unit
+    scaling s, volume/area scale by s**3/s**2 and length gradients by s**2/s.
+    Center-of-mass length Jacobians do not scale. Centers transform as points.
 
     ``lower_radii``/``upper_radii`` bound radii. Shift magnitude plus positive
     radius growth must not exceed ``upper_radii - reference_radii``. Both use
-    the same clearance budget, including when shrinking the hole. ``is_valid``
-    additionally rejects collapsed or locally reversed triangles. Invalid edits
-    produce NaN geometry/measures; derivatives there are undefined. The validity test
-    is not a general mesh self-intersection or CAD certification algorithm.
+    the same clearance budget, including when shrinking the hole. Invalid
+    edits produce NaN measures; derivatives there are undefined.
     """
 
-    vertices: Float[Array, "v 3"]
-    faces: Int[Array, "t 3"]
-    fields: Float[Array, "h v 3"]
-    translation_weights: Float[Array, "h v"]
+    reference_volume: Float[Array, ""]
+    reference_area: Float[Array, ""]
+    reference_moment: Float[Array, "3"]
+    centers: Float[Array, "h 3"]
     axes: Float[Array, "h 3"]
+    heights: Float[Array, " h"]
+    working_radii: Float[Array, " h"]
     reference_radii: Float[Array, " h"]
     lower_radii: Float[Array, " h"]
     upper_radii: Float[Array, " h"]
     scale: Float[Array, ""]
     origin: Float[Array, "3"]
 
-    def _shifts(self, center_shifts: Float[Array, "h 3"] | None) -> Float[Array, "h 3"]:
+    def shifts_or_zero(
+        self, center_shifts: Float[Array, "h 3"] | None
+    ) -> Float[Array, "h 3"]:
+        """Return validated shifts, with zeros when they are omitted."""
         if center_shifts is None:
             return jnp.zeros_like(self.axes)
         if center_shifts.shape != self.axes.shape:
             raise ValueError("Expected one 3D center shift per selected hole")
         return center_shifts
 
-    def _transverse(self, shifts: Float[Array, "h 3"]) -> Float[Array, "h 3"]:
+    def transverse(self, shifts: Float[Array, "h 3"]) -> Float[Array, "h 3"]:
+        """Project shifts onto the planes perpendicular to the hole axes."""
         return shifts - jnp.sum(shifts * self.axes, axis=-1)[:, None] * self.axes
 
-    def _triangles(
-        self, radii: Float[Array, " h"], shifts: Float[Array, "h 3"]
-    ) -> Float[Array, "t 3 3"]:
-        if radii.shape != self.reference_radii.shape:
-            raise ValueError("Expected one radius per selected hole")
-        delta = (radii - self.reference_radii) / self.scale
-        vertices = self.vertices + jnp.einsum("h,hvi->vi", delta, self.fields)
-        vertices = vertices + jnp.einsum(
-            "hv,hi->vi", self.translation_weights, self._transverse(shifts) / self.scale
-        )
-        return vertices[self.faces]
-
-    def _valid(
+    def is_valid(
         self,
         radii: Float[Array, " h"],
-        shifts: Float[Array, "h 3"],
-        triangles: Float[Array, "t 3 3"],
+        center_shifts: Float[Array, "h 3"] | None = None,
     ) -> Bool[Array, ""]:
-        original = self.vertices[self.faces]
-        normals = jnp.cross(
-            original[:, 1] - original[:, 0], original[:, 2] - original[:, 0]
-        )
-        changed = jnp.cross(
-            triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0]
-        )
-        # Relative oriented-area margin, independent of length units.
-        orientation = jnp.sum(normals * changed, axis=-1)
-        area_squared = jnp.sum(normals**2, axis=-1)
+        """Check radius bounds, the shared clearance budget and transversality."""
+        if radii.shape != self.reference_radii.shape:
+            raise ValueError("Expected one radius per selected hole")
+        shifts = self.shifts_or_zero(center_shifts)
         # Translation and positive radial growth share the same clearance.
         # Squared norms avoid a singular norm derivative at the zero-shift default.
         slack = 64 * np.finfo(np.float64).eps * self.reference_radii
@@ -121,74 +108,62 @@ class HoleEditModel(eqx.Module):
             & jnp.all(jnp.isfinite(shifts))
             & jnp.all(jnp.abs(jnp.sum(shifts * self.axes, axis=-1)) <= slack)
             & jnp.all(
-                jnp.sum(self._transverse(shifts) ** 2, axis=-1)
+                jnp.sum(self.transverse(shifts) ** 2, axis=-1)
                 <= (remaining + slack) ** 2
             )
             & jnp.all(radii >= self.lower_radii)
             & jnp.all(radii <= self.upper_radii)
-            & jnp.all(orientation > 1e-8 * area_squared)
         )
 
-    def is_valid(
+    def _edit(
         self,
         radii: Float[Array, " h"],
-        center_shifts: Float[Array, "h 3"] | None = None,
-    ) -> Bool[Array, ""]:
-        """Check radius/movement bounds, transverse shifts and mesh orientation."""
-        shifts = self._shifts(center_shifts)
-        return self._valid(radii, shifts, self._triangles(radii, shifts))
-
-    def working_triangles(
-        self,
-        radii: Float[Array, " h"],
-        center_shifts: Float[Array, "h 3"] | None = None,
-    ) -> Float[Array, "t 3 3"]:
-        """Return normalized triangles; both parameters still use input units."""
-        shifts = self._shifts(center_shifts)
-        triangles = self._triangles(radii, shifts)
-        return jnp.where(self._valid(radii, shifts, triangles), triangles, jnp.nan)
-
-    def triangles(
-        self,
-        radii: Float[Array, " h"],
-        center_shifts: Float[Array, "h 3"] | None = None,
-    ) -> Float[Array, "t 3 3"]:
-        """Return external-coordinate triangles, or NaNs for invalid edits."""
-        return self.working_triangles(radii, center_shifts) * self.scale + self.origin
+        center_shifts: Float[Array, "h 3"] | None,
+    ) -> tuple[Float[Array, " h"], Float[Array, " h"], Float[Array, "h 3"]]:
+        """Radius change, radius-squared change and shift in working units."""
+        valid = self.is_valid(radii, center_shifts)
+        # Differences keep the reference exact: a radius converted to external
+        # units and back need not round-trip.
+        travel = jnp.where(valid, radii - self.reference_radii, jnp.nan) / self.scale
+        shifts = self.transverse(self.shifts_or_zero(center_shifts))
+        moved = jnp.where(valid, shifts, jnp.nan) / self.scale
+        return travel, travel * (2 * self.working_radii + travel), moved
 
     def volume(
         self,
         radii: Float[Array, " h"],
         center_shifts: Float[Array, "h 3"] | None = None,
     ) -> Float[Array, ""]:
-        """Signed mesh volume in input length units cubed."""
-        return (
-            divergence_volume(self.working_triangles(radii, center_shifts))
-            * self.scale**3
-        )
+        """Solid volume in input length units cubed."""
+        _, squared, _ = self._edit(radii, center_shifts)
+        change = -jnp.pi * jnp.sum(self.heights * squared)
+        return (self.reference_volume + change) * self.scale**3
 
     def surface_area(
         self,
         radii: Float[Array, " h"],
         center_shifts: Float[Array, "h 3"] | None = None,
     ) -> Float[Array, ""]:
-        """Mesh surface area in input length units squared."""
-        return (
-            mesh_surface_area(self.working_triangles(radii, center_shifts))
-            * self.scale**2
-        )
+        """Solid surface area in input length units squared."""
+        travel, squared, _ = self._edit(radii, center_shifts)
+        change = 2 * jnp.pi * jnp.sum(self.heights * travel - squared)
+        return (self.reference_area + change) * self.scale**2
 
     def center_of_mass(
         self,
         radii: Float[Array, " h"],
         center_shifts: Float[Array, "h 3"] | None = None,
     ) -> Float[Array, "3"]:
-        """Uniform-density mesh center of mass in external coordinates."""
-        return (
-            mesh_center_of_mass(self.working_triangles(radii, center_shifts))
-            * self.scale
-            + self.origin
+        """Uniform-density center of mass in external coordinates."""
+        travel, squared, moved = self._edit(radii, center_shifts)
+        removed = (self.working_radii + travel) ** 2
+        moment = self.reference_moment - jnp.pi * jnp.sum(
+            self.heights[:, None] * (squared[:, None] * self.centers)
+            + (self.heights * removed)[:, None] * moved,
+            axis=0,
         )
+        volume = self.reference_volume - jnp.pi * jnp.sum(self.heights * squared)
+        return moment / volume * self.scale + self.origin
 
 
 @dataclass(frozen=True)
@@ -204,8 +179,8 @@ class PreparedHoleEdit:
     holes: tuple[ThroughHole, ...]
     rejected: tuple[RejectedHole, ...]
     frame: CadFrame
-    _shape: TopoDS_Shape = field(repr=False)
-    _working_holes: tuple[ThroughHole, ...] = field(repr=False)
+    working_shape: TopoDS_Shape = field(repr=False)
+    working_holes: tuple[ThroughHole, ...] = field(repr=False)
 
     def rebuild(
         self,
@@ -227,18 +202,18 @@ class PreparedHoleEdit:
         geometry is preserved but original face partitions and IDs are not.
         """
         values = jnp.asarray(radii)
-        shifts = self.model._shifts(
+        shifts = self.model.shifts_or_zero(
             None if center_shifts is None else jnp.asarray(center_shifts)
         )
         if values.shape != self.model.reference_radii.shape or not bool(
             self.model.is_valid(values, shifts)
         ):
             raise ValueError(
-                "Invalid radii or center shifts: expected finite bounded values, "
-                "transverse shifts and valid mesh orientation"
+                "Invalid radii or center shifts: expected finite bounded values "
+                "and transverse shifts"
             )
         radius_values = np.asarray(values, dtype=np.float64)
-        transverse = np.asarray(self.model._transverse(shifts))
+        transverse = np.asarray(self.model.transverse(shifts))
         # Compare in caller units: converting a reference radius to working
         # units and back need not round-trip exactly.
         edited = np.flatnonzero(
@@ -246,8 +221,8 @@ class PreparedHoleEdit:
             | np.any(transverse != 0, axis=1)
         )
         working = rebuild_holes(
-            self._shape,
-            tuple(self._working_holes[i] for i in edited),
+            self.working_shape,
+            tuple(self.working_holes[i] for i in edited),
             radius_values[edited] / self.frame.length_scale,
             transverse[edited] / self.frame.length_scale,
         )
@@ -259,7 +234,6 @@ def prepare_hole_edit(
     face_ids: Sequence[int] | None = None,
     *,
     frame: CadFrame | None = None,
-    deflection: float = 0.001,
     merge_same_domain: bool = False,
 ) -> PreparedHoleEdit:
     """Prepare bounded edits of full cylindrical through-holes in one solid.
@@ -275,9 +249,10 @@ def prepare_hole_edit(
 
     ``frame`` maps input units to working coordinates; by default the bounding
     box is centered and its largest extent becomes 40 working units. It is
-    frozen during editing. ``deflection`` is an absolute WORKING-unit meshing
-    tolerance, finite and positive. Preparation requires JAX x64; it never
-    changes the global JAX precision setting. Input CAD is copied.
+    frozen during editing. Preparation requires JAX x64; it never changes the
+    global JAX precision setting. Input CAD is copied. No mesh is built; see
+    :func:`~brepax.experimental.applications.hole_mesh.prepare_hole_mesh` for
+    responses without an exact law.
 
     ``merge_same_domain`` unifies coincident same-domain faces and edges of
     the working solid with OCCT ``ShapeUpgrade_UnifySameDomain`` before
@@ -297,20 +272,13 @@ def prepare_hole_edit(
 
     Radius bounds are [0.5*r0, r0 + 0.2*clearance]. Optional transverse center
     shifts share the growth budget: norm(shift) + max(radius-r0, 0) must not
-    exceed 0.2*clearance. Moving cylinder samples and
-    neighboring planar samples together preserves the welded connectivity.
-    Geometry outside the radial support stays fixed. These are local edits,
-    not a topology-changing CAD kernel. Mesh orientation may restrict the
-    usable interval further; callers must check ``model.is_valid``.
+    exceed 0.2*clearance.
+    These are local edits, not a topology-changing CAD kernel.
 
-    Raises ValueError for invalid CAD, unsupported selections, no supported
-    holes, a mesh that cannot be welded into a closed oriented surface, or
-    incident faces whose mesh nodes disagree by more than twice the shape's
-    CAD tolerance (``WatertightMesh.max_gap``).
-    Unsupported surface evaluators raise NotImplementedError. OCCT extraction
-    failures propagate. When ``merge_same_domain`` is True, a failed or
-    geometry-changing unification also raises ValueError or RuntimeError.
-    Meshing accuracy is not certified by preparation.
+    Raises ValueError for invalid CAD, unsupported selections, or no supported
+    holes. OCCT extraction failures propagate. When ``merge_same_domain`` is
+    True, a failed or geometry-changing unification also raises ValueError or
+    RuntimeError.
 
     Example:
         >>> import jax
@@ -328,12 +296,10 @@ def prepare_hole_edit(
     """
     if jnp.asarray(0.0).dtype != np.dtype("float64"):
         raise ValueError("Hole editing requires jax_enable_x64=True")
-    if not np.isfinite(deflection) or deflection <= 0:
-        raise ValueError("deflection must be finite and positive in working units")
     working, frame = normalize_shape(shape, frame)
     if merge_same_domain:
         working = unify_same_domain(working)
-    found, rejected, tolerance = recognize_holes(working)
+    found, rejected, _ = recognize_holes(working)
     if face_ids is None:
         selected = found
     else:
@@ -348,30 +314,31 @@ def prepare_hole_edit(
         selected = tuple(by_id[i] for i in ids)
     if not selected:
         raise ValueError(f"No supported through-holes selected; rejected={rejected}")
-    # Two faces sharing an edge each lie within the CAD tolerance of it, so
-    # their mesh nodes there may disagree by up to twice that tolerance.
-    mesh = triangulate_shape_watertight(
-        working, deflection=deflection, tolerance=2 * tolerance
-    )
-    vertices = np.asarray(mesh.vertices)
-    faces = np.asarray(mesh.faces)
+    volume, moment = volume_and_moment(working)
+    if volume <= 0:
+        raise ValueError("Solid has a non-positive volume")
+    measured = GProp_GProps()
+    BRepGProp.SurfaceProperties_s(working, measured, 1e-9)
     holes = tuple(external_hole(hole, frame) for hole in selected)
     reference = jnp.array([hole.radius for hole in holes])
-    fields = displacement_fields(vertices, selected, tolerance)
+    axes = np.array([hole.axis for hole in selected])
+    heights = np.array([hole.height for hole in selected])
     model = HoleEditModel(
-        vertices=jnp.asarray(vertices),
-        faces=jnp.asarray(faces),
-        fields=jnp.asarray(fields.radial),
-        translation_weights=jnp.asarray(fields.translation),
-        axes=jnp.array([hole.axis for hole in holes]),
+        reference_volume=jnp.asarray(volume),
+        reference_area=jnp.asarray(measured.Mass()),
+        reference_moment=jnp.asarray(moment),
+        centers=jnp.asarray(
+            np.array([hole.base for hole in selected]) + heights[:, None] * axes / 2
+        ),
+        axes=jnp.asarray(axes),
+        heights=jnp.asarray(heights),
+        working_radii=jnp.array([hole.radius for hole in selected]),
         reference_radii=reference,
         lower_radii=reference * 0.5,
         upper_radii=reference + 0.2 * jnp.array([hole.clearance for hole in holes]),
         scale=jnp.asarray(frame.length_scale),
         origin=jnp.asarray(frame.origin),
     )
-    if not bool(model.is_valid(reference)) or float(model.volume(reference)) <= 0:
-        raise ValueError("Reference mesh contains degenerate or inverted geometry")
     return PreparedHoleEdit(model, holes, rejected, frame, working, selected)
 
 
