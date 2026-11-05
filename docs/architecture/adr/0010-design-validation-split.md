@@ -37,7 +37,8 @@ Split Gate 3 into two sub-criteria:
 
 - Concept proof gate evaluation proceeds with Gate 3a PASS
 - The 3D extension will include GPU benchmark as part of the primitive test suite
-- CPU flattening data serves as a baseline for GPU comparison
+- CPU flattening data serves as a baseline for GPU comparison (replaced; see
+  Later measurements)
 - The 70% efficiency threshold remains unchanged for the GPU evaluation
 
 ## Later measurements
@@ -48,6 +49,7 @@ with a grid SDF evaluation at `resolution=128`, and per-stratum dispatch added
 more grid passes. The same benchmark at each commit, on the same class of Apple
 Silicon CPU under load, gave about 9.8M samples/s at batch 1024 before that
 change, about 15K/s after it, and between 5K/s and 9K/s on 2026-11-05. The table
-therefore describes neither current Method (C) throughput nor a baseline for its
-GPU comparison. Throughput was traded for generality; the code changed on
+therefore does not describe current Method (C) throughput, and it cannot serve
+as the baseline for a GPU comparison: that comparison needs a fresh CPU run of
+the same code. Throughput was traded for generality; the code changed on
 purpose, and no gradual regression was found across the commits measured.
