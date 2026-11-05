@@ -3,7 +3,7 @@
 Measures throughput of jit-compiled gradient computation as batch size
 increases from 1 to 1024. Both Method (A) and Method (C) are tested.
 
-Pass condition: T(1024) / T(1) >= 0.7 * 1024 = 716.8 (70% efficiency).
+Pass condition on GPU: T(1024) / T(1) >= 0.7 * 1024 = 716.8 (70% efficiency).
 """
 
 import time
@@ -49,6 +49,12 @@ def _throughput(fn, batch_size, c1, r1, c2, r2):
     return batch_size / median_time
 
 
+def _require_gpu():
+    """The scaling target of ADR-0010 is defined for GPU; CPU throughput flattens."""
+    if jax.default_backend() != "gpu":
+        pytest.skip("70% scaling efficiency is only defined on GPU (ADR-0010)")
+
+
 def _stratum_grad_batch(c1, r1, c2, r2):
     """Batched Method (C) gradient via vmap."""
 
@@ -89,7 +95,8 @@ class TestVmapScalingMethodC:
 
     @pytest.mark.slow
     def test_scaling_efficiency(self) -> None:
-        """GPU scaling benchmark. Skipped in CI (CPU only). See ADR-0010."""
+        """GPU scaling benchmark, skipped on other backends. See ADR-0010."""
+        _require_gpu()
         jitted = jax.jit(_stratum_grad_batch)
 
         throughputs = {}
@@ -121,6 +128,8 @@ class TestVmapScalingMethodA:
 
     @pytest.mark.slow
     def test_scaling_efficiency(self) -> None:
+        """GPU scaling benchmark, skipped on other backends. See ADR-0010."""
+        _require_gpu()
         jitted = jax.jit(_smoothing_grad_batch)
 
         throughputs = {}
