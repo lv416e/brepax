@@ -2210,14 +2210,12 @@ incident faces before averaging, not the error of the averaged mesh. It
 reaches 3.1e-2, 7.9e-3 and 6.2e-3 model units on those three parts and
 0.11 on CTC-02, whose volume error is 2.1e-5; the source of these gaps has
 not been investigated.</p>
-<p><code>triangulate_shape_watertight</code> can replace the <code>triangulate_shape</code> +
-<code>closed_mesh</code> weld in <code>prepare_hole_edit</code>, but this decision does not wire
-it in. <code>closed_mesh</code>'s position-based weld keeps whichever duplicate point
-it meets first, while watertight welding averages, so the swap changes
-<code>prepare_hole_edit</code>'s vertex positions, volumes and gradients on every
-fixture, not only on the solids that previously failed to close. That
-numerical change to an experimental public contract belongs in a separate
-change with its own measurements.</p>
+<p>This decision did not wire <code>triangulate_shape_watertight</code> into hole editing,
+because <code>closed_mesh</code>'s position-based weld keeps whichever duplicate point it
+meets first while watertight welding averages, which changes vertex positions,
+volumes and gradients on every fixture. A later change adopted it. Hole editing
+itself no longer needs a mesh (ADR-0021); <code>prepare_hole_mesh</code> builds the
+watertight mesh on request for responses without an exact law.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <p>Easier:</p>
 <ul>
@@ -2243,9 +2241,6 @@ change with its own measurements.</p>
   boundary, a non-manifold edge, or an edge discretization with no stored
   curve parameters); callers that need a result for an open shell must use
   <code>triangulate_shape</code> instead.</li>
-<li><code>prepare_hole_edit</code> still relies on <code>closed_mesh</code>'s tolerance weld and
-  therefore keeps failing to close those same 8 fixtures until a dedicated,
-  separately scoped change adopts <code>triangulate_shape_watertight</code> there.</li>
 </ul>
 
 
