@@ -942,3 +942,21 @@ def test_a_crack_away_from_the_holes_only_blocks_the_mesh():
     assert cad_metrics(rebuilt)[0][0] == pytest.approx(
         float(model.volume(radii)), rel=1e-6
     )
+
+
+def test_rebuild_refuses_to_delete_thin_material_inside_a_bore():
+    # A peg this thin passes the bore emptiness check, which compares volumes,
+    # and filling the bore erases it. Only the surface area shows the loss.
+    plate = BRepAlgoAPI_Cut(
+        BRepPrimAPI_MakeBox(40, 24, 6).Shape(), cylinder((10, 12, 0), (0, 0, 1), 3, 6)
+    ).Shape()
+    for corner, size in (((3, 10, 6), (2, 4, 4)), ((3, 10, 8), (9, 4, 2))):
+        box = BRepPrimAPI_MakeBox(gp_Pnt(*corner), *size).Shape()
+        plate = BRepAlgoAPI_Fuse(plate, box).Shape()
+    plate = BRepAlgoAPI_Fuse(
+        plate, cylinder((10.8, 12, 1), (0, 0, 1), 0.0001, 8)
+    ).Shape()
+    edit = prepare_hole_edit(plate, frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+    assert len(edit.holes) == 1
+    with pytest.raises(RuntimeError, match="surface area"):
+        edit.rebuild(jnp.array([3.1]))

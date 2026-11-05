@@ -59,7 +59,10 @@ STEP roundtrips, and independent CAD finite-difference references.
 
 - Input must contain one valid outward-oriented solid. Editable holes need a
   complete empty cylindrical bore, two perpendicular outward-facing planar
-  ends, and clearance from other boundaries. Blind, oblique, intersecting and
+  ends, and clearance from other boundaries. Emptiness compares volumes to
+  1e-9 of the bore, so thinner material inside a bore passes recognition; a
+  rebuild refuses to erase it when that changes the whole-solid area by more
+  than 1e-7 relative. Blind, oblique, intersecting and
   near-boundary holes are rejected. A cylindrical wall split into several
   faces, such as a STEP exporter's two half-cylinder faces or a coplanar seam
   splitting it axially, is rejected by default too; pass
@@ -160,7 +163,7 @@ from brepax.experimental.applications.hole_mesh import prepare_hole_mesh
 
 mesh = prepare_hole_mesh(edit, deflection=0.0001)
 assert bool(mesh.is_valid(radii))
-triangles = jax.jit(mesh.triangles)(radii)
+triangles = eqx.filter_jit(mesh.triangles)(radii)
 ```
 
 - `deflection` is in **working units**, not the original STEP units.

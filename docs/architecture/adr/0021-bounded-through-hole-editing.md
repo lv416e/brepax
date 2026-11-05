@@ -74,7 +74,10 @@ with a large CAD tolerance, a Boolean can move faces within that tolerance
 and change measured properties without leaving a difference region. The
 inside comparison never subtracts the two solids from each other: on NIST
 CTC-05, OCCT returned a "removed" region larger than the whole solid for two
-nearly coincident solids.
+nearly coincident solids. Whole-solid area must also follow its law to 1e-7
+relative, adaptively integrated: material inside a bore thin enough to pass
+recognition's volume-based emptiness check is erased by the fill, which shows
+in the area and not in the volume or first moment.
 Unify connected same-domain faces and edges after the Boolean operations so
 fill seams do not divide the moved hole's end planes and prevent re-editing.
 This preserves unselected geometry, not the original partition into faces.

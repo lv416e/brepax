@@ -465,6 +465,10 @@ def _local_edit_error(
     extent, so each end may add or remove a slice of that thickness over the
     changed cross-section; the bounds allow exactly that and roundoff. See
     :func:`local_edit_error` for the envelope and outside checks.
+
+    Whole-solid area must also follow the law to 1e-7 relative: material thin
+    enough to pass recognition's bore emptiness check, which compares volumes,
+    is erased by filling the bore, and shows in the area but not in the volume.
     """
     tolerance = shape_tolerance(shape)
     envelope = _hole_envelope(holes, radii, shifts, 10 * tolerance)
@@ -484,7 +488,7 @@ def _local_edit_error(
         roundoff = 1e-12 * np.pi * larger**2 * hole.height
         volume_bound += slices + roundoff
         moment_bound += (slices + roundoff) * reach
-    return local_edit_error(
+    error = local_edit_error(
         shape,
         changed,
         LocalEdit(
@@ -498,3 +502,17 @@ def _local_edit_error(
             away_message="Rebuilt CAD changed material away from the edited holes",
         ),
     )
+    if error is not None:
+        return error
+    measured = [GProp_GProps(), GProp_GProps()]
+    BRepGProp.SurfaceProperties_s(shape, measured[0], 1e-9)
+    BRepGProp.SurfaceProperties_s(changed, measured[1], 1e-9)
+    old = np.array([hole.radius for hole in holes])
+    height = np.array([hole.height for hole in holes])
+    area_change = 2 * np.pi * np.sum(height * (radii - old) - (radii**2 - old**2))
+    if (
+        abs(measured[1].Mass() - measured[0].Mass() - area_change)
+        > 1e-7 * measured[0].Mass() + 1e-9
+    ):
+        return "Rebuilt CAD surface area does not match the isolated-hole edit"
+    return None

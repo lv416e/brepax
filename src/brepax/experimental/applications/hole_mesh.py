@@ -8,8 +8,6 @@ and can restrict the usable radii; neither affects the prepared edit or its
 rebuild.
 """
 
-from __future__ import annotations
-
 import equinox as eqx
 import jax.numpy as jnp
 import numpy as np
@@ -169,7 +167,7 @@ class HoleMeshModel(eqx.Module):
         self,
         radii: Float[Array, " h"],
         center_shifts: Float[Array, "h 3"] | None = None,
-    ) -> Float[Array, 3]:
+    ) -> Float[Array, "3"]:
         """Uniform-density mesh center of mass in external coordinates."""
         return (
             mesh_center_of_mass(self.working_triangles(radii, center_shifts))
