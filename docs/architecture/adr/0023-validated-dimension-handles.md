@@ -52,7 +52,13 @@ local NIST, FreeCAD and miscellaneous STEP fixtures, motivate a common layer:
   naively enumerated hole-to-wall pairs were separated by other geometry. The
   smallest wall thickness of the whole part came from such a pair in 6 of
   36 solids and in none of the 16 NIST parts. There, it came from planes
-  meeting at an angle or from tangencies.
+  meeting at an angle or from tangencies. Accepting only nearest pairs covered
+  38% of 277 recognized holes.
+- Frozen-mesh derivatives of the part-wide minimum wall thickness did not
+  predict rebuilt parts. Derivatives matched finite differences of the same
+  frozen mesh to 1e-10, but the hard minimum had zero gradient on the NIST and
+  linkage parts measured. The metric also moved with the triangulation: on one
+  plate, enlarging a hole raised the freshly meshed minimum from 5.44 to 5.51.
 
 Direct-modeling research expresses push/pull as a Boolean with the swept
 volume so that the result remains a valid solid, and notes that the motions
@@ -99,12 +105,20 @@ evidence:
   Their derivatives are derivatives of that discretization. The mesh is an
   optional layer: its limits restrict neither a handle's interval nor a rebuild.
 
-Exact constraints are local: wall thickness between two declared parallel
-faces, and ligaments from a declared hole to a declared wall or another
-declared hole. Each holds only after a geometric check confirms that the
-pair overlaps in projection and that no other face lies between them. A
-part-wide minimum of a manufacturability metric is a discretized response,
-not an exact constraint.
+Distance constraints are local. A hole's distance to the rest of the boundary
+is bounded by the triangle inequality from the distances measured at
+recognition: an edited wall lies within `abs(r - r0) + norm(s)` of the wall it
+replaces, and two edited holes approach by at most both travels. This needs no
+declared pair or geometric acceptance check, and covers every recognized hole
+whatever its neighbors are. The bound is reached when a hole grows toward a
+radially closest feature and is conservative otherwise. Measured against OCCT
+distances on rebuilt fixtures (277 holes on 19 parts, 1357 checks across
+reference, grown, shifted and mixed edits), it held everywhere and equaled the
+measurement at the reference and at the upper radii. One apparent violation was
+a false zero from `BRepExtrema_DistShapeShape` on a torus, with its reported
+point far from the wall; dense sampling confirmed the bound. Wall thickness between
+two declared parallel faces is not implemented. A part-wide minimum of a
+manufacturability metric is a discretized response, not an exact constraint.
 
 Inverse queries minimize a weighted change of handle values subject to
 target bands on responses. With exact-law constraints only, a query returns
@@ -135,9 +149,17 @@ candidates against an independent oracle.
 ## Consequences
 
 Callers can ask minimal-change questions about imported parts, for example
-reducing mass within bounds on selected dimensions. They receive either a
-rechecked and rebuilt edit or a model-scoped infeasibility proof. Gradients
-of discretized metrics remain available to downstream JAX computations.
+reducing mass within bounds on selected dimensions while keeping a minimum
+ligament. They receive a rechecked witness to rebuild, a model-scoped
+infeasibility proof, or an explicitly unresolved result.
+
+Laws and ligament bounds do not need differentiation to be certified: in the
+radii they are polynomial or piecewise linear, and the query uses them directly. Differentiation
+serves responses a caller builds on top of them, such as a stress surrogate
+fitted to hole size and ligament, whose derivative matches finite differences
+through rebuilt CAD. Such a search has no certificate, so its result must be
+rebuilt and checked. Gradients of discretized metrics remain available but
+describe the frozen mesh.
 
 Coverage is limited to handles whose laws and events are implemented. Most
 faces of the measured parts are not yet editable dimensions, and the

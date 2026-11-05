@@ -15,7 +15,7 @@ import heapq
 import itertools
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fractions import Fraction
 from typing import Literal
 
@@ -51,16 +51,31 @@ class DimensionLaw:
 
 
 @dataclass(frozen=True)
+class TravelLimit:
+    """Limit on the summed absolute change of two handles named by label.
+
+    ``abs(x - reference)`` of ``first`` plus that of ``second`` must not exceed
+    ``limit``. Two edited holes keep a ligament this way, because their walls
+    approach by at most their combined travel.
+    """
+
+    first: str
+    second: str
+    limit: float
+
+
+@dataclass(frozen=True)
 class DimensionQueryResult:
     """Outcome of :func:`minimal_volume_change`.
 
     ``optimal_within_tolerance``: ``values`` reach the band for every value
     of pi in the enclosure, and no handle values in the box reach it with a
     weighted change below ``lower_bound``, which is within ``tolerance`` of
-    ``change``. ``infeasible``: ``reachable``, the exact range of the volume
-    change over the box (widened by the pi enclosure), misses the band.
-    ``unresolved``: the node budget ran out; ``values`` is the best witness
-    found, if any, and ``lower_bound`` still bounds every solution.
+    ``change``. ``infeasible``: no handle values in the box satisfying the
+    travel limits reach the band. ``reachable`` is the exact range of the
+    volume change over the box, widened by the pi enclosure and ignoring travel
+    limits. ``unresolved``: the node budget ran out; ``values`` is the best
+    witness found, if any, and ``lower_bound`` still bounds every solution.
     """
 
     status: Literal["optimal_within_tolerance", "infeasible", "unresolved"]
@@ -129,6 +144,11 @@ class _Handle:
         sign = 1 if far > near else -1
         sn, sf = self.slope(near), self.slope(far)
         chord = (cf - cn) / (df - dn)
+        if sn != 0 and sf == 0:
+            # Cost per unit of volume diverges toward the flat end, so the curve
+            # is convex and the tangent at the near end stays below it. The
+            # remaining jump at ``far`` is left to branching.
+            return (dn, cn), [(self.w * sign / sn, df - dn)]
         if sn != 0 and sf != 0:
             tangent_near = self.w * sign / sn
             tangent_far = self.w * sign / sf
@@ -313,6 +333,92 @@ def _witness(
     return cost, values
 
 
+def _limited_witness(
+    handles: list[_Handle],
+    values: list[float],
+    band: tuple[Fraction, Fraction],
+    limits: list[tuple[int, int, Fraction]],
+) -> tuple[Fraction, list[float]] | None:
+    """The witness with travel limits enforced, if it stays in the band."""
+    fixed = _within_limits(handles, values, limits)
+    if fixed is None:
+        return None
+    total = sum(
+        (h.delta(Fraction(x)) for h, x in zip(handles, fixed, strict=True)),
+        Fraction(0),
+    )
+    if not band[0] <= total <= band[1]:
+        return None
+    cost = sum(
+        (h.cost(Fraction(x)) for h, x in zip(handles, fixed, strict=True)), Fraction(0)
+    )
+    return cost, fixed
+
+
+def _tighten(
+    handles: list[_Handle],
+    boxes: list[tuple[Fraction, Fraction]],
+    limits: list[tuple[int, int, Fraction]],
+) -> list[tuple[Fraction, Fraction]] | None:
+    """Shrink a box by the travel limits; None when a limit excludes all of it."""
+    tightened = list(boxes)
+    for i, j, limit in limits:
+        least = [
+            max(
+                tightened[k][0] - handles[k].x0,
+                handles[k].x0 - tightened[k][1],
+                Fraction(0),
+            )
+            for k in (i, j)
+        ]
+        if least[0] + least[1] > limit:
+            return None
+        for k, other in ((i, least[1]), (j, least[0])):
+            reach = limit - other
+            lo, hi = tightened[k]
+            tightened[k] = (
+                max(lo, handles[k].x0 - reach),
+                min(hi, handles[k].x0 + reach),
+            )
+    return tightened
+
+
+def _over_limit(
+    handles: list[_Handle],
+    values: Sequence[Fraction],
+    limits: list[tuple[int, int, Fraction]],
+) -> tuple[int, int, Fraction] | None:
+    for limit in limits:
+        i, j, most = limit
+        if abs(values[i] - handles[i].x0) + abs(values[j] - handles[j].x0) > most:
+            return limit
+    return None
+
+
+def _within_limits(
+    handles: list[_Handle],
+    values: list[float],
+    limits: list[tuple[int, int, Fraction]],
+) -> list[float] | None:
+    """Pull floats toward their references until every travel limit holds."""
+    fixed = list(values)
+    for _ in range(len(limits) + 1):
+        exact = [Fraction(x) for x in fixed]
+        over = _over_limit(handles, exact, limits)
+        if over is None:
+            return fixed
+        i, j, most = over
+        travels = [exact[k] - handles[k].x0 for k in (i, j)]
+        ratio = most / (abs(travels[0]) + abs(travels[1]))
+        for k, travel in zip((i, j), travels, strict=True):
+            moved = float(handles[k].x0 + ratio * travel)
+            # Rounding must not leave the travel longer than the scaled one.
+            if abs(Fraction(moved) - handles[k].x0) > abs(ratio * travel):
+                moved = math.nextafter(moved, handles[k].law.reference)
+            fixed[k] = moved
+    return None
+
+
 def _range(handle: _Handle) -> tuple[Fraction, Fraction]:
     ends = (handle.delta(handle.lo), handle.delta(handle.hi), Fraction(0))
     return min(ends), max(ends)
@@ -332,6 +438,7 @@ def minimal_volume_change(
     laws: Sequence[DimensionLaw],
     volume_change: tuple[float, float],
     *,
+    travel_limits: Sequence[TravelLimit] = (),
     tolerance: float | None = None,
     max_nodes: int = 10_000,
 ) -> DimensionQueryResult:
@@ -347,12 +454,19 @@ def minimal_volume_change(
     the accepted absolute gap between witness cost and lower bound; it
     defaults to 1e-9 times the total weighted interval width.
 
+    ``travel_limits`` couple pairs of handles. A witness satisfies them exactly,
+    and lower bounds and infeasibility hold over the handle vectors that do.
+    Closing the gap on an active limit takes more nodes, so it can end
+    ``unresolved`` within ``max_nodes``.
+
     A minimal witness usually lies on an edge of the band, and rebuilt CAD
     matches the law only within its validation bound; narrow the band by
     that allowance when the rebuilt part itself must lie in it.
 
     Raises ValueError for an empty or inverted band, a law that is not
-    monotone on its interval, or a reference outside its interval.
+    monotone on its interval, a reference outside its interval, or a travel
+    limit that is negative, names one handle twice, or names a label that does
+    not identify exactly one law.
     """
     if not laws:
         raise ValueError("Expected at least one law")
@@ -367,6 +481,20 @@ def minimal_volume_change(
             )
         _check_monotone(law)
     handles = [_Handle(law) for law in laws]
+    positions = {law.label: i for i, law in enumerate(laws)}
+    labels = [law.label for law in laws]
+    limits = []
+    for travel in travel_limits:
+        if (
+            labels.count(travel.first) != 1
+            or labels.count(travel.second) != 1
+            or travel.first == travel.second
+            or not travel.limit >= 0
+        ):
+            raise ValueError(f"Unsupported travel limit: {travel}")
+        limits.append(
+            (positions[travel.first], positions[travel.second], Fraction(travel.limit))
+        )
     spread = sum((h.pi_spread() for h in handles), Fraction(0))
     ranges = [_range(h) for h in handles]
     reachable = (
@@ -385,10 +513,11 @@ def minimal_volume_change(
     counter = itertools.count()
     root = [(h.lo, h.hi) for h in handles]
     heap: list[tuple[Fraction, int, list[tuple[Fraction, Fraction]]]] = []
-    relaxed = _relax(handles, root, bound_band)
-    if relaxed is None:
+    tightened = _tighten(handles, root, limits)
+    relaxed = None if tightened is None else _relax(handles, tightened, bound_band)
+    if tightened is None or relaxed is None:
         return DimensionQueryResult("infeasible", None, None, None, reachable, None, 0)
-    heapq.heappush(heap, (relaxed[0], next(counter), root))
+    heapq.heappush(heap, (relaxed[0], next(counter), tightened))
     best: tuple[Fraction, list[float]] | None = None
     # Bounds of boxes that could be neither split nor resolved, and of boxes
     # dropped because they could not improve the incumbent by more than the
@@ -415,6 +544,8 @@ def minimal_volume_change(
         _, deltas = relaxed
         if witness_band[0] <= witness_band[1]:
             found = _witness(handles, boxes, deltas, witness_band)
+            if found is not None:
+                found = _limited_witness(handles, found[1], witness_band, limits)
             if found is not None and (best is None or found[0] < best[0]):
                 best = found
         if best is not None and bound >= best[0] - gap:
@@ -428,7 +559,13 @@ def minimal_volume_change(
             h.cost(x) - _hull_cost(h, box, d)
             for h, box, x, d in zip(handles, boxes, points, deltas, strict=True)
         ]
-        j = int(np.argmax([float(g) for g in gaps]))
+        over = _over_limit(handles, points, limits)
+        if over is None:
+            j = int(np.argmax([float(g) for g in gaps]))
+        else:
+            # The relaxation ignored this limit: only narrowing its handles
+            # brings the bound up to it, whatever the hull gaps are.
+            j = max(over[:2], key=lambda k: boxes[k][1] - boxes[k][0])
         lo, hi = boxes[j]
         cut = points[j] if lo < points[j] < hi else (lo + hi) / 2
         if not lo < cut < hi:
@@ -437,6 +574,10 @@ def minimal_volume_change(
         for part in ((lo, cut), (cut, hi)):
             child = list(boxes)
             child[j] = part
+            narrowed = _tighten(handles, child, limits)
+            if narrowed is None:
+                continue
+            child = narrowed
             relaxed_child = _relax(handles, child, bound_band)
             if relaxed_child is None:
                 continue
@@ -530,10 +671,94 @@ def hole_radius_laws(
     )
 
 
+def hole_ligament_constraints(
+    edit: PreparedHoleEdit,
+    minimum_ligament: float,
+    weights: Sequence[float] | None = None,
+) -> tuple[tuple[DimensionLaw, ...], tuple[TravelLimit, ...]]:
+    """Hole radius laws and travel limits that keep a minimum ligament.
+
+    In exact arithmetic, any handle values these allow keep the ligament bound
+    at or above ``minimum_ligament`` in input units; evaluating
+    ``HoleEditModel.ligament_bounds`` in floats can round it by an ulp. Each
+    radius interval narrows by
+    its distance to fixed faces, and each pair of selected holes that could
+    otherwise come too close gets a :class:`TravelLimit`. Pass both to
+    :func:`minimal_volume_change`. Infeasibility then concerns that bound, which
+    is conservative except where a hole grows toward a radially closest feature.
+
+    Raises ValueError for a negative minimum, or one a hole's bound already
+    violates at its reference radius.
+    """
+    if not minimum_ligament >= 0:
+        raise ValueError("Minimum ligament must not be negative")
+    laws = hole_radius_laws(edit, weights)
+    fixed = np.asarray(edit.model.fixed_clearance, dtype=np.float64)
+    to_holes = np.asarray(edit.model.hole_clearance, dtype=np.float64)
+    minimum = Fraction(minimum_ligament)
+    narrowed = []
+    for i, law in enumerate(laws):
+        closest = min(float(fixed[i]), float(np.min(to_holes[i])))
+        if closest < minimum_ligament:
+            raise ValueError(
+                f"{law.label}: its ligament bound {closest} is below the minimum"
+            )
+        if np.isinf(fixed[i]):
+            narrowed.append(law)
+            continue
+        reach = Fraction(float(fixed[i])) - minimum
+        reference = Fraction(law.reference)
+        narrowed.append(
+            replace(
+                law,
+                lower=max(law.lower, _float_above(reference - reach)),
+                upper=min(law.upper, _float_below(reference + reach)),
+            )
+        )
+    limits = []
+    for i in range(len(laws)):
+        for j in range(i + 1, len(laws)):
+            # Both holes use the smaller measured distance: a tolerance can
+            # make the two OCCT queries of one pair differ slightly.
+            closest = min(float(to_holes[i, j]), float(to_holes[j, i]))
+            if np.isinf(closest):
+                continue
+            room = Fraction(closest) - minimum
+            widest = sum(
+                (
+                    max(
+                        Fraction(law.upper) - Fraction(law.reference),
+                        Fraction(law.reference) - Fraction(law.lower),
+                    )
+                    for law in (narrowed[i], narrowed[j])
+                ),
+                Fraction(0),
+            )
+            if widest > room:
+                limits.append(
+                    TravelLimit(laws[i].label, laws[j].label, _float_below(room))
+                )
+    return tuple(narrowed), tuple(limits)
+
+
+def _float_below(value: Fraction) -> float:
+    """The largest float not above ``value``."""
+    rounded = float(value)
+    return math.nextafter(rounded, -math.inf) if Fraction(rounded) > value else rounded
+
+
+def _float_above(value: Fraction) -> float:
+    """The smallest float not below ``value``."""
+    rounded = float(value)
+    return math.nextafter(rounded, math.inf) if Fraction(rounded) < value else rounded
+
+
 __all__ = [
     "DimensionLaw",
     "DimensionQueryResult",
+    "TravelLimit",
     "face_offset_laws",
+    "hole_ligament_constraints",
     "hole_radius_laws",
     "minimal_volume_change",
 ]

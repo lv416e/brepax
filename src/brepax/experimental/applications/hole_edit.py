@@ -61,6 +61,11 @@ class HoleEditModel(eqx.Module):
     radius growth must not exceed ``upper_radii - reference_radii``. Both use
     the same clearance budget, including when shrinking the hole. Invalid
     edits produce NaN measures; derivatives there are undefined.
+
+    ``fixed_clearance`` is each hole's distance to every boundary face other
+    than its end faces and the selected holes, ``hole_clearance`` its distance
+    to each selected hole (infinite on the diagonal). Both are in input units;
+    ``ligament_bounds`` uses them.
     """
 
     reference_volume: Float[Array, ""]
@@ -73,6 +78,8 @@ class HoleEditModel(eqx.Module):
     reference_radii: Float[Array, " h"]
     lower_radii: Float[Array, " h"]
     upper_radii: Float[Array, " h"]
+    fixed_clearance: Float[Array, " h"]
+    hole_clearance: Float[Array, "h h"]
     scale: Float[Array, ""]
     origin: Float[Array, "3"]
 
@@ -165,6 +172,40 @@ class HoleEditModel(eqx.Module):
         volume = self.reference_volume - jnp.pi * jnp.sum(self.heights * squared)
         return moment / volume * self.scale + self.origin
 
+    def ligament_bounds(
+        self,
+        radii: Float[Array, " h"],
+        center_shifts: Float[Array, "h 3"] | None = None,
+    ) -> Float[Array, " h"]:
+        """Lower bound on each edited hole's distance to the rest of the boundary.
+
+        A point of an edited wall lies within ``abs(r - r0) + norm(s)`` of the
+        wall it replaces, so by the triangle inequality the distance to any
+        boundary face other than the hole's own end faces falls by at most that
+        travel, and to another selected hole by at most both travels. This holds
+        for every recognized hole, whatever the neighboring surfaces are.
+
+        The bound is reached when the hole only grows and the closest feature
+        lies radially, and is conservative otherwise: shrinking counts as travel
+        because a feature beyond the hole's opening can come closer. It is the
+        distance between faces, not a part-wide wall thickness: it says nothing
+        about features the selected holes do not face. NaN for invalid edits.
+        """
+        valid = self.is_valid(radii, center_shifts)
+        shifts = self.transverse(self.shifts_or_zero(center_shifts))
+        squared = jnp.sum(shifts**2, axis=-1)
+        # The norm's derivative is singular at the zero-shift default.
+        safe = jnp.where(squared > 0, squared, 1.0)
+        moved = jnp.where(squared > 0, jnp.sqrt(safe), 0.0)
+        travel = jnp.where(
+            valid, jnp.abs(radii - self.reference_radii) + moved, jnp.nan
+        )
+        to_holes = self.hole_clearance - travel[None, :] - travel[:, None]
+        return jnp.minimum(
+            self.fixed_clearance - travel,
+            jnp.min(to_holes, axis=1),
+        )
+
 
 @dataclass(frozen=True)
 class PreparedHoleEdit:
@@ -229,6 +270,23 @@ class PreparedHoleEdit:
         return self.frame.restore_shape(working)
 
 
+def _partner_clearances(
+    holes: tuple[ThroughHole, ...],
+) -> tuple[Float[np.ndarray, " h"], Float[np.ndarray, "h h"]]:
+    """Split recognized boundary distances into fixed faces and selected holes."""
+    position = {hole.face_id: i for i, hole in enumerate(holes)}
+    fixed = np.full(len(holes), np.inf)
+    to_holes = np.full((len(holes), len(holes)), np.inf)
+    for i, hole in enumerate(holes):
+        for face, distance in hole.boundary_distances:
+            j = position.get(face)
+            if j is None:
+                fixed[i] = min(fixed[i], distance)
+            else:
+                to_holes[i, j] = distance
+    return fixed, to_holes
+
+
 def prepare_hole_edit(
     shape: TopoDS_Shape,
     face_ids: Sequence[int] | None = None,
@@ -272,7 +330,8 @@ def prepare_hole_edit(
 
     Radius bounds are [0.5*r0, r0 + 0.2*clearance]. Optional transverse center
     shifts share the growth budget: norm(shift) + max(radius-r0, 0) must not
-    exceed 0.2*clearance.
+    exceed 0.2*clearance. ``HoleEditModel.ligament_bounds`` bounds the remaining
+    distances inside this range.
     These are local edits, not a topology-changing CAD kernel.
 
     Raises ValueError for invalid CAD, unsupported selections, or no supported
@@ -321,6 +380,7 @@ def prepare_hole_edit(
     BRepGProp.SurfaceProperties_s(working, measured, 1e-9)
     holes = tuple(external_hole(hole, frame) for hole in selected)
     reference = jnp.array([hole.radius for hole in holes])
+    fixed, to_holes = _partner_clearances(holes)
     axes = np.array([hole.axis for hole in selected])
     heights = np.array([hole.height for hole in selected])
     model = HoleEditModel(
@@ -336,6 +396,8 @@ def prepare_hole_edit(
         reference_radii=reference,
         lower_radii=reference * 0.5,
         upper_radii=reference + 0.2 * jnp.array([hole.clearance for hole in holes]),
+        fixed_clearance=jnp.asarray(fixed),
+        hole_clearance=jnp.asarray(to_holes),
         scale=jnp.asarray(frame.length_scale),
         origin=jnp.asarray(frame.origin),
     )
