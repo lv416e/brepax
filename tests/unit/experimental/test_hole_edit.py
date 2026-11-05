@@ -12,27 +12,32 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 from OCP.BRep import BRep_Builder
+from OCP.BRepAdaptor import BRepAdaptor_Surface
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepBuilderAPI import (
     BRepBuilderAPI_Copy,
     BRepBuilderAPI_NurbsConvert,
     BRepBuilderAPI_Transform,
 )
+from OCP.BRepExtrema import BRepExtrema_DistShapeShape
 from OCP.BRepGProp import BRepGProp
 from OCP.BRepPrimAPI import (
     BRepPrimAPI_MakeBox,
     BRepPrimAPI_MakeCylinder,
     BRepPrimAPI_MakeSphere,
 )
+from OCP.GeomAbs import GeomAbs_Cylinder
 from OCP.gp import gp_Ax1, gp_Ax2, gp_Dir, gp_Pnt, gp_Trsf
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.ShapeUpgrade import ShapeUpgrade_ShapeDivideClosed
 from OCP.STEPControl import STEPControl_AsIs, STEPControl_Writer
 from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_SOLID, TopAbs_VERTEX
-from OCP.TopExp import TopExp_Explorer
-from OCP.TopoDS import TopoDS_Compound, TopoDS_Shape
+from OCP.TopExp import TopExp, TopExp_Explorer
+from OCP.TopoDS import TopoDS, TopoDS_Compound, TopoDS_Shape
+from OCP.TopTools import TopTools_IndexedMapOfShape
 
+from brepax.brep.topology import build_adjacency_graph, neighbors
 from brepax.brep.triangulate import (
     divergence_volume,
     mesh_surface_area,
@@ -960,3 +965,161 @@ def test_rebuild_refuses_to_delete_thin_material_inside_a_bore():
     assert len(edit.holes) == 1
     with pytest.raises(RuntimeError, match="surface area"):
         edit.rebuild(jnp.array([3.1]))
+
+
+def wall_distance(shape, base, axis, radius):
+    """Distance from one rebuilt hole wall to all but its own end faces."""
+    faces = TopTools_IndexedMapOfShape()
+    TopExp.MapShapes_s(shape, TopAbs_FACE, faces)
+    faces = [TopoDS.Face_s(faces.FindKey(i + 1)) for i in range(faces.Extent())]
+    axis = np.asarray(axis)
+    walls = []
+    for index, face in enumerate(faces):
+        adaptor = BRepAdaptor_Surface(face)
+        if adaptor.GetType() != GeomAbs_Cylinder:
+            continue
+        surface = adaptor.Cylinder()
+        location = surface.Location()
+        offset = np.array([location.X(), location.Y(), location.Z()]) - base
+        if (
+            abs(surface.Radius() - radius) < 1e-9
+            and np.linalg.norm(offset - (offset @ axis) * axis) < 1e-9
+        ):
+            walls.append(index)
+    assert len(walls) == 1
+    wall = faces[walls[0]]
+    graph = build_adjacency_graph(shape)
+    skip = {walls[0], *neighbors(graph, walls[0])}
+    return min(
+        BRepExtrema_DistShapeShape(wall, face).Value()
+        for index, face in enumerate(faces)
+        if index not in skip
+    )
+
+
+def two_hole_plate():
+    shape = BRepPrimAPI_MakeBox(40, 24, 6).Shape()
+    for base, radius in (((10, 12, 0), 2), ((22, 12, 0), 3)):
+        shape = BRepAlgoAPI_Cut(shape, cylinder(base, (0, 0, 1), radius, 6)).Shape()
+    return shape
+
+
+def test_ligament_bounds_are_reached_when_holes_grow():
+    edit = ordered_edit(two_hole_plate(), frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+    model = edit.model
+    reference = np.asarray(model.reference_radii)
+    # The holes face each other 7 apart; the nearest wall is 8 from the first.
+    assert np.asarray(model.ligament_bounds(model.reference_radii)) == pytest.approx(
+        [7.0, 7.0]
+    )
+    radii = jnp.asarray(reference + np.array([0.3, 0.5]))
+    assert np.asarray(model.ligament_bounds(radii)) == pytest.approx([6.2, 6.2])
+    rebuilt = edit.rebuild(radii)
+    for hole, bound, radius in zip(
+        edit.holes, model.ligament_bounds(radii), radii, strict=True
+    ):
+        measured = wall_distance(rebuilt, np.asarray(hole.base), hole.axis, radius)
+        assert measured == pytest.approx(float(bound), abs=1e-9)
+
+
+def test_only_selected_holes_count_as_moving():
+    shape = two_hole_plate()
+    frame = CadFrame(1.0, (0.0, 0.0, 0.0))
+    first = ordered_edit(shape, frame=frame).holes[0]
+    edit = prepare_hole_edit(shape, [first.face_id], frame=frame)
+    # The unselected hole is a fixed face, so only this hole's travel counts.
+    radii = edit.model.reference_radii + 0.5
+    assert np.asarray(edit.model.ligament_bounds(radii)) == pytest.approx([6.5])
+
+
+@pytest.mark.parametrize(
+    "radii_shift, shifts",
+    [
+        ((-0.5, -0.5), ((0, 0, 0), (0, 0, 0))),
+        ((0.0, 0.0), ((1.0, 0, 0), (-1.0, 0, 0))),
+        ((0.0, 0.0), ((-1.0, 0, 0), (1.0, 0, 0))),
+        ((0.2, -0.4), ((0.3, 0.4, 0), (0, -0.5, 0))),
+    ],
+)
+def test_ligament_bounds_never_exceed_measured_distances(radii_shift, shifts):
+    edit = ordered_edit(two_hole_plate(), frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+    radii = edit.model.reference_radii + jnp.asarray(radii_shift)
+    moves = jnp.asarray(shifts, dtype=jnp.float64)
+    assert bool(edit.model.is_valid(radii, moves))
+    bounds = np.asarray(edit.model.ligament_bounds(radii, moves))
+    rebuilt = edit.rebuild(radii, moves)
+    for hole, bound, radius, move in zip(
+        edit.holes, bounds, np.asarray(radii), np.asarray(moves), strict=True
+    ):
+        base = np.asarray(hole.base) + move
+        assert wall_distance(rebuilt, base, hole.axis, radius) >= bound - 1e-9
+
+
+def test_ligament_bound_derivatives_match_the_closest_pair():
+    edit = ordered_edit(two_hole_plate(), frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+    model = edit.model
+    radii = model.reference_radii + jnp.array([0.1, 0.2])
+    jacobian = jax.jacfwd(model.ligament_bounds)(radii)
+    assert np.asarray(jacobian) == pytest.approx(np.array([[-1.0, -1.0], [-1.0, -1.0]]))
+    # No NaN from the shift norm at the default zero shift, under jit and vmap.
+    shift_gradient = jax.grad(
+        lambda s: model.ligament_bounds(radii, s)[0],
+    )(jnp.zeros((2, 3)))
+    assert np.all(np.isfinite(shift_gradient))
+    batch = jnp.stack([radii, model.reference_radii])
+    assert np.asarray(
+        jax.vmap(jax.jit(lambda r: model.ligament_bounds(r)))(batch)
+    ) == pytest.approx(np.array([[6.7, 6.7], [7.0, 7.0]]))
+
+
+def test_ligament_bounds_are_nan_for_invalid_edits():
+    model = ordered_edit(two_hole_plate()).model
+    assert np.all(np.isnan(model.ligament_bounds(model.upper_radii * 1.5)))
+
+
+@pytest.mark.slow
+def test_ligament_bounds_hold_on_an_imported_part():
+    edit = prepare_hole_edit(nist_solid("nist_ctc_01_asme1_rd.stp"))
+    model = edit.model
+    radii = model.upper_radii
+    assert bool(model.is_valid(radii))
+    bounds = np.asarray(model.ligament_bounds(radii))
+    assert np.all(bounds > 0)
+    rebuilt = edit.rebuild(radii)
+    for hole, bound, radius in zip(edit.holes, bounds, np.asarray(radii), strict=True):
+        measured = wall_distance(rebuilt, np.asarray(hole.base), hole.axis, radius)
+        assert measured >= bound - 1e-6 * float(model.scale)
+
+
+def test_gradient_of_a_caller_response_matches_rebuilt_cad():
+    # A response with no law of its own, built on the volume and ligament laws.
+    # Its derivative must equal the finite difference through rebuilt CAD.
+    shape = two_hole_plate()
+    edit = ordered_edit(shape, frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+    model = edit.model
+
+    def combine(volume, ligaments):
+        return volume / 5000.0 + jnp.sum(1.0 / ligaments**2)
+
+    def from_laws(radii):
+        return combine(model.volume(radii), model.ligament_bounds(radii))
+
+    def from_cad(radii):
+        rebuilt = edit.rebuild(jnp.asarray(radii))
+        props = GProp_GProps()
+        BRepGProp.VolumeProperties_s(rebuilt, props, 1e-9)
+        ligaments = [
+            wall_distance(rebuilt, np.asarray(hole.base), hole.axis, radius)
+            for hole, radius in zip(edit.holes, radii, strict=True)
+        ]
+        return float(combine(props.Mass(), jnp.asarray(ligaments)))
+
+    radii = np.asarray(model.reference_radii) + np.array([0.3, 0.4])
+    gradient = np.asarray(jax.grad(from_laws)(jnp.asarray(radii)))
+    assert from_cad(radii) == pytest.approx(float(from_laws(jnp.asarray(radii))))
+    step = 1e-3
+    for i in range(2):
+        move = np.zeros(2)
+        move[i] = step
+        difference = (from_cad(radii + move) - from_cad(radii - move)) / (2 * step)
+        assert gradient[i] == pytest.approx(difference, rel=1e-5)

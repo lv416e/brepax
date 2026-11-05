@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.typing import NDArray
@@ -57,8 +57,10 @@ class ThroughHole:
 
     ``base`` is one axis endpoint, ``axis`` a unit direction toward the other,
     and ``clearance`` the distance from the cylinder to other boundary faces,
-    excluding its two planar end faces. No identity persistence is promised
-    after Boolean rebuilding or STEP serialization.
+    excluding its two planar end faces. ``boundary_distances`` keeps that
+    distance per face as ``(face_id, distance)``, so its minimum is
+    ``clearance``. No identity persistence is promised after Boolean
+    rebuilding or STEP serialization.
     """
 
     face_id: int
@@ -67,6 +69,7 @@ class ThroughHole:
     axis: tuple[float, float, float]
     height: float
     clearance: float
+    boundary_distances: tuple[tuple[int, float], ...] = field(default=(), repr=False)
 
 
 @dataclass(frozen=True)
@@ -195,8 +198,8 @@ def _recognize(
         distance = BRepExtrema_DistShapeShape(face, boundary)
         if not distance.IsDone():
             raise RuntimeError("OCCT boundary distance failed")
-        distances.append(float(distance.Value()))
-    clearance = min(distances, default=0.0)
+        distances.append((other, float(distance.Value())))
+    clearance = min((value for _, value in distances), default=0.0)
     if not np.isfinite(clearance) or clearance <= 100 * tolerance:
         raise ValueError("Insufficient boundary clearance")
     # A connected peg can enter an otherwise full cylindrical wall from an
@@ -212,7 +215,9 @@ def _recognize(
     BRepGProp.VolumeProperties_s(overlap.Shape(), occupied)
     if abs(occupied.Mass()) > 1e-9 * np.pi * radius**2 * height:
         raise ValueError("Hole cylinder contains other solid material")
-    return ThroughHole(index, radius, tuple(base), tuple(axis), height, clearance)
+    return ThroughHole(
+        index, radius, tuple(base), tuple(axis), height, clearance, tuple(distances)
+    )
 
 
 def shape_tolerance(shape: TopoDS_Shape) -> float:
@@ -309,6 +314,7 @@ def external_hole(hole: ThroughHole, frame: CadFrame) -> ThroughHole:
         hole.axis,
         hole.height * scale,
         hole.clearance * scale,
+        tuple((face, value * scale) for face, value in hole.boundary_distances),
     )
 
 

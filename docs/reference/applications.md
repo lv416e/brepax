@@ -121,6 +121,34 @@ STEP roundtrips, and independent CAD finite-difference references.
 See [ADR-0021](../architecture/adr/0021-bounded-through-hole-editing.md) for the
 scope decision.
 
+### Remaining distances and caller responses
+
+`HoleEditModel.ligament_bounds` gives a lower bound on each edited hole's
+distance to every other boundary face except its own end faces. An edited wall
+lies within `abs(r - r0) + norm(s)` of the wall it replaces, so the distances
+measured at recognition can fall by at most that travel, and by both travels
+between two selected holes. The bound applies to every recognized hole, is
+reached when a hole grows toward a radially closest feature, and is conservative
+otherwise. It is a distance between faces, not a part-wide wall thickness.
+
+Volume, area, center of mass and these bounds compose with a response you
+define, such as a stress surrogate fitted to hole size and ligament:
+
+```python
+def response(radii):
+    ligaments = model.ligament_bounds(radii)
+    return model.volume(radii) / 1e4 + jnp.sum(1 / ligaments**2)
+
+gradient = jax.grad(response)(radii)
+```
+
+This gradient describes the exact laws, and on a plate it matched finite
+differences through rebuilt CAD. A search using it has no certificate: rebuild
+its result and check it. Avoid constraining a part-wide minimum wall thickness
+through the frozen mesh below. Measured on six imported parts, its hard minimum
+had a zero gradient on three, and remeshing could move its value by more than a
+small edit did.
+
 ### Inverse editing
 
 The regression example also imports a four-hole STEP plate, selects three
@@ -292,6 +320,28 @@ if result.status == "optimal_within_tolerance":
     edited_shape = edit.rebuild(jnp.array(result.values))
 ```
 
+### Keeping a minimum ligament
+
+`hole_ligament_constraints` narrows each radius interval by its distance to
+fixed faces and adds a `TravelLimit` for selected holes that could otherwise
+come too close, so that any allowed values keep `ligament_bounds` at or above
+the minimum:
+
+```python
+from brepax.experimental.applications.dimension_query import (
+    hole_ligament_constraints,
+    minimal_volume_change,
+)
+
+laws, limits = hole_ligament_constraints(edit, minimum_ligament=3.0)
+result = minimal_volume_change(laws, band, travel_limits=limits)
+```
+
+Infeasibility then concerns the bound, which can be stricter than the geometry
+where a hole shrinks or moves. Minimum-edge-distance rules stated as a fixed
+length fit this form. Rules stated along a load direction need that direction,
+which a B-Rep does not carry, and are not represented.
+
 ### Contract and limits
 
 - Each handle contributes an exact univariate law: `area * offset` for a
@@ -307,8 +357,9 @@ if result.status == "optimal_within_tolerance":
   band, and `lower_bound` bounds the cost of every handle vector in the box
   that reaches the band. Lower bounds come from exact convex hulls of each
   handle's (volume, cost) curve.
-- `infeasible`: `reachable`, the exact range of the volume change over the
-  box, misses the band.
+- `infeasible`: no handle values in the box that satisfy `travel_limits` reach
+  the band. `reachable` is the exact range of the volume change over the box,
+  ignoring travel limits.
 - `unresolved`: the node budget ran out. `lower_bound` still holds, and
   `values` is the best witness found, if any.
 - A minimal witness usually lies on an edge of the band. The rebuilt CAD
@@ -317,9 +368,9 @@ if result.status == "optimal_within_tolerance":
   band. On `occt_linkrods` (tolerance 3.3e-3), a hole witness on the band
   edge rebuilt just outside it. When the rebuilt part itself must be in
   the band, query a band narrowed by that allowance.
-- Only the volume is constrained. Center-of-mass targets, hole center
-  shifts and handles of different prepared edits rebuilt together are not
-  supported yet.
+- Volume and hole ligaments are constrained. Center-of-mass targets, hole
+  center shifts and handles of different prepared edits rebuilt together are
+  not supported yet.
 
 ::: brepax.experimental.applications.dimension_query
     options:
@@ -327,8 +378,10 @@ if result.status == "optimal_within_tolerance":
         - minimal_volume_change
         - DimensionQueryResult
         - DimensionLaw
+        - TravelLimit
         - face_offset_laws
         - hole_radius_laws
+        - hole_ligament_constraints
       show_source: false
 
 ## Circular cut crossing a plate edge

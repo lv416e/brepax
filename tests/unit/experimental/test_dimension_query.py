@@ -2,6 +2,7 @@
 
 import itertools
 import math
+from dataclasses import replace
 from fractions import Fraction
 from pathlib import Path
 
@@ -9,16 +10,18 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
-from OCP.BRepAlgoAPI import BRepAlgoAPI_Fuse
+from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepGProp import BRepGProp
-from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
-from OCP.gp import gp_Pnt
+from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
+from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt
 from OCP.GProp import GProp_GProps
 
 from brepax.experimental.applications.cad_frame import CadFrame
 from brepax.experimental.applications.dimension_query import (
     DimensionLaw,
+    TravelLimit,
     face_offset_laws,
+    hole_ligament_constraints,
     hole_radius_laws,
     minimal_volume_change,
 )
@@ -206,3 +209,160 @@ def test_hole_radius_witness_rebuilds_into_the_band():
     )
     change = mass(edit.rebuild(radii)) - before
     assert band[0] - 1e-9 * before <= change <= band[1] + 1e-9 * before
+
+
+def named(law, label):
+    return replace(law, label=label)
+
+
+def limited_brute_force(laws, band, limits, steps=400):
+    best = None
+    grids = [np.linspace(law.lower, law.upper, steps) for law in laws]
+    for values in itertools.product(*grids):
+        travel = {
+            law.label: abs(x - law.reference)
+            for law, x in zip(laws, values, strict=True)
+        }
+        if any(travel[t.first] + travel[t.second] > t.limit for t in limits):
+            continue
+        total = sum(
+            float(contribution(law, x, Fraction(math.pi)))
+            for law, x in zip(laws, values, strict=True)
+        )
+        if band[0] <= total <= band[1]:
+            cost = sum(
+                law.weight * abs(x - law.reference)
+                for law, x in zip(laws, values, strict=True)
+            )
+            best = cost if best is None else min(best, cost)
+    return best
+
+
+@pytest.mark.parametrize(
+    "limit, band, weights",
+    [
+        (0.25, (-6.0, -5.0), (1.0, 1.0)),
+        (0.15, (-4.5, -4.0), (1.0, 3.0)),
+        (0.4, (-3.0, -2.5), (2.0, 1.0)),
+    ],
+)
+def test_travel_limits_hold_and_lower_bound_stays_valid(limit, band, weights):
+    laws = (
+        named(hole_law(1.5, 4.0, weight=weights[0]), "a"),
+        named(hole_law(1.0, 6.0, weight=weights[1]), "b"),
+    )
+    limits = (TravelLimit("a", "b", limit),)
+    result = minimal_volume_change(laws, band, travel_limits=limits, max_nodes=50_000)
+    assert result.status == "optimal_within_tolerance"
+    travels = [
+        abs(Fraction(x) - Fraction(law.reference))
+        for law, x in zip(laws, result.values, strict=True)
+    ]
+    assert sum(travels) <= Fraction(limit)
+    assert band[0] <= result.volume_change[0] <= result.volume_change[1] <= band[1]
+    found = limited_brute_force(laws, band, limits)
+    assert found is not None
+    assert float(result.lower_bound) <= found + 1e-9
+    assert float(result.change) <= found + 1e-9
+
+
+def test_a_binding_travel_limit_raises_the_cost():
+    laws = (named(hole_law(1.5, 4.0), "a"), named(hole_law(1.0, 6.0), "b"))
+    band = (-4.0, -3.5)
+    free = minimal_volume_change(laws, band)
+    travel = [abs(x - law.reference) for law, x in zip(laws, free.values, strict=True)]
+    limit = TravelLimit("a", "b", sum(travel) * 0.9)
+    limited = minimal_volume_change(laws, band, travel_limits=(limit,))
+    # Travel is the cost here, so a tighter limit on it cannot reach the band.
+    assert limited.status == "infeasible"
+
+
+def test_infeasible_when_a_travel_limit_excludes_the_band():
+    laws = (named(hole_law(1.5, 4.0), "a"), named(hole_law(1.0, 6.0), "b"))
+    result = minimal_volume_change(
+        laws, (-8.0, -7.0), travel_limits=(TravelLimit("a", "b", 0.01),)
+    )
+    assert result.status == "infeasible"
+    assert result.values is None
+
+
+@pytest.mark.parametrize(
+    "limit",
+    [
+        TravelLimit("a", "missing", 1.0),
+        TravelLimit("a", "a", 1.0),
+        TravelLimit("a", "b", -1.0),
+        TravelLimit("a", "b", math.nan),
+    ],
+)
+def test_unsupported_travel_limits_are_refused(limit):
+    laws = (named(hole_law(1.5, 4.0), "a"), named(hole_law(1.0, 6.0), "b"))
+    with pytest.raises(ValueError, match="travel limit"):
+        minimal_volume_change(laws, (-1.0, 0.0), travel_limits=(limit,))
+
+
+def test_a_travel_limit_cannot_name_an_ambiguous_label():
+    laws = (hole_law(1.5, 4.0), hole_law(1.0, 6.0), named(hole_law(1.0, 6.0), "b"))
+    with pytest.raises(ValueError, match="travel limit"):
+        minimal_volume_change(
+            laws, (-1.0, 0.0), travel_limits=(TravelLimit("hole", "b", 1.0),)
+        )
+
+
+def ligament_plate():
+    shape = BRepPrimAPI_MakeBox(40, 24, 6).Shape()
+    for base, radius in (((10, 12, 0), 2), ((22, 12, 0), 3)):
+        tool = BRepPrimAPI_MakeCylinder(
+            gp_Ax2(gp_Pnt(*base), gp_Dir(0, 0, 1)), radius, 6
+        )
+        shape = BRepAlgoAPI_Cut(shape, tool.Shape()).Shape()
+    return shape
+
+
+def test_ligament_constraints_change_the_answer_and_the_rebuild_keeps_them():
+    edit = prepare_hole_edit(ligament_plate(), frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+    band = (-40.0, -35.0)
+    # Growing the small hole is cheap but travels further than the large one.
+    weights = [1.0 if hole.radius == 2 else 5.0 for hole in edit.holes]
+    free = minimal_volume_change(hole_radius_laws(edit, weights), band)
+    assert free.status == "optimal_within_tolerance"
+    assert float(jnp.min(edit.model.ligament_bounds(jnp.asarray(free.values)))) < 6.65
+    minimum = 6.65
+    laws, limits = hole_ligament_constraints(edit, minimum, weights)
+    assert limits
+    result = minimal_volume_change(laws, band, travel_limits=limits, max_nodes=50_000)
+    assert result.status == "optimal_within_tolerance"
+    radii = jnp.asarray(result.values)
+    assert result.change > free.change
+    assert jnp.min(edit.model.ligament_bounds(radii)) >= minimum - 1e-12
+    assert band[0] - 1e-9 <= cad_volume_change(edit, radii) <= band[1] + 1e-9
+
+
+def test_a_minimum_the_part_already_misses_is_refused():
+    edit = prepare_hole_edit(ligament_plate(), frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+    with pytest.raises(ValueError, match="below the minimum"):
+        hole_ligament_constraints(edit, 7.5)
+    with pytest.raises(ValueError, match="not be negative"):
+        hole_ligament_constraints(edit, -1.0)
+
+
+def test_ligament_constraints_narrow_intervals_for_fixed_faces():
+    shape = ligament_plate()
+    frame = CadFrame(1.0, (0.0, 0.0, 0.0))
+    first = prepare_hole_edit(shape, frame=frame).holes[0]
+    edit = prepare_hole_edit(shape, [first.face_id], frame=frame)
+    laws, limits = hole_ligament_constraints(edit, 6.9)
+    assert limits == ()
+    # 7 away from the unselected hole: 0.1 of travel remains either way.
+    assert laws[0].upper == pytest.approx(first.radius + 0.1)
+    assert laws[0].lower == pytest.approx(first.radius - 0.1)
+
+
+def cad_volume_change(edit, radii):
+    def measured(shape):
+        props = GProp_GProps()
+        BRepGProp.VolumeProperties_s(shape, props, 1e-9)
+        return props.Mass()
+
+    reference = edit.frame.restore_shape(edit.working_shape)
+    return measured(edit.rebuild(radii)) - measured(reference)
