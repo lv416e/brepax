@@ -1576,6 +1576,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#later-measurements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Later measurements
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2062,6 +2073,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#later-measurements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Later measurements
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2145,9 +2167,21 @@
 <ul>
 <li>Concept proof gate evaluation proceeds with Gate 3a PASS</li>
 <li>The 3D extension will include GPU benchmark as part of the primitive test suite</li>
-<li>CPU flattening data serves as a baseline for GPU comparison</li>
+<li>CPU flattening data serves as a baseline for GPU comparison (replaced; see
+  Later measurements)</li>
 <li>The 70% efficiency threshold remains unchanged for the GPU evaluation</li>
 </ul>
+<h2 id="later-measurements">Later measurements<a class="headerlink" href="#later-measurements" title="Permanent link">&para;</a></h2>
+<p>The CPU table above measured the closed-form disk-disk union that Method (C)
+was at the time. Commit <code>ae86dd0</code>, the generalization of ADR-0012, replaced it
+with a grid SDF evaluation at <code>resolution=128</code>, and per-stratum dispatch added
+more grid passes. The same benchmark at each commit, on the same class of Apple
+Silicon CPU under load, gave about 9.8M samples/s at batch 1024 before that
+change, about 15K/s after it, and between 5K/s and 9K/s on 2026-11-05. The table
+therefore does not describe current Method (C) throughput, and it cannot serve
+as the baseline for a GPU comparison: that comparison needs a fresh CPU run of
+the same code. Throughput was traded for generality; the code changed on
+purpose, and no gradual regression was found across the commits measured.</p>
 
 
 
