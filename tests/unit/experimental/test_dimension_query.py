@@ -22,7 +22,6 @@ from brepax.experimental.applications.dimension_query import (
     TravelLimit,
     face_offset_laws,
     hole_ligament_constraints,
-    hole_radius_laws,
     minimal_volume_change,
 )
 from brepax.experimental.applications.face_offset import (
@@ -199,7 +198,8 @@ def test_hole_radius_witness_rebuilds_into_the_band():
     edit = prepare_hole_edit(shape)
     before = mass(shape)
     band = (-0.004 * before, -0.003 * before)
-    result = minimal_volume_change(hole_radius_laws(edit), band)
+    laws, limits = hole_ligament_constraints(edit)
+    result = minimal_volume_change(laws, band, travel_limits=limits)
     assert result.status == "optimal_within_tolerance"
     radii = jnp.array(result.values)
     # Query and JAX model are the same law, and the witness is editable.
@@ -215,15 +215,22 @@ def named(law, label):
     return replace(law, label=label)
 
 
+def limit_travel(change, limit):
+    return max(change, 0.0) if limit.increases_only else abs(change)
+
+
 def limited_brute_force(laws, band, limits, steps=400):
     best = None
     grids = [np.linspace(law.lower, law.upper, steps) for law in laws]
     for values in itertools.product(*grids):
-        travel = {
-            law.label: abs(x - law.reference)
-            for law, x in zip(laws, values, strict=True)
+        change = {
+            law.label: x - law.reference for law, x in zip(laws, values, strict=True)
         }
-        if any(travel[t.first] + travel[t.second] > t.limit for t in limits):
+        if any(
+            limit_travel(change[t.first], t) + limit_travel(change[t.second], t)
+            > t.limit
+            for t in limits
+        ):
             continue
         total = sum(
             float(contribution(law, x, Fraction(math.pi)))
@@ -259,6 +266,36 @@ def test_travel_limits_hold_and_lower_bound_stays_valid(limit, band, weights):
         for law, x in zip(laws, result.values, strict=True)
     ]
     assert sum(travels) <= Fraction(limit)
+    assert band[0] <= result.volume_change[0] <= result.volume_change[1] <= band[1]
+    found = limited_brute_force(laws, band, limits)
+    assert found is not None
+    assert float(result.lower_bound) <= found + 1e-9
+    assert float(result.change) <= found + 1e-9
+
+
+@pytest.mark.parametrize(
+    "limit, band, weights",
+    [
+        (0.25, (-6.0, -5.0), (1.0, 1.0)),
+        (0.15, (-4.5, -4.0), (1.0, 3.0)),
+        (0.2, (-1.0, 1.0), (1.0, 1.0)),
+        # Reaching this band takes more decrease than the limit would allow.
+        (0.1, (4.0, 5.0), (1.0, 2.0)),
+    ],
+)
+def test_travel_limits_on_increases_leave_decreases_free(limit, band, weights):
+    laws = (
+        named(hole_law(1.5, 4.0, weight=weights[0]), "a"),
+        named(hole_law(1.0, 6.0, weight=weights[1]), "b"),
+    )
+    limits = (TravelLimit("a", "b", limit, increases_only=True),)
+    result = minimal_volume_change(laws, band, travel_limits=limits, max_nodes=50_000)
+    assert result.status == "optimal_within_tolerance"
+    growth = [
+        max(Fraction(x) - Fraction(law.reference), Fraction(0))
+        for law, x in zip(laws, result.values, strict=True)
+    ]
+    assert sum(growth) <= Fraction(limit)
     assert band[0] <= result.volume_change[0] <= result.volume_change[1] <= band[1]
     found = limited_brute_force(laws, band, limits)
     assert found is not None
@@ -324,7 +361,8 @@ def test_ligament_constraints_change_the_answer_and_the_rebuild_keeps_them():
     band = (-40.0, -35.0)
     # Growing the small hole is cheap but travels further than the large one.
     weights = [1.0 if hole.radius == 2 else 5.0 for hole in edit.holes]
-    free = minimal_volume_change(hole_radius_laws(edit, weights), band)
+    laws, limits = hole_ligament_constraints(edit, weights=weights)
+    free = minimal_volume_change(laws, band, travel_limits=limits)
     assert free.status == "optimal_within_tolerance"
     assert float(jnp.min(edit.model.ligament_bounds(jnp.asarray(free.values)))) < 6.65
     minimum = 6.65
@@ -342,6 +380,42 @@ def test_ligament_constraints_change_the_answer_and_the_rebuild_keeps_them():
     between = float(edit.model.hole_clearance[0, 1])
     assert travel <= Fraction(between) - Fraction(minimum)
     assert band[0] - 1e-9 <= cad_volume_change(edit, radii) <= band[1] + 1e-9
+
+
+def test_default_constraints_reach_past_half_the_distance_for_each_hole():
+    edit = prepare_hole_edit(ligament_plate(), frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+    model = edit.model
+    # What both holes reach at half their distance, the most that equal shares
+    # of it could allow.
+    half = (model.reference_radii + 3.5) ** 2 - model.reference_radii**2
+    band_edge = -float(jnp.sum(jnp.pi * model.heights * half))
+    laws, limits = hole_ligament_constraints(edit)
+    assert limits
+    band = (2 * band_edge, 1.1 * band_edge)
+    result = minimal_volume_change(laws, band, travel_limits=limits)
+    assert result.status == "optimal_within_tolerance"
+    radii = jnp.asarray(result.values)
+    assert bool(model.is_valid(radii))
+    assert float(jnp.min(model.ligament_bounds(radii))) >= float(model.contact_margin)
+    assert band[0] - 1e-9 <= cad_volume_change(edit, radii) <= band[1] + 1e-9
+
+
+def test_shrinking_is_free_unless_a_minimum_is_asked_for():
+    # 1.5 apart, with radii that could shrink by 5 each.
+    edit = plate_with(((20, 10), (41.5, 10)))
+    gain = float(jnp.pi * edit.model.heights[0] * (100 - 49))
+    band = (gain, 1.2 * gain)
+    laws, limits = hole_ligament_constraints(edit)
+    assert limits
+    result = minimal_volume_change(laws, band, travel_limits=limits)
+    assert result.status == "optimal_within_tolerance"
+    radii = jnp.asarray(result.values)
+    assert bool(edit.model.is_valid(radii))
+    assert band[0] - 1e-9 <= cad_volume_change(edit, radii) <= band[1] + 1e-9
+    # The ligament bound counts shrinking, so asking for one narrows this.
+    laws, limits = hole_ligament_constraints(edit, 0.0)
+    held = minimal_volume_change(laws, band, travel_limits=limits)
+    assert held.status == "infeasible"
 
 
 def test_a_minimum_the_part_already_misses_is_refused():
@@ -362,6 +436,28 @@ def test_ligament_constraints_narrow_intervals_for_fixed_faces():
     # 7 away from the unselected hole: 0.1 of travel remains either way.
     assert laws[0].upper == pytest.approx(first.radius + 0.1)
     assert laws[0].lower == pytest.approx(first.radius - 0.1)
+
+
+@pytest.mark.slow
+def test_an_imported_part_reaches_a_band_beyond_a_fifth_of_its_clearance():
+    path = FIXTURES / "nist" / "nist_ftc_10_asme1_rb.stp"
+    if not path.exists():
+        pytest.skip("NIST fixture not available")
+    edit = prepare_hole_edit(read_step(path), merge_same_domain=True)
+    model = edit.model
+    before = float(model.reference_volume * model.scale**3)
+    band = (-0.005 * before, -0.003 * before)
+    laws, limits = hole_ligament_constraints(edit)
+    result = minimal_volume_change(laws, band, travel_limits=limits)
+    assert result.status == "optimal_within_tolerance"
+    radii = jnp.asarray(result.values)
+    assert bool(model.is_valid(radii))
+    clearance = jnp.array([hole.clearance for hole in edit.holes])
+    assert float(jnp.max((radii - model.reference_radii) / clearance)) > 0.2
+    rebuilt = edit.rebuild(radii)
+    assert mass(rebuilt) - before == pytest.approx(
+        float(result.volume_change[0]), rel=1e-5
+    )
 
 
 def cad_volume_change(edit, radii):
@@ -430,6 +526,13 @@ def test_ligament_constraints_exclude_values_below_the_exact_minimum(
     # These values travel past the exact room, so nothing may admit them.
     assert sum(travel) > pair - Fraction(minimum)
     assert not allowed
+
+
+def test_a_minimum_below_the_contact_margin_still_keeps_the_margin():
+    edit = plate_with(((20, 2), (30, 2)))
+    margin = float(edit.model.contact_margin)
+    _, limits = hole_ligament_constraints(edit, 0.0)
+    assert limits[0].limit == pytest.approx(6 - margin)
 
 
 def test_ligament_constraints_keep_an_exactly_feasible_endpoint():

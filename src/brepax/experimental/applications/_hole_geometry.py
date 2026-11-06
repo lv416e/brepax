@@ -191,6 +191,9 @@ def _recognize(
     BRepGProp.SurfaceProperties_s(face, props)
     if not np.isclose(props.Mass(), 2 * np.pi * radius * height, rtol=1e-8):
         raise ValueError("Cylinder face has additional trims")
+    tool = BRepPrimAPI_MakeCylinder(
+        gp_Ax2(gp_Pnt(*base), gp_Dir(*axis)), radius, height
+    ).Shape()
     distances = []
     for other, boundary in enumerate(faces):
         if other in [index, *caps]:
@@ -198,16 +201,25 @@ def _recognize(
         distance = BRepExtrema_DistShapeShape(face, boundary)
         if not distance.IsDone():
             raise RuntimeError("OCCT boundary distance failed")
-        distances.append((other, float(distance.Value())))
+        value = float(distance.Value())
+        distances.append((other, value))
+        # Shrinking or moving the hole fills part of its opening up to the end
+        # plane, which would join a face resting on that plane. A point this
+        # near the opening is at most this far from the wall, so no others need
+        # the second distance.
+        near = 100 * tolerance
+        if value <= radius + near:
+            to_bore = BRepExtrema_DistShapeShape(tool, boundary)
+            if not to_bore.IsDone():
+                raise RuntimeError("OCCT boundary distance failed")
+            if to_bore.Value() <= near:
+                raise ValueError("Other material touches the hole opening")
     clearance = min((value for _, value in distances), default=0.0)
     if not np.isfinite(clearance) or clearance <= 100 * tolerance:
         raise ValueError("Insufficient boundary clearance")
     # A connected peg can enter an otherwise full cylindrical wall from an
     # opening. Cap classification alone would accept it; fill/re-cut would
     # then erase that material. Require the entire cylinder to be void.
-    tool = BRepPrimAPI_MakeCylinder(
-        gp_Ax2(gp_Pnt(*base), gp_Dir(*axis)), radius, height
-    ).Shape()
     overlap = BRepAlgoAPI_Common(BRepBuilderAPI_Copy(shape, True, False).Shape(), tool)
     if not overlap.IsDone():
         raise RuntimeError("OCCT hole interior classification failed")

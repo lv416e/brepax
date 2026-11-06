@@ -64,7 +64,9 @@ class HoleMeshModel(eqx.Module):
 
     ``is_valid`` adds to the edit bounds a check that no triangle collapses or
     reverses. It rejects edits of this mesh only: a rejected edit can still
-    rebuild, and the check is not a general self-intersection test. Invalid
+    rebuild, and the check is not a general self-intersection test. Planar
+    samples move only within 0.4*clearance of a hole, so growth past that can
+    reverse triangles there, inside the range of the edit itself. Invalid
     edits produce NaN triangles; derivatives there are undefined. Values and
     gradients carry discretization error and depend on the deflection.
     """

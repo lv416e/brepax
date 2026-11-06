@@ -29,6 +29,9 @@ from brepax.experimental.applications.hole_edit import PreparedHoleEdit
 _PI_LOWER = Fraction("3.1415926535897932384626433832795028841971")
 _PI_UPPER = _PI_LOWER + Fraction(1, 10**40)
 
+# First handle, second handle, limit, and whether only increases count.
+_Limit = tuple[int, int, Fraction, bool]
+
 
 @dataclass(frozen=True)
 class DimensionLaw:
@@ -56,12 +59,14 @@ class TravelLimit:
 
     ``abs(x - reference)`` of ``first`` plus that of ``second`` must not exceed
     ``limit``. Two edited holes keep a ligament this way, because their walls
-    approach by at most their combined travel.
+    approach by at most their combined travel. With ``increases_only``, a handle
+    below its reference counts as no travel: two holes cannot touch by shrinking.
     """
 
     first: str
     second: str
     limit: float
+    increases_only: bool = False
 
 
 @dataclass(frozen=True)
@@ -333,11 +338,16 @@ def _witness(
     return cost, values
 
 
+def _travel(handle: _Handle, x: Fraction, increases_only: bool) -> Fraction:
+    change = x - handle.x0
+    return max(change, Fraction(0)) if increases_only else abs(change)
+
+
 def _limited_witness(
     handles: list[_Handle],
     values: list[float],
     band: tuple[Fraction, Fraction],
-    limits: list[tuple[int, int, Fraction]],
+    limits: list[_Limit],
 ) -> tuple[Fraction, list[float]] | None:
     """The witness with travel limits enforced, if it stays in the band."""
     fixed = _within_limits(handles, values, limits)
@@ -358,15 +368,15 @@ def _limited_witness(
 def _tighten(
     handles: list[_Handle],
     boxes: list[tuple[Fraction, Fraction]],
-    limits: list[tuple[int, int, Fraction]],
+    limits: list[_Limit],
 ) -> list[tuple[Fraction, Fraction]] | None:
     """Shrink a box by the travel limits; None when a limit excludes all of it."""
     tightened = list(boxes)
-    for i, j, limit in limits:
+    for i, j, limit, increases_only in limits:
         least = [
             max(
                 tightened[k][0] - handles[k].x0,
-                handles[k].x0 - tightened[k][1],
+                Fraction(0) if increases_only else handles[k].x0 - tightened[k][1],
                 Fraction(0),
             )
             for k in (i, j)
@@ -377,7 +387,7 @@ def _tighten(
             reach = limit - other
             lo, hi = tightened[k]
             tightened[k] = (
-                max(lo, handles[k].x0 - reach),
+                lo if increases_only else max(lo, handles[k].x0 - reach),
                 min(hi, handles[k].x0 + reach),
             )
     return tightened
@@ -386,11 +396,15 @@ def _tighten(
 def _over_limit(
     handles: list[_Handle],
     values: Sequence[Fraction],
-    limits: list[tuple[int, int, Fraction]],
-) -> tuple[int, int, Fraction] | None:
+    limits: list[_Limit],
+) -> _Limit | None:
     for limit in limits:
-        i, j, most = limit
-        if abs(values[i] - handles[i].x0) + abs(values[j] - handles[j].x0) > most:
+        i, j, most, increases_only = limit
+        if (
+            _travel(handles[i], values[i], increases_only)
+            + _travel(handles[j], values[j], increases_only)
+            > most
+        ):
             return limit
     return None
 
@@ -398,7 +412,7 @@ def _over_limit(
 def _within_limits(
     handles: list[_Handle],
     values: list[float],
-    limits: list[tuple[int, int, Fraction]],
+    limits: list[_Limit],
 ) -> list[float] | None:
     """Pull floats toward their references until every travel limit holds."""
     fixed = list(values)
@@ -407,10 +421,17 @@ def _within_limits(
         over = _over_limit(handles, exact, limits)
         if over is None:
             return fixed
-        i, j, most = over
-        travels = [exact[k] - handles[k].x0 for k in (i, j)]
+        i, j, most, increases_only = over
+        travels = [
+            exact[k] - handles[k].x0
+            if _travel(handles[k], exact[k], increases_only) > 0
+            else Fraction(0)
+            for k in (i, j)
+        ]
         ratio = most / (abs(travels[0]) + abs(travels[1]))
         for k, travel in zip((i, j), travels, strict=True):
+            if travel == 0:
+                continue
             moved = float(handles[k].x0 + ratio * travel)
             # Rounding must not leave the travel longer than the scaled one.
             if abs(Fraction(moved) - handles[k].x0) > abs(ratio * travel):
@@ -493,7 +514,12 @@ def minimal_volume_change(
         ):
             raise ValueError(f"Unsupported travel limit: {travel}")
         limits.append(
-            (positions[travel.first], positions[travel.second], Fraction(travel.limit))
+            (
+                positions[travel.first],
+                positions[travel.second],
+                Fraction(travel.limit),
+                travel.increases_only,
+            )
         )
     spread = sum((h.pi_spread() for h in handles), Fraction(0))
     ranges = [_range(h) for h in handles]
@@ -644,12 +670,14 @@ def face_offset_laws(
     )
 
 
-def hole_radius_laws(
+def _hole_radius_laws(
     edit: PreparedHoleEdit, weights: Sequence[float] | None = None
 ) -> tuple[DimensionLaw, ...]:
     """Volume laws ``-pi * height * (r**2 - r0**2)`` of prepared holes.
 
-    Radii range over the prepared radius bounds with zero center shift.
+    Radii range over the prepared radius bounds with zero center shift. Those
+    bounds hold one hole at a time: pairs need the limits from
+    :func:`hole_ligament_constraints`.
     """
     weights = [1.0] * len(edit.holes) if weights is None else list(weights)
     if len(weights) != len(edit.holes):
@@ -673,37 +701,46 @@ def hole_radius_laws(
 
 def hole_ligament_constraints(
     edit: PreparedHoleEdit,
-    minimum_ligament: float,
+    minimum_ligament: float | None = None,
     weights: Sequence[float] | None = None,
 ) -> tuple[tuple[DimensionLaw, ...], tuple[TravelLimit, ...]]:
-    """Hole radius laws and travel limits that keep a minimum ligament.
+    """Hole radius laws and travel limits for :func:`minimal_volume_change`.
 
-    In exact arithmetic, any handle values these allow keep the ligament bound
-    at or above ``minimum_ligament`` in input units; evaluating
+    Radius intervals alone admit holes that would meet, so pass both results.
+    Each pair of selected holes that could otherwise come too close gets a
+    :class:`TravelLimit`.
+
+    By default the allowed values are exactly the radii ``is_valid`` accepts:
+    they keep the laws true, with walls down to the model's ``contact_margin``.
+    Shrinking a hole is then free, since it cannot bring two holes into contact.
+
+    With ``minimum_ligament``, in input units, any allowed values also keep the
+    ligament bound at or above it in exact arithmetic; evaluating
     ``HoleEditModel.ligament_bounds`` in floats can round it by an ulp. Each
-    radius interval narrows by
-    its distance to fixed faces, and each pair of selected holes that could
-    otherwise come too close gets a :class:`TravelLimit`. Pass both to
-    :func:`minimal_volume_change`. Infeasibility then concerns that bound, which
-    is conservative except where a hole grows toward a radially closest feature.
+    radius interval narrows by its distance to fixed faces, and shrinking counts
+    as travel, as it does in that bound. Infeasibility then concerns the bound,
+    which is conservative except where a hole grows toward a radially closest
+    feature.
 
     Raises ValueError for a negative minimum, or one a hole's bound already
     violates at its reference radius.
     """
-    if not minimum_ligament >= 0:
+    if minimum_ligament is not None and not minimum_ligament >= 0:
         raise ValueError("Minimum ligament must not be negative")
-    laws = hole_radius_laws(edit, weights)
+    laws = _hole_radius_laws(edit, weights)
     fixed = np.asarray(edit.model.fixed_clearance, dtype=np.float64)
     to_holes = np.asarray(edit.model.hole_clearance, dtype=np.float64)
-    minimum = Fraction(minimum_ligament)
+    margin = float(edit.model.contact_margin)
+    requested = 0.0 if minimum_ligament is None else minimum_ligament
+    minimum = Fraction(max(requested, margin))
     narrowed = []
     for i, law in enumerate(laws):
         closest = min(float(fixed[i]), float(np.min(to_holes[i])))
-        if closest < minimum_ligament:
+        if closest < requested:
             raise ValueError(
                 f"{law.label}: its ligament bound {closest} is below the minimum"
             )
-        if np.isinf(fixed[i]):
+        if minimum_ligament is None or np.isinf(fixed[i]):
             narrowed.append(law)
             continue
         reach = Fraction(float(fixed[i])) - minimum
@@ -726,7 +763,9 @@ def hole_ligament_constraints(
             room = Fraction(closest) - minimum
             widest = sum(
                 (
-                    max(
+                    Fraction(law.upper) - Fraction(law.reference)
+                    if minimum_ligament is None
+                    else max(
                         Fraction(law.upper) - Fraction(law.reference),
                         Fraction(law.reference) - Fraction(law.lower),
                     )
@@ -736,7 +775,12 @@ def hole_ligament_constraints(
             )
             if widest > room:
                 limits.append(
-                    TravelLimit(laws[i].label, laws[j].label, _float_below(room))
+                    TravelLimit(
+                        laws[i].label,
+                        laws[j].label,
+                        _float_below(room),
+                        increases_only=minimum_ligament is None,
+                    )
                 )
     return tuple(narrowed), tuple(limits)
 
@@ -759,6 +803,5 @@ __all__ = [
     "TravelLimit",
     "face_offset_laws",
     "hole_ligament_constraints",
-    "hole_radius_laws",
     "minimal_volume_change",
 ]

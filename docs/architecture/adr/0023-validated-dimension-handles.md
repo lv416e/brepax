@@ -113,8 +113,10 @@ declared pair or geometric acceptance check, and covers every recognized hole
 whatever its neighbors are. The bound is reached when a hole grows toward a
 radially closest feature and is conservative otherwise. Measured against OCCT
 distances on rebuilt fixtures (277 holes on 19 parts, 1357 checks across
-reference, grown, shifted and mixed edits), it held everywhere and equaled the
-measurement at the reference and at the upper radii. One apparent violation was
+reference, grown, shifted and mixed edits, in the earlier range of
+`0.2*clearance`), it held everywhere and equaled the measurement at the
+reference and at the upper radii. It also held in every check of the wider range
+of ADR-0021. One apparent violation was
 a false zero from `BRepExtrema_DistShapeShape` on a torus, with its reported
 point far from the wall; dense sampling confirmed the bound. Wall thickness between
 two declared parallel faces is not implemented. A part-wide minimum of a
@@ -152,6 +154,13 @@ Callers can ask minimal-change questions about imported parts, for example
 reducing mass within bounds on selected dimensions while keeping a minimum
 ligament. They receive a rechecked witness to rebuild, a model-scoped
 infeasibility proof, or an explicitly unresolved result.
+
+The hole range reaches contact instead of a fixed fraction of the clearance, and
+a caller states the wall to keep. On 19 parts with split faces merged, a band
+that the earlier range reached on 11 is reached and rebuilt on 18; on the last,
+the query proves it out of reach. Queries that add material by
+shrinking can end unresolved within 2000 nodes, on 5 of those parts without a
+minimum, and did so in the earlier range too on the part compared.
 
 Laws and ligament bounds do not need differentiation to be certified: in the
 radii they are polynomial or piecewise linear, and the query uses them directly. Differentiation
