@@ -59,13 +59,12 @@ STEP roundtrips, and independent CAD finite-difference references.
 
 - Input must contain one valid outward-oriented solid. Editable holes need a
   complete empty cylindrical bore, two perpendicular outward-facing planar
-  ends, and clearance from other boundaries. Emptiness compares volumes to
-  1e-9 of the bore, so thinner material inside a bore passes recognition; a
-  rebuild refuses to erase it when that changes the whole-solid area by more
-  than 1e-7 relative. Blind, oblique, intersecting and
-  near-boundary holes are rejected. A cylindrical wall split into several
-  faces, such as a STEP exporter's two half-cylinder faces or a coplanar seam
-  splitting it axially, is rejected by default too; pass
+  ends, and clearance from other boundaries. Blind, oblique, intersecting and
+  near-boundary holes are rejected, as are holes with other material resting
+  on an opening's plane, which filling that opening would join. Material inside
+  a bore has to cross that plane, however thin it is. A cylindrical wall split
+  into several faces, such as a STEP exporter's two half-cylinder faces or a
+  coplanar seam splitting it axially, is rejected by default too; pass
   `merge_same_domain=True` to unify same-domain faces/edges before
   recognition and recover such holes. Unsupported inward cylinders appear in
   `edit.rejected`; an explicit selection of an unsupported face raises
@@ -93,12 +92,20 @@ STEP roundtrips, and independent CAD finite-difference references.
   `jax.jit(model.volume)` can fail because the bound Equinox model contains
   unhashable arrays. Alternatively, JIT a function taking the model as a PyTree
   argument. Compositions such as the `value_and_grad` example above also work.
-- Radius bounds are `[0.5*r0, r0 + 0.2*clearance]`. Center shifts and radius
-  growth share that clearance: `norm(shift) + max(radius-r0, 0)` must not exceed
-  `0.2*clearance`, even when shrinking a hole. Axial shifts are invalid beyond
-  roundoff (`64 * x64_epsilon * r0`); the residual is projected out.
-  Invalid edits return NaN metrics under JAX; `rebuild` raises. Gradients at
-  invalid inputs are undefined.
+- Radius bounds are `[0.5*r0, r0 + clearance - margin]`, where `margin` is 30
+  CAD tolerances (`contact_margin`). Center shifts and radius growth share that
+  range: the reach `norm(shift) + max(radius-r0, 0)` must not exceed
+  `clearance - margin`, even when shrinking a hole. Two selected holes must also
+  keep `margin` between them, so the sum of their reaches must not exceed their
+  distance less `margin`: `upper_radii` holds one hole at a time, and all holes
+  at their upper radii are generally invalid together. Halfway to those limits,
+  all holes are valid together. Axial shifts are invalid beyond roundoff
+  (`64 * x64_epsilon * r0`); the residual is projected out. Invalid edits return
+  NaN metrics under JAX; `rebuild` raises. Gradients at invalid inputs are
+  undefined.
+- The range is where the laws stay true, not where a part stays sound: a wall
+  can come down to `margin`. State the distance you need, through
+  `ligament_bounds` or `hole_ligament_constraints`.
 - Volume and area are rigid-motion invariant; their radius gradients are too.
   Under positive length scaling `s`, values scale by `s**3` and `s**2`, and
   radius gradients by `s**2` and `s`. Centers transform as points;
@@ -201,7 +208,9 @@ triangles = eqx.filter_jit(mesh.triangles)(radii)
   rather than demanding identical triangulations.
 - `mesh.is_valid` also rejects collapsed or locally reversed triangles. This
   limits the mesh only: `edit.rebuild` does not consult it, so an edit the mesh
-  refuses can still rebuild. It is not a general self-intersection certificate.
+  refuses can still rebuild. Because the planar boundary moves only within
+  `0.4*clearance` of the hole, growing further can reverse triangles there. It
+  is not a general self-intersection certificate.
 - Preparation can fail where the edit itself is fine, for example when incident
   faces disagree by more than twice the CAD tolerance.
 
@@ -320,12 +329,15 @@ if result.status == "optimal_within_tolerance":
     edited_shape = edit.rebuild(jnp.array(result.values))
 ```
 
-### Keeping a minimum ligament
+### Holes and minimum ligaments
 
-`hole_ligament_constraints` narrows each radius interval by its distance to
-fixed faces and adds a `TravelLimit` for selected holes that could otherwise
-come too close, so that any allowed values keep `ligament_bounds` at or above
-the minimum:
+`hole_ligament_constraints` gives the radius laws together with a `TravelLimit`
+for each pair of selected holes that could otherwise meet. Pass both: radius
+intervals alone admit holes that would touch. Without a minimum, the allowed
+values are the radii `is_valid` accepts, so walls can come down to the contact
+margin. With `minimum_ligament`, each radius interval also narrows by its
+distance to fixed faces, and any allowed values keep `ligament_bounds` at or
+above it:
 
 ```python
 from brepax.experimental.applications.dimension_query import (
@@ -342,9 +354,10 @@ result = minimal_volume_change(
 ```
 
 Infeasibility then concerns the bound, which can be stricter than the geometry
-where a hole shrinks or moves. Minimum-edge-distance rules stated as a fixed
-length fit this form. Rules stated along a load direction need that direction,
-which a B-Rep does not carry, and are not represented.
+where a hole shrinks or moves. Without a minimum, shrinking a hole does not count
+as travel, because it cannot bring two holes into contact. Minimum-edge-distance
+rules stated as a fixed length fit this form. Rules stated along a load direction
+need that direction, which a B-Rep does not carry, and are not represented.
 
 ### Contract and limits
 
@@ -384,7 +397,6 @@ which a B-Rep does not carry, and are not represented.
         - DimensionLaw
         - TravelLimit
         - face_offset_laws
-        - hole_radius_laws
         - hole_ligament_constraints
       show_source: false
 

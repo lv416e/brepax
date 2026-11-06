@@ -57,10 +57,18 @@ class HoleEditModel(eqx.Module):
     scaling s, volume/area scale by s**3/s**2 and length gradients by s**2/s.
     Center-of-mass length Jacobians do not scale. Centers transform as points.
 
-    ``lower_radii``/``upper_radii`` bound radii. Shift magnitude plus positive
-    radius growth must not exceed ``upper_radii - reference_radii``. Both use
-    the same clearance budget, including when shrinking the hole. Invalid
-    edits produce NaN measures; derivatives there are undefined.
+    ``lower_radii``/``upper_radii`` bound radii one hole at a time: an upper
+    radius stops ``contact_margin`` short of the nearest feature, with the other
+    holes unedited. Each hole's reach, its shift magnitude plus positive radius
+    growth, must not exceed ``upper_radii - reference_radii``, including when
+    shrinking the hole. Two selected holes must also keep ``contact_margin``
+    between them, so their reaches must sum to at most their distance less that
+    margin, and all holes at their upper radii are generally invalid together.
+    Invalid edits produce NaN measures; derivatives there are undefined.
+
+    This range only keeps the laws true. A wall this thin is rarely a design
+    you want: state the distance to keep with ``ligament_bounds``, or with
+    :func:`~brepax.experimental.applications.dimension_query.hole_ligament_constraints`.
 
     ``fixed_clearance`` is each hole's distance to every boundary face other
     than its end faces and the selected holes, ``hole_clearance`` its distance
@@ -80,6 +88,7 @@ class HoleEditModel(eqx.Module):
     upper_radii: Float[Array, " h"]
     fixed_clearance: Float[Array, " h"]
     hole_clearance: Float[Array, "h h"]
+    contact_margin: Float[Array, ""]
     scale: Float[Array, ""]
     origin: Float[Array, "3"]
 
@@ -97,19 +106,31 @@ class HoleEditModel(eqx.Module):
         """Project shifts onto the planes perpendicular to the hole axes."""
         return shifts - jnp.sum(shifts * self.axes, axis=-1)[:, None] * self.axes
 
+    def shift_lengths(self, shifts: Float[Array, "h 3"]) -> Float[Array, " h"]:
+        """Transverse shift magnitudes, differentiable at the zero-shift default."""
+        squared = jnp.sum(self.transverse(shifts) ** 2, axis=-1)
+        # The norm's derivative is singular at zero.
+        safe = jnp.where(squared > 0, squared, 1.0)
+        return jnp.where(squared > 0, jnp.sqrt(safe), 0.0)
+
     def is_valid(
         self,
         radii: Float[Array, " h"],
         center_shifts: Float[Array, "h 3"] | None = None,
     ) -> Bool[Array, ""]:
-        """Check radius bounds, the shared clearance budget and transversality."""
+        """Check radius bounds, the reach of each hole and pair, and transversality."""
         if radii.shape != self.reference_radii.shape:
             raise ValueError("Expected one radius per selected hole")
         shifts = self.shifts_or_zero(center_shifts)
         # Translation and positive radial growth share the same clearance.
         # Squared norms avoid a singular norm derivative at the zero-shift default.
         slack = 64 * np.finfo(np.float64).eps * self.reference_radii
-        remaining = self.upper_radii - jnp.maximum(radii, self.reference_radii)
+        grown = jnp.maximum(radii, self.reference_radii)
+        remaining = self.upper_radii - grown
+        reach = grown - self.reference_radii + self.shift_lengths(shifts)
+        between = (
+            self.hole_clearance - self.contact_margin - reach[None, :] - reach[:, None]
+        )
         return (
             jnp.all(jnp.isfinite(radii))
             & jnp.all(jnp.isfinite(shifts))
@@ -118,6 +139,7 @@ class HoleEditModel(eqx.Module):
                 jnp.sum(self.transverse(shifts) ** 2, axis=-1)
                 <= (remaining + slack) ** 2
             )
+            & jnp.all(between >= -slack[:, None])
             & jnp.all(radii >= self.lower_radii)
             & jnp.all(radii <= self.upper_radii)
         )
@@ -192,11 +214,7 @@ class HoleEditModel(eqx.Module):
         about features the selected holes do not face. NaN for invalid edits.
         """
         valid = self.is_valid(radii, center_shifts)
-        shifts = self.transverse(self.shifts_or_zero(center_shifts))
-        squared = jnp.sum(shifts**2, axis=-1)
-        # The norm's derivative is singular at the zero-shift default.
-        safe = jnp.where(squared > 0, squared, 1.0)
-        moved = jnp.where(squared > 0, jnp.sqrt(safe), 0.0)
+        moved = self.shift_lengths(self.shifts_or_zero(center_shifts))
         travel = jnp.where(
             valid, jnp.abs(radii - self.reference_radii) + moved, jnp.nan
         )
@@ -299,7 +317,8 @@ def prepare_hole_edit(
     Accepts a B-Rep returned by ``read_step``; does not assume a stock primitive
     or a construction history. Each selected inward cylinder must be complete,
     with two perpendicular planar ends and sufficient clearance. Blind,
-    oblique, intersecting and near-boundary holes are unsupported. A
+    oblique, intersecting and near-boundary holes are unsupported, as are holes
+    with other material resting on an opening's plane. A
     cylindrical wall split into several faces, e.g. a STEP exporter's two
     half-cylinder faces or a coplanar seam splitting it axially, is also
     unsupported by default; see ``merge_same_domain``. Rejected inward
@@ -328,10 +347,12 @@ def prepare_hole_edit(
     face IDs from the rebuilt solid itself. Default is False: face IDs and
     geometry are unaffected.
 
-    Radius bounds are [0.5*r0, r0 + 0.2*clearance]. Optional transverse center
-    shifts share the growth budget: norm(shift) + max(radius-r0, 0) must not
-    exceed 0.2*clearance. ``HoleEditModel.ligament_bounds`` bounds the remaining
-    distances inside this range.
+    Radius bounds are [0.5*r0, r0 + clearance - margin], with a margin of 30 CAD
+    tolerances. Optional transverse center shifts share the growth budget: the
+    reach norm(shift) + max(radius-r0, 0) must not exceed clearance - margin,
+    and two selected holes must not reach further than their distance less the
+    margin between them. Inside this range the laws hold, however thin the
+    remaining walls are; ``HoleEditModel.ligament_bounds`` bounds those walls.
     These are local edits, not a topology-changing CAD kernel.
 
     Raises ValueError for invalid CAD, unsupported selections, or no supported
@@ -358,7 +379,7 @@ def prepare_hole_edit(
     working, frame = normalize_shape(shape, frame)
     if merge_same_domain:
         working = unify_same_domain(working)
-    found, rejected, _ = recognize_holes(working)
+    found, rejected, tolerance = recognize_holes(working)
     if face_ids is None:
         selected = found
     else:
@@ -381,6 +402,10 @@ def prepare_hole_edit(
     holes = tuple(external_hole(hole, frame) for hole in selected)
     reference = jnp.array([hole.radius for hole in holes])
     fixed, to_holes = _partner_clearances(holes)
+    # The rebuild check's envelope extends 10 tolerances past each bore. Its
+    # result is unreliable when that surface lands on another wall, which this
+    # avoids, and two envelopes stay apart too instead of being tangent.
+    margin = 30 * tolerance * frame.length_scale
     axes = np.array([hole.axis for hole in selected])
     heights = np.array([hole.height for hole in selected])
     model = HoleEditModel(
@@ -395,9 +420,10 @@ def prepare_hole_edit(
         working_radii=jnp.array([hole.radius for hole in selected]),
         reference_radii=reference,
         lower_radii=reference * 0.5,
-        upper_radii=reference + 0.2 * jnp.array([hole.clearance for hole in holes]),
+        upper_radii=reference + jnp.array([hole.clearance for hole in holes]) - margin,
         fixed_clearance=jnp.asarray(fixed),
         hole_clearance=jnp.asarray(to_holes),
+        contact_margin=jnp.asarray(margin),
         scale=jnp.asarray(frame.length_scale),
         origin=jnp.asarray(frame.origin),
     )

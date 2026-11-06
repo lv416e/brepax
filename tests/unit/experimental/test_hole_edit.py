@@ -23,6 +23,7 @@ from OCP.BRepExtrema import BRepExtrema_DistShapeShape
 from OCP.BRepGProp import BRepGProp
 from OCP.BRepPrimAPI import (
     BRepPrimAPI_MakeBox,
+    BRepPrimAPI_MakeCone,
     BRepPrimAPI_MakeCylinder,
     BRepPrimAPI_MakeSphere,
 )
@@ -159,7 +160,7 @@ def test_values_derivatives_closed_boundaries_and_independent_cad(kind):
         [
             edit.model.reference_radii,
             edit.model.lower_radii,
-            edit.model.upper_radii,
+            (edit.model.reference_radii + edit.model.upper_radii) / 2,
             radii,
         ]
     )
@@ -410,7 +411,7 @@ def test_connected_material_inside_bore_rejected():
         cylinder((10, 12, 1), (0, 0, 1), 1, 8),
     ):
         shape = BRepAlgoAPI_Fuse(shape, piece).Shape()
-    with pytest.raises(ValueError, match="contains other solid material"):
+    with pytest.raises(ValueError, match="touches the hole opening"):
         prepare_hole_edit(shape)
 
 
@@ -634,9 +635,9 @@ def test_center_edit_budget_rejection_batching_and_zero_default():
         jax.jacrev(model.volume, argnums=1)(radii, zero), 0, atol=1e-12
     )
     limit = model.upper_radii - radii
-    at_limit = zero.at[:, 0].set(limit)
+    at_limit = zero.at[0, 0].set(limit[0])
     assert bool(eqx.filter_jit(model.is_valid)(radii, at_limit))
-    assert_closed(prepare_hole_mesh(edit).triangles(radii, at_limit))
+    assert_closed(prepare_hole_mesh(edit).triangles(radii, 0.1 * at_limit))
     actual, center = cad_metrics(edit.rebuild(radii, at_limit))
     np.testing.assert_allclose(
         position_metrics(model, radii, at_limit),
@@ -663,8 +664,9 @@ def test_center_edit_budget_rejection_batching_and_zero_default():
         with pytest.raises(ValueError, match="center shifts"):
             edit.rebuild(radii, shifts)
     # Individually legal growth and movement must not spend clearance twice.
-    assert not bool(model.is_valid(radii + 0.6 * limit, 0.6 * at_limit))
-    assert bool(model.is_valid(radii + 0.4 * limit, 0.6 * at_limit))
+    first = jnp.eye(2)[0] * limit[0]
+    assert not bool(model.is_valid(radii + 0.6 * first, 0.6 * at_limit))
+    assert bool(model.is_valid(radii + 0.4 * first, 0.6 * at_limit))
 
 
 def test_inverse_center_edit_step_roundtrip_preserves_unselected_hole(tmp_path):
@@ -872,9 +874,7 @@ def test_mesh_matches_analytic_values_within_its_discretization(kind):
         jax.jacrev(mesh.center_of_mass)(radii), center_derivative, rtol=2e-4, atol=1e-7
     )
     model = edit.model
-    trials = jnp.stack(
-        [model.reference_radii, model.lower_radii, model.upper_radii, radii]
-    )
+    trials = jnp.stack([model.reference_radii, model.lower_radii, radii])
     assert np.asarray(jax.jit(jax.vmap(mesh.is_valid))(trials)).all()
     for triangles in jax.jit(jax.vmap(mesh.triangles))(trials):
         assert_closed(triangles)
@@ -926,10 +926,11 @@ def test_mesh_limits_do_not_restrict_the_edit():
     source = nist_solid("nist_ftc_08_asme1_rc.stp")
     edit = prepare_hole_edit(source, merge_same_domain=True)
     model = edit.model
-    assert bool(model.is_valid(model.upper_radii))
-    assert not bool(prepare_hole_mesh(edit).is_valid(model.upper_radii))
-    expected = float(model.volume(model.upper_radii))
-    rebuilt = edit.rebuild(model.upper_radii)
+    radii = (model.reference_radii + model.upper_radii) / 2
+    assert bool(model.is_valid(radii))
+    assert not bool(prepare_hole_mesh(edit).is_valid(radii))
+    expected = float(model.volume(radii))
+    rebuilt = edit.rebuild(radii)
     assert cad_metrics(rebuilt)[0][0] == pytest.approx(expected, rel=1e-6)
 
 
@@ -949,22 +950,27 @@ def test_a_crack_away_from_the_holes_only_blocks_the_mesh():
     )
 
 
-def test_rebuild_refuses_to_delete_thin_material_inside_a_bore():
-    # A peg this thin passes the bore emptiness check, which compares volumes,
-    # and filling the bore erases it. Only the surface area shows the loss.
-    plate = BRepAlgoAPI_Cut(
+def test_thin_material_inside_a_bore_is_refused_twice():
+    # A peg this thin passes the bore emptiness check, which compares volumes.
+    # It has to cross an opening to get there, and that is what recognition sees.
+    bare = BRepAlgoAPI_Cut(
         BRepPrimAPI_MakeBox(40, 24, 6).Shape(), cylinder((10, 12, 0), (0, 0, 1), 3, 6)
     ).Shape()
+    plate = bare
     for corner, size in (((3, 10, 6), (2, 4, 4)), ((3, 10, 8), (9, 4, 2))):
         box = BRepPrimAPI_MakeBox(gp_Pnt(*corner), *size).Shape()
         plate = BRepAlgoAPI_Fuse(plate, box).Shape()
     plate = BRepAlgoAPI_Fuse(
         plate, cylinder((10.8, 12, 1), (0, 0, 1), 0.0001, 8)
     ).Shape()
-    edit = prepare_hole_edit(plate, frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
-    assert len(edit.holes) == 1
+    frame = CadFrame(1.0, (0.0, 0.0, 0.0))
+    with pytest.raises(ValueError, match="touches the hole opening"):
+        prepare_hole_edit(plate, frame=frame)
+    # Filling the bore would erase it, and only the surface area shows the loss.
+    hole = recognize_holes(normalize_shape(bare, frame)[0])[0][0]
+    working = normalize_shape(plate, frame)[0]
     with pytest.raises(RuntimeError, match="surface area"):
-        edit.rebuild(jnp.array([3.1]))
+        rebuild_holes(working, (hole,), np.array([3.1]), np.zeros((1, 3)))
 
 
 def wall_distance(shape, base, axis, radius):
@@ -1072,16 +1078,181 @@ def test_ligament_bound_derivatives_match_the_closest_pair():
     ) == pytest.approx(np.array([[6.7, 6.7], [7.0, 7.0]]))
 
 
+def plate_edit():
+    return ordered_edit(two_hole_plate(), frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+
+
+def assert_matches_cad(model, rebuilt, radii):
+    (volume, area), center = cad_metrics(rebuilt)
+    np.testing.assert_allclose(model.volume(radii), volume, rtol=1e-9)
+    np.testing.assert_allclose(model.surface_area(radii), area, rtol=1e-9)
+    np.testing.assert_allclose(model.center_of_mass(radii), center, atol=1e-8)
+
+
+def test_one_hole_can_grow_until_the_contact_margin():
+    edit = plate_edit()
+    model = edit.model
+    margin = float(model.contact_margin)
+    assert margin == pytest.approx(3e-5)  # 30 times the 1e-6 tolerance floor.
+    # The holes face each other 7 apart, which is the nearer feature for both.
+    radii = model.reference_radii.at[0].set(model.upper_radii[0])
+    assert float(radii[0]) == pytest.approx(2 + 7 - margin)
+    assert bool(model.is_valid(radii))
+    rebuilt = edit.rebuild(radii)
+    assert_matches_cad(model, rebuilt, radii)
+    base = np.asarray(edit.holes[0].base)
+    distance = wall_distance(rebuilt, base, edit.holes[0].axis, radii[0])
+    assert distance == pytest.approx(margin, abs=1e-9)
+
+
+def test_two_holes_share_the_distance_between_them():
+    edit = plate_edit()
+    model = edit.model
+    reference = model.reference_radii
+    margin = float(model.contact_margin)
+    # Each is fine alone, and both together would meet.
+    assert not bool(model.is_valid(model.upper_radii))
+    assert np.all(np.isnan(model.volume(model.upper_radii)))
+    with pytest.raises(ValueError, match="Invalid radii"):
+        edit.rebuild(model.upper_radii)
+    apart = reference + jnp.array([5.0, 1.9])
+    assert bool(model.is_valid(apart))
+    rebuilt = edit.rebuild(apart)
+    assert_matches_cad(model, rebuilt, apart)
+    base = np.asarray(edit.holes[1].base)
+    distance = wall_distance(rebuilt, base, edit.holes[1].axis, apart[1])
+    assert distance == pytest.approx(0.1, abs=1e-9)
+    assert bool(model.is_valid(reference + jnp.array([5.0, 2.0 - 2 * margin])))
+    assert not bool(model.is_valid(reference + jnp.array([5.0, 2.0])))
+    # Any point halfway to the single-hole limits is valid together.
+    assert bool(model.is_valid((reference + model.upper_radii) / 2))
+
+
+def test_shifts_share_the_distance_between_holes():
+    edit = plate_edit()
+    model = edit.model
+    radii = model.reference_radii
+    # The first hole sits at lower x, so these approach each other.
+    toward = jnp.array([[3.6, 0.0, 0.0], [-3.4 + 0.1, 0.0, 0.0]])
+    assert bool(model.is_valid(radii, toward))
+    assert not bool(model.is_valid(radii, toward.at[1, 0].set(-3.4)))
+    rebuilt = edit.rebuild(radii, toward)
+    actual, center = cad_metrics(rebuilt)
+    np.testing.assert_allclose(model.volume(radii, toward), actual[0], rtol=1e-9)
+    np.testing.assert_allclose(model.center_of_mass(radii, toward), center, atol=1e-8)
+
+
+def test_a_shrinking_hole_leaves_its_neighbor_the_whole_distance():
+    edit = plate_edit()
+    model = edit.model
+    radii = model.upper_radii.at[0].set(model.lower_radii[0])
+    assert bool(model.is_valid(radii))
+    assert_matches_cad(model, edit.rebuild(radii), radii)
+
+
+def plate_with_a_peg_above_its_hole(gap):
+    # A radius-3 peg over a radius-5 bore, held by a bridge and a pillar.
+    shape = BRepPrimAPI_MakeBox(40, 24, 6).Shape()
+    shape = BRepAlgoAPI_Cut(shape, cylinder((20, 12, 0), (0, 0, 1), 5, 6)).Shape()
+    for part in (
+        BRepPrimAPI_MakeBox(gp_Pnt(29, 8, 6), 5, 8, 6).Shape(),
+        BRepPrimAPI_MakeBox(gp_Pnt(18, 10, 10), 16, 4, 2).Shape(),
+        cylinder((20, 12, 6 + gap), (0, 0, 1), 3, 6 - gap),
+    ):
+        shape = BRepAlgoAPI_Fuse(shape, part).Shape()
+    return shape
+
+
+def test_material_resting_on_an_opening_is_refused():
+    # Filling part of the opening would join the peg, which no law describes.
+    frame = CadFrame(1.0, (0.0, 0.0, 0.0))
+    with pytest.raises(ValueError, match="No supported") as caught:
+        prepare_hole_edit(plate_with_a_peg_above_its_hole(0.0), frame=frame)
+    assert "touches the hole opening" in str(caught.value)
+
+
+def test_a_tip_near_the_center_of_an_opening_is_refused():
+    # Nearly on the opening, yet slightly more than one radius from the wall.
+    gap = 2.5e-7
+    shape = BRepAlgoAPI_Cut(
+        BRepPrimAPI_MakeBox(40, 24, 6).Shape(), cylinder((20, 12, 0), (0, 0, 1), 5, 6)
+    ).Shape()
+    tip = BRepPrimAPI_MakeCone(
+        gp_Ax2(gp_Pnt(20, 12, 6 + gap), gp_Dir(0, 0, 1)), 0, 3e-7, 4 - gap
+    ).Shape()
+    for part in (
+        BRepPrimAPI_MakeBox(gp_Pnt(29, 8, 6), 5, 8, 6).Shape(),
+        BRepPrimAPI_MakeBox(gp_Pnt(18, 10, 10), 16, 4, 2).Shape(),
+        tip,
+    ):
+        shape = BRepAlgoAPI_Fuse(shape, part).Shape()
+    with pytest.raises(ValueError, match="touches the hole opening"):
+        prepare_hole_edit(shape, frame=CadFrame(1.0, (0.0, 0.0, 0.0)))
+
+
+def test_material_clear_of_an_opening_leaves_the_hole_editable():
+    frame = CadFrame(1.0, (0.0, 0.0, 0.0))
+    edit = prepare_hole_edit(plate_with_a_peg_above_its_hole(0.5), frame=frame)
+    model = edit.model
+    radii = jnp.array([2.5])
+    moved = jnp.array([[1.0, 0.0, 0.0]])
+    assert bool(model.is_valid(radii, moved))
+    (volume, area), center = cad_metrics(edit.rebuild(radii, moved))
+    np.testing.assert_allclose(model.volume(radii, moved), volume, rtol=1e-9)
+    np.testing.assert_allclose(model.surface_area(radii, moved), area, rtol=1e-9)
+    np.testing.assert_allclose(model.center_of_mass(radii, moved), center, atol=1e-8)
+
+
+def test_rebuild_refuses_holes_that_met_even_past_the_gate():
+    # The range check keeps edits from here. This is what stands behind it:
+    # the hole breaks into its neighbor, which the isolated-hole laws cannot
+    # describe, and reconstruction must not return that solid as the edit.
+    edit = plate_edit()
+    radii = np.array(edit.model.reference_radii)
+    radii[0] += 7.2
+    with pytest.raises(RuntimeError, match="isolated-hole edit"):
+        rebuild_holes(
+            edit.working_shape, edit.working_holes[:1], radii[:1], np.zeros((1, 3))
+        )
+
+
+def test_the_mesh_range_is_narrower_than_the_edit():
+    # The mesh's planar annulus only reaches 0.4*clearance. On this plate a
+    # wall moving further folds it, while the CAD edit is fine there.
+    edit = plate_edit()
+    model = edit.model
+    mesh = prepare_hole_mesh(edit)
+    radii = model.reference_radii.at[0].set(model.upper_radii[0])
+    assert bool(model.is_valid(radii))
+    assert not bool(mesh.is_valid(radii))
+    assert np.isnan(np.asarray(mesh.triangles(radii))).all()
+
+
 def test_ligament_bounds_are_nan_for_invalid_edits():
     model = ordered_edit(two_hole_plate()).model
     assert np.all(np.isnan(model.ligament_bounds(model.upper_radii * 1.5)))
 
 
 @pytest.mark.slow
+@pytest.mark.parametrize(
+    "name", ["nist_ftc_07_asme1_rd.stp", "nist_stc_07_asme1_ap242-e3.stp"]
+)
+def test_each_hole_rebuilds_at_its_limit_on_a_part_with_a_large_tolerance(name):
+    # A check envelope landing on a neighboring wall once refused these edits.
+    edit = prepare_hole_edit(nist_solid(name), merge_same_domain=True)
+    model = edit.model
+    for i in range(len(edit.holes)):
+        radii = model.reference_radii.at[i].set(model.upper_radii[i])
+        assert bool(model.is_valid(radii))
+        volume = cad_metrics(edit.rebuild(radii))[0][0]
+        assert volume == pytest.approx(float(model.volume(radii)), rel=1e-6)
+
+
+@pytest.mark.slow
 def test_ligament_bounds_hold_on_an_imported_part():
     edit = prepare_hole_edit(nist_solid("nist_ctc_01_asme1_rd.stp"))
     model = edit.model
-    radii = model.upper_radii
+    radii = (model.reference_radii + model.upper_radii) / 2
     assert bool(model.is_valid(radii))
     bounds = np.asarray(model.ligament_bounds(radii))
     assert np.all(bounds > 0)
