@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/lv416e/brepax/compare/v0.7.0...v0.7.1) (2026-11-06)
+
+
+### Features
+
+* **experimental:** extend hole edits up to contact ([#143](https://github.com/lv416e/brepax/issues/143)) ([172850b](https://github.com/lv416e/brepax/commit/172850bb2402314b8abd1cf65587589757e0865d))
+
 ## [0.7.0](https://github.com/lv416e/brepax/compare/v0.6.2...v0.7.0) (2026-11-06)
 
 
