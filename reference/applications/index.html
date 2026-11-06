@@ -1192,6 +1192,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.shift_lengths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        shift_lengths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.shifts_or_zero" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1580,10 +1591,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#keeping-a-minimum-ligament" class="md-nav__link">
+  <a href="#holes-and-minimum-ligaments" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Keeping a minimum ligament
+        Holes and minimum ligaments
       
     </span>
   </a>
@@ -1667,17 +1678,6 @@
     <span class="md-ellipsis">
       
         face_offset_laws
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#brepax.experimental.applications.dimension_query.hole_radius_laws" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        hole_radius_laws
       
     </span>
   </a>
@@ -3862,6 +3862,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.shift_lengths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        shift_lengths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brepax.experimental.applications.hole_edit.HoleEditModel.shifts_or_zero" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4250,10 +4261,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#keeping-a-minimum-ligament" class="md-nav__link">
+  <a href="#holes-and-minimum-ligaments" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Keeping a minimum ligament
+        Holes and minimum ligaments
       
     </span>
   </a>
@@ -4337,17 +4348,6 @@
     <span class="md-ellipsis">
       
         face_offset_laws
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#brepax.experimental.applications.dimension_query.hole_radius_laws" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        hole_radius_laws
       
     </span>
   </a>
@@ -5549,13 +5549,12 @@ STEP roundtrips, and independent CAD finite-difference references.</p>
 <ul>
 <li>Input must contain one valid outward-oriented solid. Editable holes need a
   complete empty cylindrical bore, two perpendicular outward-facing planar
-  ends, and clearance from other boundaries. Emptiness compares volumes to
-  1e-9 of the bore, so thinner material inside a bore passes recognition; a
-  rebuild refuses to erase it when that changes the whole-solid area by more
-  than 1e-7 relative. Blind, oblique, intersecting and
-  near-boundary holes are rejected. A cylindrical wall split into several
-  faces, such as a STEP exporter's two half-cylinder faces or a coplanar seam
-  splitting it axially, is rejected by default too; pass
+  ends, and clearance from other boundaries. Blind, oblique, intersecting and
+  near-boundary holes are rejected, as are holes with other material resting
+  on an opening's plane, which filling that opening would join. Material inside
+  a bore has to cross that plane, however thin it is. A cylindrical wall split
+  into several faces, such as a STEP exporter's two half-cylinder faces or a
+  coplanar seam splitting it axially, is rejected by default too; pass
   <code>merge_same_domain=True</code> to unify same-domain faces/edges before
   recognition and recover such holes. Unsupported inward cylinders appear in
   <code>edit.rejected</code>; an explicit selection of an unsupported face raises
@@ -5583,12 +5582,20 @@ STEP roundtrips, and independent CAD finite-difference references.</p>
   <code>jax.jit(model.volume)</code> can fail because the bound Equinox model contains
   unhashable arrays. Alternatively, JIT a function taking the model as a PyTree
   argument. Compositions such as the <code>value_and_grad</code> example above also work.</li>
-<li>Radius bounds are <code>[0.5*r0, r0 + 0.2*clearance]</code>. Center shifts and radius
-  growth share that clearance: <code>norm(shift) + max(radius-r0, 0)</code> must not exceed
-  <code>0.2*clearance</code>, even when shrinking a hole. Axial shifts are invalid beyond
-  roundoff (<code>64 * x64_epsilon * r0</code>); the residual is projected out.
-  Invalid edits return NaN metrics under JAX; <code>rebuild</code> raises. Gradients at
-  invalid inputs are undefined.</li>
+<li>Radius bounds are <code>[0.5*r0, r0 + clearance - margin]</code>, where <code>margin</code> is 30
+  CAD tolerances (<code>contact_margin</code>). Center shifts and radius growth share that
+  range: the reach <code>norm(shift) + max(radius-r0, 0)</code> must not exceed
+  <code>clearance - margin</code>, even when shrinking a hole. Two selected holes must also
+  keep <code>margin</code> between them, so the sum of their reaches must not exceed their
+  distance less <code>margin</code>: <code>upper_radii</code> holds one hole at a time, and all holes
+  at their upper radii are generally invalid together. Halfway to those limits,
+  all holes are valid together. Axial shifts are invalid beyond roundoff
+  (<code>64 * x64_epsilon * r0</code>); the residual is projected out. Invalid edits return
+  NaN metrics under JAX; <code>rebuild</code> raises. Gradients at invalid inputs are
+  undefined.</li>
+<li>The range is where the laws stay true, not where a part stays sound: a wall
+  can come down to <code>margin</code>. State the distance you need, through
+  <code>ligament_bounds</code> or <code>hole_ligament_constraints</code>.</li>
 <li>Volume and area are rigid-motion invariant; their radius gradients are too.
   Under positive length scaling <code>s</code>, values scale by <code>s**3</code> and <code>s**2</code>, and
   radius gradients by <code>s**2</code> and <code>s</code>. Centers transform as points;
@@ -5808,10 +5815,17 @@ the CAD: scalar shift gradients rotate as vectors, while the
 center-of-mass shift Jacobian transforms as R<em>J</em>R.T. Under positive unit
 scaling s, volume/area scale by s<strong>3/s</strong>2 and length gradients by s**2/s.
 Center-of-mass length Jacobians do not scale. Centers transform as points.</p>
-<p><code>lower_radii</code>/<code>upper_radii</code> bound radii. Shift magnitude plus positive
-radius growth must not exceed <code>upper_radii - reference_radii</code>. Both use
-the same clearance budget, including when shrinking the hole. Invalid
-edits produce NaN measures; derivatives there are undefined.</p>
+<p><code>lower_radii</code>/<code>upper_radii</code> bound radii one hole at a time: an upper
+radius stops <code>contact_margin</code> short of the nearest feature, with the other
+holes unedited. Each hole's reach, its shift magnitude plus positive radius
+growth, must not exceed <code>upper_radii - reference_radii</code>, including when
+shrinking the hole. Two selected holes must also keep <code>contact_margin</code>
+between them, so their reaches must sum to at most their distance less that
+margin, and all holes at their upper radii are generally invalid together.
+Invalid edits produce NaN measures; derivatives there are undefined.</p>
+<p>This range only keeps the laws true. A wall this thin is rarely a design
+you want: state the distance to keep with <code>ligament_bounds</code>, or with
+:func:<code>~brepax.experimental.applications.dimension_query.hole_ligament_constraints</code>.</p>
 <p><code>fixed_clearance</code> is each hole's distance to every boundary face other
 than its end faces and the selected holes, <code>hole_clearance</code> its distance
 to each selected hole (infinite on the diagonal). Both are in input units;
@@ -5867,7 +5881,7 @@ to each selected hole (infinite on the diagonal). Both are in input units;
 
     <div class="doc doc-contents ">
 
-        <p>Check radius bounds, the shared clearance budget and transversality.</p>
+        <p>Check radius bounds, the reach of each hole and pair, and transversality.</p>
 
 
     </div>
@@ -5896,6 +5910,24 @@ lies radially, and is conservative otherwise: shrinking counts as travel
 because a feature beyond the hole's opening can come closer. It is the
 distance between faces, not a part-wide wall thickness: it says nothing
 about features the selected holes do not face. NaN for invalid edits.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="brepax.experimental.applications.hole_edit.HoleEditModel.shift_lengths" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">shift_lengths</span><span class="p">(</span><span class="n">shifts</span><span class="p">)</span></code>
+
+<a href="#brepax.experimental.applications.hole_edit.HoleEditModel.shift_lengths" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Transverse shift magnitudes, differentiable at the zero-shift default.</p>
 
 
     </div>
@@ -6104,7 +6136,8 @@ rebuilding or STEP serialization.</p>
 <p>Accepts a B-Rep returned by <code>read_step</code>; does not assume a stock primitive
 or a construction history. Each selected inward cylinder must be complete,
 with two perpendicular planar ends and sufficient clearance. Blind,
-oblique, intersecting and near-boundary holes are unsupported. A
+oblique, intersecting and near-boundary holes are unsupported, as are holes
+with other material resting on an opening's plane. A
 cylindrical wall split into several faces, e.g. a STEP exporter's two
 half-cylinder faces or a coplanar seam splitting it axially, is also
 unsupported by default; see <code>merge_same_domain</code>. Rejected inward
@@ -6130,10 +6163,12 @@ input shape, so the IDs line up. <code>rebuild</code> starts from that unified
 working solid; its result can have a different face partition, so take
 face IDs from the rebuilt solid itself. Default is False: face IDs and
 geometry are unaffected.</p>
-<p>Radius bounds are [0.5<em>r0, r0 + 0.2</em>clearance]. Optional transverse center
-shifts share the growth budget: norm(shift) + max(radius-r0, 0) must not
-exceed 0.2*clearance. <code>HoleEditModel.ligament_bounds</code> bounds the remaining
-distances inside this range.
+<p>Radius bounds are [0.5*r0, r0 + clearance - margin], with a margin of 30 CAD
+tolerances. Optional transverse center shifts share the growth budget: the
+reach norm(shift) + max(radius-r0, 0) must not exceed clearance - margin,
+and two selected holes must not reach further than their distance less the
+margin between them. Inside this range the laws hold, however thin the
+remaining walls are; <code>HoleEditModel.ligament_bounds</code> bounds those walls.
 These are local edits, not a topology-changing CAD kernel.</p>
 <p>Raises ValueError for invalid CAD, unsupported selections, or no supported
 holes. OCCT extraction failures propagate. When <code>merge_same_domain</code> is
@@ -6192,7 +6227,9 @@ accurate than the laws above.</p>
   rather than demanding identical triangulations.</li>
 <li><code>mesh.is_valid</code> also rejects collapsed or locally reversed triangles. This
   limits the mesh only: <code>edit.rebuild</code> does not consult it, so an edit the mesh
-  refuses can still rebuild. It is not a general self-intersection certificate.</li>
+  refuses can still rebuild. Because the planar boundary moves only within
+  <code>0.4*clearance</code> of the hole, growing further can reverse triangles there. It
+  is not a general self-intersection certificate.</li>
 <li>Preparation can fail where the edit itself is fine, for example when incident
   faces disagree by more than twice the CAD tolerance.</li>
 </ul>
@@ -6262,7 +6299,9 @@ stays connected. Methods support <code>jit</code>, <code>vmap</code> and paramet
 differentiation; the Boolean validity predicate supports <code>jit</code>/<code>vmap</code>.</p>
 <p><code>is_valid</code> adds to the edit bounds a check that no triangle collapses or
 reverses. It rejects edits of this mesh only: a rejected edit can still
-rebuild, and the check is not a general self-intersection test. Invalid
+rebuild, and the check is not a general self-intersection test. Planar
+samples move only within 0.4*clearance of a hole, so growth past that can
+reverse triangles there, inside the range of the edit itself. Invalid
 edits produce NaN triangles; derivatives there are undefined. Values and
 gradients carry discretization error and depend on the deflection.</p>
 
@@ -6950,11 +6989,14 @@ explicitly unresolved result. Handles come from prepared through-holes
 <a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;optimal_within_tolerance&quot;</span><span class="p">:</span>
 <a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>    <span class="n">edited_shape</span> <span class="o">=</span> <span class="n">edit</span><span class="o">.</span><span class="n">rebuild</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
 </code></pre></div>
-<h3 id="keeping-a-minimum-ligament">Keeping a minimum ligament<a class="headerlink" href="#keeping-a-minimum-ligament" title="Permanent link">&para;</a></h3>
-<p><code>hole_ligament_constraints</code> narrows each radius interval by its distance to
-fixed faces and adds a <code>TravelLimit</code> for selected holes that could otherwise
-come too close, so that any allowed values keep <code>ligament_bounds</code> at or above
-the minimum:</p>
+<h3 id="holes-and-minimum-ligaments">Holes and minimum ligaments<a class="headerlink" href="#holes-and-minimum-ligaments" title="Permanent link">&para;</a></h3>
+<p><code>hole_ligament_constraints</code> gives the radius laws together with a <code>TravelLimit</code>
+for each pair of selected holes that could otherwise meet. Pass both: radius
+intervals alone admit holes that would touch. Without a minimum, the allowed
+values are the radii <code>is_valid</code> accepts, so walls can come down to the contact
+margin. With <code>minimum_ligament</code>, each radius interval also narrows by its
+distance to fixed faces, and any allowed values keep <code>ligament_bounds</code> at or
+above it:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">brepax.experimental.applications.dimension_query</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">hole_ligament_constraints</span><span class="p">,</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">minimal_volume_change</span><span class="p">,</span>
@@ -6968,9 +7010,10 @@ the minimum:</p>
 <a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="p">)</span>
 </code></pre></div>
 <p>Infeasibility then concerns the bound, which can be stricter than the geometry
-where a hole shrinks or moves. Minimum-edge-distance rules stated as a fixed
-length fit this form. Rules stated along a load direction need that direction,
-which a B-Rep does not carry, and are not represented.</p>
+where a hole shrinks or moves. Without a minimum, shrinking a hole does not count
+as travel, because it cannot bring two holes into contact. Minimum-edge-distance
+rules stated as a fixed length fit this form. Rules stated along a load direction
+need that direction, which a B-Rep does not carry, and are not represented.</p>
 <h3 id="contract-and-limits_2">Contract and limits<a class="headerlink" href="#contract-and-limits_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Each handle contributes an exact univariate law: <code>area * offset</code> for a
@@ -7178,7 +7221,8 @@ and volumes use the input CAD's units; <code>weight</code> scales the cost
         <p>Limit on the summed absolute change of two handles named by label.</p>
 <p><code>abs(x - reference)</code> of <code>first</code> plus that of <code>second</code> must not exceed
 <code>limit</code>. Two edited holes keep a ligament this way, because their walls
-approach by at most their combined travel.</p>
+approach by at most their combined travel. With <code>increases_only</code>, a handle
+below its reference counts as no travel: two holes cannot touch by shrinking.</p>
 
 
 
@@ -7269,42 +7313,28 @@ not identify exactly one law.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="brepax.experimental.applications.dimension_query.hole_radius_laws" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">hole_radius_laws</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
-
-<a href="#brepax.experimental.applications.dimension_query.hole_radius_laws" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Volume laws <code>-pi * height * (r**2 - r0**2)</code> of prepared holes.</p>
-<p>Radii range over the prepared radius bounds with zero center shift.</p>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
 <h3 id="brepax.experimental.applications.dimension_query.hole_ligament_constraints" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">hole_ligament_constraints</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="n">minimum_ligament</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">hole_ligament_constraints</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="n">minimum_ligament</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#brepax.experimental.applications.dimension_query.hole_ligament_constraints" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
     <div class="doc doc-contents ">
 
-        <p>Hole radius laws and travel limits that keep a minimum ligament.</p>
-<p>In exact arithmetic, any handle values these allow keep the ligament bound
-at or above <code>minimum_ligament</code> in input units; evaluating
+        <p>Hole radius laws and travel limits for :func:<code>minimal_volume_change</code>.</p>
+<p>Radius intervals alone admit holes that would meet, so pass both results.
+Each pair of selected holes that could otherwise come too close gets a
+:class:<code>TravelLimit</code>.</p>
+<p>By default the allowed values are exactly the radii <code>is_valid</code> accepts:
+they keep the laws true, with walls down to the model's <code>contact_margin</code>.
+Shrinking a hole is then free, since it cannot bring two holes into contact.</p>
+<p>With <code>minimum_ligament</code>, in input units, any allowed values also keep the
+ligament bound at or above it in exact arithmetic; evaluating
 <code>HoleEditModel.ligament_bounds</code> in floats can round it by an ulp. Each
-radius interval narrows by
-its distance to fixed faces, and each pair of selected holes that could
-otherwise come too close gets a :class:<code>TravelLimit</code>. Pass both to
-:func:<code>minimal_volume_change</code>. Infeasibility then concerns that bound, which
-is conservative except where a hole grows toward a radially closest feature.</p>
+radius interval narrows by its distance to fixed faces, and shrinking counts
+as travel, as it does in that bound. Infeasibility then concerns the bound,
+which is conservative except where a hole grows toward a radially closest
+feature.</p>
 <p>Raises ValueError for a negative minimum, or one a hole's bound already
 violates at its reference radius.</p>
 

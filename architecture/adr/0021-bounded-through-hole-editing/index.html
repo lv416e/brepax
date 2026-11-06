@@ -2104,10 +2104,14 @@ volume by <code>-pi h t (2 r0 + t)</code>, the surface area by
 integration, so an unedited model reproduces the CAD measures. Parameters are
 external-unit radii and optional world-coordinate center shifts, with the hole
 axis fixed. Omitting shifts preserves radius-only calls. Transverse projection
-removes numerical axial residuals; materially axial input is rejected. Shift
-magnitude and positive radius growth share the same conservative clearance
-budget. Radius bounds, this budget and transversality alone decide whether an
-edit is supported.</p>
+removes numerical axial residuals; materially axial input is rejected. A hole's
+reach, its shift magnitude plus positive radius growth, must stay 30 CAD
+tolerances short of its clearance, and two selected holes must keep that margin
+between them. Radius bounds, these reach limits and transversality alone decide
+whether an edit is supported. They say where the laws hold, not what wall a part
+needs: callers state that as a minimum ligament (ADR-0023). Recognition refuses
+a hole with other material on an opening's plane, because filling part of the
+opening would join it.</p>
 <p>An optional frozen mesh serves responses that have no law. It is the watertight
 triangulation of ADR-0024, whose shared vertices come from OCCT's edge
 discretizations rather than from coordinate proximity. Radial and transverse
@@ -2127,6 +2131,23 @@ closest pairs moving toward each other) rejected only the 41 deliberately
 out-of-bounds edits. All 1226 others rebuilt and passed an independent check:
 one valid solid, whole-solid volume within 1.8e-7 and area within 2.3e-8
 relative of the laws, and classifier probes at each edited bore.</p>
+<p>Those trials used a smaller range, <code>0.2*clearance</code>. A wall stays clear of every
+other face as long as its reach is below the measured distance, so nothing about
+the laws depends on that fraction, and a measured sweep supports the wider range
+above. With the margin in place, 578 trials through the public API on the same 19
+parts (each hole alone at its limit, all holes at the joint limit or at random
+points scaled to it, the closest pair sharing its distance, and shifts) gave 524
+accepted edits and 54 refusals of deliberately out-of-range edits. All 524 passed
+the same independent check, with probes at every edited bore, volume within
+1.9e-7 and area within 2.3e-8 relative of the laws, and walls as thin as the
+margin; the gate refused no edit inside the range. Another 38 trials did not run
+within a per-part time budget, mostly on the slowest parts. An earlier sweep on 9
+of those parts, moving one hole at a time, held the laws up to 0.99 of the
+clearance, and the rebuild validation refused all 21 edits reaching 1.02.</p>
+<p>The margin comes from that validation. At exactly 10 tolerances, its envelope
+lands on the neighboring wall and it refused correct edits on FTC-07 and STC-07;
+from 10.5 on, it did not. Thirty leaves two neighboring envelopes apart as well,
+rather than tangent.</p>
 <p>Independent OCCT rebuilding fills the selected original cylinders and cuts
 their replacements, with checks
 against isolated-hole volume, area and first-moment changes. The moment check
@@ -2150,8 +2171,9 @@ inside comparison never subtracts the two solids from each other: on NIST
 CTC-05, OCCT returned a "removed" region larger than the whole solid for two
 nearly coincident solids. Whole-solid area must also follow its law to 1e-7
 relative, adaptively integrated: material inside a bore thin enough to pass
-recognition's volume-based emptiness check is erased by the fill, which shows
-in the area and not in the volume or first moment.
+recognition's volume-based emptiness check would be erased by the fill, which
+shows in the area and not in the volume or first moment. Recognition already
+refuses such material where it crosses the opening, so this is a second check.
 Unify connected same-domain faces and edges after the Boolean operations so
 fill seams do not divide the moved hole's end planes and prevent re-editing.
 This preserves unselected geometry, not the original partition into faces.</p>
