@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.7.0](https://github.com/lv416e/brepax/compare/v0.6.2...v0.7.0) (2026-11-06)
+
+
+### Features
+
+* **brep:** add watertight triangulation from OCCT edge topology ([#132](https://github.com/lv416e/brepax/issues/132)) ([1eccb44](https://github.com/lv416e/brepax/commit/1eccb4424ce4cb87325f38a38e27f29b1e375a4d))
+* **contact:** differentiate circular cuts through plate boundaries ([#117](https://github.com/lv416e/brepax/issues/117)) ([ee608ae](https://github.com/lv416e/brepax/commit/ee608ae7c83325fca36367ead3eb600d087296c3))
+* **contact:** evaluate finite translations and budget CAD edits ([#121](https://github.com/lv416e/brepax/issues/121)) ([2bb1a26](https://github.com/lv416e/brepax/commit/2bb1a26aa94d647c75caa59b11b32a9eb9816312))
+* **contact:** evaluate multiple contacts and finite CAD cuts ([#120](https://github.com/lv416e/brepax/issues/120)) ([1c3fc4e](https://github.com/lv416e/brepax/commit/1c3fc4e78f06805d2b5b2c97533cde37ea4721aa))
+* **contact:** evaluate one-sided planar contact volume response ([#118](https://github.com/lv416e/brepax/issues/118)) ([ea99ac0](https://github.com/lv416e/brepax/commit/ea99ac0f31607d97752d12f421cd1a76d5da6327))
+* **contact:** solve target positions and design sensitivities ([#122](https://github.com/lv416e/brepax/issues/122)) ([e9dd6f7](https://github.com/lv416e/brepax/commit/e9dd6f7350c57c6e4fa3c00545b174c1539ff777))
+* **experimental:** accept exact rational vertices in polyhedral translation ([#126](https://github.com/lv416e/brepax/issues/126)) ([e49039f](https://github.com/lv416e/brepax/commit/e49039f446f8750a3082e56bd9544703e3c6fe67))
+* **experimental:** add certified minimal dimension changes ([#138](https://github.com/lv416e/brepax/issues/138)) ([e2f1020](https://github.com/lv416e/brepax/commit/e2f10202f694703ff78774be7f0026bd6c8e91d4))
+* **experimental:** add validated planar face offsets ([#137](https://github.com/lv416e/brepax/issues/137)) ([111cf74](https://github.com/lv416e/brepax/commit/111cf74178c9fcc120ba6d2a5d706a3c5f4c012b))
+* **experimental:** bound hole ligaments and keep them in inverse queries ([#141](https://github.com/lv416e/brepax/issues/141)) ([ded3b3f](https://github.com/lv416e/brepax/commit/ded3b3f7bebf668e6429ef4d977b7f0a96777217))
+* **experimental:** build hole-edit meshes from watertight triangulation ([#135](https://github.com/lv416e/brepax/issues/135)) ([db43aac](https://github.com/lv416e/brepax/commit/db43aaca86041603d91b7880e830b7e048d74634))
+* **experimental:** discover polyhedral event-order boundaries ([#125](https://github.com/lv416e/brepax/issues/125)) ([fe8e4a0](https://github.com/lv416e/brepax/commit/fe8e4a070551a6fbb3472ccf5ccae98f361c8c48))
+* **experimental:** edit STEP through-hole centers ([#112](https://github.com/lv416e/brepax/issues/112)) ([f03630f](https://github.com/lv416e/brepax/commit/f03630f1c61420c258e538c5a4097abca3e123bc))
+* **experimental:** evaluate polyhedral event-order boundaries ([#123](https://github.com/lv416e/brepax/issues/123)) ([53d1fa3](https://github.com/lv416e/brepax/commit/53d1fa3ca2c9badfd4c08dcf773b7c6511eb8aaf))
+* **experimental:** make exact laws primary for hole editing ([#140](https://github.com/lv416e/brepax/issues/140)) ([9870579](https://github.com/lv416e/brepax/commit/987057926ae5cad70fddbe88f13b4b887a905a5c))
+* **experimental:** recognize same-domain-split cylindrical through-holes ([#130](https://github.com/lv416e/brepax/issues/130)) ([8607d63](https://github.com/lv416e/brepax/commit/8607d631c5cdd267b499ac2e8d2e5148d1fb44cf))
+* **experimental:** search bounded polyhedral designs ([#124](https://github.com/lv416e/brepax/issues/124)) ([a4adbba](https://github.com/lv416e/brepax/commit/a4adbba0573947f6df39376a7304f5d1e407ef22))
+
+
+### Bug Fixes
+
+* **brep:** convert periodic B-spline surfaces to clamped form before extraction ([#127](https://github.com/lv416e/brepax/issues/127)) ([47a01db](https://github.com/lv416e/brepax/commit/47a01db04d9e5d53d5688747d1b6caa19e970591))
+* **brep:** restrict OCCT reference properties to solids ([#133](https://github.com/lv416e/brepax/issues/133)) ([f87847b](https://github.com/lv416e/brepax/commit/f87847bf518a8c5aba54821b8867813b96db6f23))
+* **csg:** reject unsupported volume shortcuts ([#115](https://github.com/lv416e/brepax/issues/115)) ([b5744ae](https://github.com/lv416e/brepax/commit/b5744ae0b6e4dc355090b3c90f0e26830df1d0b3))
+* **experimental:** coalesce redundant polyhedral translation knots ([#129](https://github.com/lv416e/brepax/issues/129)) ([d4a9c13](https://github.com/lv416e/brepax/commit/d4a9c13e4d531bbdb9d4dac0c60a96281fc72c84))
+* **experimental:** validate hole rebuilds inside an envelope around the bores ([#136](https://github.com/lv416e/brepax/issues/136)) ([a58e821](https://github.com/lv416e/brepax/commit/a58e821377b68bf68dafd12cc4a6d10df17061a4))
+* **experimental:** validate hole rebuilds through the edited regions ([#128](https://github.com/lv416e/brepax/issues/128)) ([17eab9b](https://github.com/lv416e/brepax/commit/17eab9b185ef646d84b3e5b404c82ddca857321b))
+* **nurbs:** extend B-spline basis past the knot domain ([#134](https://github.com/lv416e/brepax/issues/134)) ([4e73e99](https://github.com/lv416e/brepax/commit/4e73e99e7131483a9dec82d62e68ba0823026eaf))
+
+
+### Documentation
+
+* **adr:** accept validated dimension handles and certified inverse queries ([#131](https://github.com/lv416e/brepax/issues/131)) ([7a44768](https://github.com/lv416e/brepax/commit/7a44768161a723e35645802f4e9e154679c66297))
+* **readme:** simplify installation after 0.6.2 release ([#114](https://github.com/lv416e/brepax/issues/114)) ([6c14dde](https://github.com/lv416e/brepax/commit/6c14dde326a2cc090578b139e624de0502e7159f))
+* **theory:** correct contact derivatives and TOI scope ([#116](https://github.com/lv416e/brepax/issues/116)) ([701bd71](https://github.com/lv416e/brepax/commit/701bd717aa71b094d4943590e701f9764dee7779))
+
+
+### Miscellaneous Chores
+
+* release 0.7.0 ([#142](https://github.com/lv416e/brepax/issues/142)) ([f09778d](https://github.com/lv416e/brepax/commit/f09778d2eba26077bd1b36c5fa66855d2cbe3e03))
+
 ## [0.6.2](https://github.com/lv416e/brepax/compare/v0.6.1...v0.6.2) (2026-10-28)
 
 
